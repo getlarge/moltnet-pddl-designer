@@ -19,6 +19,7 @@ import { createHash } from 'node:crypto';
 import {
   createInlineContext,
   type TaskClient,
+  type SdkTaskAttempt,
   waitForTaskOutcome,
 } from '@themoltnet/tasks-orchestrator';
 
@@ -30,6 +31,7 @@ import {
   type Issue,
   REVIEW_ONLY_CODES,
 } from './check.js';
+import { ClassifyQuestionError } from './decision.js';
 import {
   ActionsResultSchema,
   type Domain,
@@ -37,6 +39,7 @@ import {
   type Problem,
   type ProblemResult,
   ProblemResultSchema,
+  type RefineResult,
   RefineResultSchema,
   TypesResultSchema,
 } from './ir.js';
@@ -68,6 +71,16 @@ import {
   type StageName,
   type StageTaskBody,
 } from './stages.js';
+import {
+  isWarningCandidate,
+  validateWarningThreshold,
+  type WarningDecision,
+  warningFeedback,
+  warningQuestion,
+  type WarningReviewOptions,
+  type WarningReviewRecord,
+  warningVerdict,
+} from './warning-review.js';
 
 export interface StageRecord {
   stage: StageName;
@@ -80,6 +93,8 @@ export interface StageRecord {
   result: unknown;
   issues: Issue[];
   durationMs: number;
+  /** Accepted attempt only; retries remain available through the task API. */
+  usage?: SdkTaskAttempt['usage'];
 }
 
 export type DesignStatus =
@@ -89,10 +104,12 @@ export type DesignStatus =
   | 'invalid'
   | 'failed';
 
+export type DesignFailureStage = StageName | 'warning-review';
+
 export interface DesignRun {
   version: 1;
   status: DesignStatus;
-  failure?: { stage: StageName; reason: string };
+  failure?: { stage: DesignFailureStage; reason: string };
   input: Pick<
     DesignInput,
     | 'description'
@@ -117,6 +134,8 @@ export interface DesignRun {
   review?: Array<PlanReview & { round: number }>;
   /** True when the last review found no shortcuts. */
   reviewPassed?: boolean;
+  /** Advisory judgments before refinement; raw warnings remain in stages. */
+  warningReviews?: WarningReviewRecord[];
   durationMs: number;
 }
 
@@ -128,6 +147,16 @@ export type DesignEvent =
   | { type: 'stage-accepted'; stage: StageName; attempt: number }
   | { type: 'plan-checked'; status: DesignStatus; plan: PlanResult }
   | { type: 'review'; round: number; findings: Issue[] }
+  | {
+      type: 'warning-review-started';
+      after: WarningReviewRecord['after'];
+      candidates: number;
+    }
+  | {
+      type: 'warning-review-result';
+      after: WarningReviewRecord['after'];
+      decision: WarningDecision;
+    }
   | { type: 'finished'; run: DesignRun };
 
 /** A stage result waiting for the reviewer's decision. */
@@ -157,6 +186,8 @@ export interface DesignOptions {
    * accepted and a failing one stops the run as `invalid`.
    */
   confirmStage?: (gate: StageGate) => Promise<StageDecision>;
+  /** Classify semantic warnings on the accepted actions before refinement. */
+  warningReview?: WarningReviewOptions;
   /** Correction tasks allowed per stage after a result fails the checks. */
   maxCorrections?: number;
   pollIntervalSec?: number;
@@ -177,7 +208,7 @@ export interface DesignOptions {
 
 class StageStopped extends Error {
   constructor(
-    readonly stage: StageName,
+    readonly stage: DesignFailureStage,
     readonly status: 'invalid' | 'failed',
     reason: string,
   ) {
@@ -204,6 +235,8 @@ export async function runPddlDesign(
   const maxCorrections = options.maxCorrections ?? 1;
   const pollIntervalSec = options.pollIntervalSec ?? 2;
   const claimTimeoutSec = options.claimTimeoutSec ?? 600;
+  const warningThreshold = options.warningReview?.threshold ?? 0.9;
+  if (options.warningReview) validateWarningThreshold(warningThreshold);
   const ctx = {
     ...createInlineContext(),
     sleepFor: (_name: string, seconds: number) =>
@@ -223,6 +256,7 @@ export async function runPddlDesign(
     },
     stages: [],
     issues: [],
+    ...(options.warningReview ? { warningReviews: [] } : {}),
     durationMs: 0,
   };
 
@@ -298,6 +332,7 @@ export async function runPddlDesign(
         result,
         issues,
         durationMs: Date.now() - stageStart,
+        usage: outcome.result.attempt.usage,
       });
       const errors = () => issues.filter((i) => i.severity === 'error');
       if (hasErrors(issues) && corrections < maxCorrections) {
@@ -417,16 +452,98 @@ export async function runPddlDesign(
         seed,
       );
     let draft = await runActions();
-    const runRefine = (seed?: Correction) =>
-      stage(
+    const runRefine = async (seed?: Correction) => {
+      // Final review may refine a later model rather than the original draft.
+      const source = seed ? (seed.previous as RefineResult) : draft.result;
+      const sourceStage = seed ? 'refine' : 'actions';
+      const sourceRecord = run.stages
+        .filter((s) => s.stage === sourceStage)
+        .at(-1)!;
+      const rawIssues = seed
+        ? checkActions(
+            types.result.types,
+            predicates.result.predicates,
+            source.actions,
+          )
+        : draft.issues;
+      let findings = reviewOnly(rawIssues);
+      if (options.warningReview) {
+        const candidates = rawIssues.filter(isWarningCandidate);
+        // Candidate warnings are replaced by supported feedback, not silently
+        // promoted to errors. The originals stay in the accepted stage record.
+        findings = findings.filter((issue) => !isWarningCandidate(issue));
+        if (candidates.length) {
+          const started = Date.now();
+          const assessment: WarningReviewRecord = {
+            after: { stage: sourceStage, attempt: sourceRecord.attempt },
+            threshold: warningThreshold,
+            decisions: [],
+            durationMs: 0,
+          };
+          run.warningReviews!.push(assessment);
+          emit({
+            type: 'warning-review-started',
+            after: assessment.after,
+            candidates: candidates.length,
+          });
+          try {
+            for (const issue of candidates) {
+              const question = warningQuestion(issue);
+              try {
+                const answer = await options.warningReview.questions.ask(
+                  {
+                    process: input.description,
+                    domain: {
+                      name: input.domainName,
+                      types: types.result.types,
+                      predicates: predicates.result.predicates,
+                      actions: source.actions,
+                    },
+                    warning: issue,
+                  },
+                  question,
+                );
+                const decision: WarningDecision = {
+                  ...answer,
+                  issue,
+                  question,
+                  verdict: warningVerdict(answer.probability, warningThreshold),
+                };
+                assessment.decisions.push(decision);
+                emit({
+                  type: 'warning-review-result',
+                  after: assessment.after,
+                  decision,
+                });
+                if (decision.verdict === 'confirmed')
+                  findings.push(warningFeedback(decision));
+              } catch (error) {
+                const reason =
+                  error instanceof Error ? error.message : String(error);
+                assessment.failure = {
+                  issue,
+                  reason,
+                  ...(error instanceof ClassifyQuestionError
+                    ? { taskId: error.taskId }
+                    : {}),
+                };
+                throw new StageStopped('warning-review', 'failed', reason);
+              }
+            }
+          } finally {
+            assessment.durationMs = Date.now() - started;
+          }
+        }
+      }
+      return stage(
         'refine',
         (n, c) =>
           buildRefineTask(
             input,
             types.result,
             predicates.result,
-            draft.result.actions,
-            reviewOnly(draft.issues),
+            source.actions,
+            findings,
             n,
             c,
           ),
@@ -441,6 +558,7 @@ export async function runPddlDesign(
         ],
         seed,
       );
+    };
     let refined = await runRefine();
 
     let problemResult: ProblemResult | undefined;

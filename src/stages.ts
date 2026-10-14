@@ -222,7 +222,7 @@ export function buildRefineTask(
       'Predicates:\n' + json(predicates.predicates),
       'Draft actions:\n' + json(draft),
       findings.length
-        ? 'Deterministic checks on the draft found the following. Errors must be fixed. Warnings are hints: apply one only when the description supports it, and say so in changes.\n' +
+        ? 'Checks on the draft found the following. Errors must be fixed. Warnings, including classifier-supported findings, are advisory: apply one only when the description supports it and existing predicates can express the fix, and say so in changes. Name any unresolved finding in changes.\n' +
           findings
             .map((i) => `- [${i.severity}] ${i.path}: ${i.message}`)
             .join('\n')

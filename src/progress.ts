@@ -28,6 +28,10 @@ export function formatEvent(event: DesignEvent): string | undefined {
         : `plan: ${event.status}`;
     case 'review':
       return `review round ${event.round}: ${event.findings.length} finding(s)`;
+    case 'warning-review-started':
+      return `warning review after ${event.after.stage} #${event.after.attempt}: ${event.candidates} question(s)`;
+    case 'warning-review-result':
+      return `warning review ${event.decision.issue.path}: ${event.decision.verdict} (p=${event.decision.probability}, task ${event.decision.taskId})`;
     case 'finished':
       return undefined;
   }

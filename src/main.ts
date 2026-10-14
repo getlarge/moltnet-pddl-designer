@@ -5,15 +5,19 @@ import { parseArgs } from 'node:util';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
-import { createClassifyDecisionClient } from './decision.js';
+import {
+  createClassifyDecisionClient,
+  createClassifyQuestionClient,
+} from './decision.js';
 import { buildTypesTask, type DesignInput } from './stages.js';
 import { formatEvent } from './progress.js';
 import { runPddlDesign } from './workflow.js';
+import { validateWarningThreshold } from './warning-review.js';
 
 const USAGE =
   'Usage: pddl-designer --description FILE --problem FILE [--domain-name NAME --problem-name NAME] ' +
   '[--team UUID --diary UUID --profile NAME|ID --correlation UUID --project UUID] [--out FILE] [--max-corrections N] ' +
-  '[--review --classify-profile NAME|ID [--review-threshold 0.9]] [--claim-timeout SEC] [--dry-run]';
+  '[--review] [--warning-review] [--classify-profile NAME|ID --review-threshold 0.9] [--claim-timeout SEC] [--dry-run]';
 
 export async function main(argv = process.argv.slice(2)) {
   const { values } = parseArgs({
@@ -31,6 +35,7 @@ export async function main(argv = process.argv.slice(2)) {
       out: { type: 'string' },
       'max-corrections': { type: 'string', default: '1' },
       review: { type: 'boolean', default: false },
+      'warning-review': { type: 'boolean', default: false },
       'claim-timeout': { type: 'string', default: '600' },
       'classify-profile': { type: 'string' },
       'review-threshold': { type: 'string', default: '0.9' },
@@ -63,6 +68,21 @@ export async function main(argv = process.argv.slice(2)) {
   )
     throw new Error('--max-corrections must be an integer from 0 to 3');
 
+  if (
+    (values.review || values['warning-review']) &&
+    !values['classify-profile']
+  )
+    throw new Error(
+      '--review and --warning-review need --classify-profile\n' + USAGE,
+    );
+  const threshold = Number(values['review-threshold']);
+  if (!(threshold > 0 && threshold < 1))
+    throw new Error('--review-threshold must be between 0 and 1');
+  if (values['warning-review']) validateWarningThreshold(threshold);
+  const claimTimeoutSec = Number(values['claim-timeout']);
+  if (!Number.isInteger(claimTimeoutSec) || claimTimeoutSec < 0)
+    throw new Error('--claim-timeout must be a non-negative integer (seconds)');
+
   const agent = await connect();
   const { items } = await agent.runtimeProfiles.list({ teamId: values.team });
   const profileId = (ref: string) => {
@@ -71,15 +91,14 @@ export async function main(argv = process.argv.slice(2)) {
     return found.id;
   };
   input.profileId = profileId(values.profile);
-  if (values.review && !values['classify-profile'])
-    throw new Error('--review needs --classify-profile\n' + USAGE);
-
-  const threshold = Number(values['review-threshold']);
-  if (!(threshold > 0 && threshold < 1))
-    throw new Error('--review-threshold must be between 0 and 1');
-  const claimTimeoutSec = Number(values['claim-timeout']);
-  if (!Number.isInteger(claimTimeoutSec) || claimTimeoutSec < 0)
-    throw new Error('--claim-timeout must be a non-negative integer (seconds)');
+  const classifyOptions = () => ({
+    teamId: input.teamId,
+    diaryId: input.diaryId,
+    ...(input.projectId ? { projectId: input.projectId } : {}),
+    correlationId: input.correlationId,
+    profileId: profileId(values['classify-profile'] ?? ''),
+    claimTimeoutSec,
+  });
   const tasks = createSdkTaskClient(agent);
   const run = await runPddlDesign(tasks, input, {
     maxCorrections,
@@ -92,13 +111,17 @@ export async function main(argv = process.argv.slice(2)) {
       ? {
           review: {
             threshold,
-            decisions: createClassifyDecisionClient(tasks, {
-              teamId: input.teamId,
-              diaryId: input.diaryId,
-              ...(input.projectId ? { projectId: input.projectId } : {}),
-              correlationId: input.correlationId,
-              profileId: profileId(values['classify-profile'] ?? ''),
-              claimTimeoutSec,
+            decisions: createClassifyDecisionClient(tasks, classifyOptions()),
+          },
+        }
+      : {}),
+    ...(values['warning-review']
+      ? {
+          warningReview: {
+            threshold,
+            questions: createClassifyQuestionClient(tasks, {
+              ...classifyOptions(),
+              purpose: 'warning-review',
             }),
           },
         }
@@ -112,6 +135,9 @@ export async function main(argv = process.argv.slice(2)) {
       (run.plan?.status === 'found'
         ? ` plan=${run.plan.steps.length} steps`
         : '') +
+      (run.warningReviews === undefined
+        ? ''
+        : ` warning-reviews=${run.warningReviews.length}`) +
       (run.reviewPassed === undefined
         ? ''
         : ` review=${run.reviewPassed ? 'passed' : 'findings'} rounds=${run.review?.length ?? 0}`) +

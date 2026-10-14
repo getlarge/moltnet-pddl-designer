@@ -231,12 +231,13 @@ export function permanentFacts(
     .filter(
       (p) => added.has(p.name) && required.has(p.name) && !deleted.has(p.name),
     )
-    .map((p) =>
-      warn(
+    .map((p) => ({
+      ...warn(
         `predicates/${p.name}`,
         `no action deletes ${p.name}: once added it stays true. Fine for a permanent milestone; a problem if a later step should not be able to reuse it`,
       ),
-    );
+      code: 'permanent-fact',
+    }));
 }
 
 export function checkProblem(

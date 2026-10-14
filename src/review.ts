@@ -9,7 +9,7 @@
  * "required by the description" and "skippable by the planner" is a shortcut.
  */
 import type { Issue } from './check.js';
-import type { DecisionClient } from './decision.js';
+import type { DecisionClient, QuestionResult } from './decision.js';
 import type { Domain, Problem } from './ir.js';
 import {
   DEFAULT_LIMITS,
@@ -26,6 +26,8 @@ export interface ReviewOptions {
 }
 
 export interface PlanReview extends ForcedAnalysis {
+  /** Task evidence when the decision client exposes it. */
+  classifications?: Record<string, QuestionResult>;
   /** Decision-model probability that each skippable step is required. */
   required: Record<string, number>;
   findings: Issue[];
@@ -46,11 +48,22 @@ export async function reviewPlan(
   const required: Record<string, number> = {};
   const findings: Issue[] = [];
   const byName = new Map(domain.actions.map((a) => [a.name, a]));
+  const classifications: Record<string, QuestionResult> = {};
 
   if (options.decisions) {
     for (const name of analysis.skippable) {
       const action = byName.get(name);
-      const p = await options.decisions.yesNo(
+      const ask = options.decisions.ask
+        ? async (
+            state: Record<string, unknown>,
+            question: Parameters<DecisionClient['yesNo']>[1],
+          ) => {
+            const result = await options.decisions!.ask!(state, question);
+            classifications[name] = result;
+            return result.probability;
+          }
+        : options.decisions.yesNo.bind(options.decisions);
+      const p = await ask(
         {
           process: texts.description,
           situation: texts.situation,
@@ -89,5 +102,10 @@ export async function reviewPlan(
       message: `${shared.items.join(' and ')} can each reach their goal without their own ${shared.action}: one item's result serves the others. Make what ${shared.action} adds (${adds.join(', ') || 'nothing'}) name the item, and require that item-specific fact in the step that completes the item.`,
     });
   }
-  return { ...analysis, required, findings };
+  return {
+    ...analysis,
+    required,
+    findings,
+    ...(Object.keys(classifications).length ? { classifications } : {}),
+  };
 }
