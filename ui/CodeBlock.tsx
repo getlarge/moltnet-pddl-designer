@@ -13,7 +13,7 @@ export function CodeBlock({
   const tokens = useMemo(() => {
     const pattern =
       language === 'json'
-        ? /"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[{}\[\]:,]/g
+        ? /"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[{}[\]:,]/g
         : /;[^\r\n]*|:[\w-]+|\?[\w-]+|\b(?:define|domain|problem|and|or|not|when|exists|forall|imply)\b|[()]|\b\d+(?:\.\d+)?\b/gi;
     const result: Array<{ text: string; kind?: string }> = [];
     let end = 0;
