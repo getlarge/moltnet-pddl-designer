@@ -1,0 +1,35 @@
+{
+  "actor_type": "worker",
+  "global_order": [],
+  "items": ["ticket-1", "ticket-2"],
+  "order": [["claim", "finish"]],
+  "produced_types": [],
+  "steps": [
+    { "id": "claim", "match": "claim" },
+    { "id": "finish", "match": "finish|complete" }
+  ],
+  "warningLabels": [
+    {
+      "code": "unlinked-parameters",
+      "defect": true,
+      "message": "appears in no precondition",
+      "path": "actions/.*claim"
+    },
+    {
+      "code": "unlinked-parameters",
+      "defect": false,
+      "message": "no precondition links",
+      "path": "actions/.*claim"
+    },
+    {
+      "code": "unlinked-parameters",
+      "defect": true,
+      "path": "actions/.*(finish|complete)"
+    },
+    {
+      "code": "permanent-fact",
+      "defect": true,
+      "path": "predicates/.*(claim|free|idle|ready)"
+    }
+  ]
+}

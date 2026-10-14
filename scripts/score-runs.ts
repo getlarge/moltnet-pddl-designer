@@ -32,6 +32,8 @@ interface StepRule {
   exclude?: string;
 }
 interface Required {
+  /** Bounds on repeated work, e.g. one fresh inspection per processed item. */
+  counts?: Array<{ match: string; minimum: number; maximum?: number }>;
   items: string[];
   steps: StepRule[];
   forbidden?: string;
@@ -81,6 +83,19 @@ export function scoreRun(
   const matches = (rule: StepRule, action: string) =>
     new RegExp(rule.match, 'i').test(action) &&
     !(rule.exclude && new RegExp(rule.exclude, 'i').test(action));
+
+  for (const rule of req.counts ?? []) {
+    const count = steps.filter((s) =>
+      new RegExp(rule.match, 'i').test(s.action),
+    ).length;
+    if (
+      count < rule.minimum ||
+      (rule.maximum !== undefined && count > rule.maximum)
+    )
+      reasons.push(
+        `${rule.match}: ${count} occurrences, expected ${rule.minimum}..${rule.maximum ?? 'unbounded'}`,
+      );
+  }
 
   if (req.forbidden) {
     const re = new RegExp(req.forbidden, 'i');

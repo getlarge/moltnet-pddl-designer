@@ -1,0 +1,17 @@
+{
+  "actor_type": null,
+  "counts": [{ "match": "inspect", "minimum": 2 }],
+  "global_order": [],
+  "items": ["parcel-1", "parcel-2"],
+  "order": [],
+  "produced_types": [],
+  "steps": [{ "id": "process", "match": "process" }],
+  "warningLabels": [
+    { "code": "unlinked-parameters", "defect": false, "path": "actions/" },
+    {
+      "code": "permanent-fact",
+      "defect": true,
+      "path": "predicates/.*(inspect|fresh|idle|ready)"
+    }
+  ]
+}

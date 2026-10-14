@@ -1,0 +1,13 @@
+{
+  "actor_type": null,
+  "counts": [{ "match": "certif", "maximum": 1, "minimum": 1 }],
+  "global_order": [],
+  "items": ["parcel-1", "parcel-2"],
+  "order": [],
+  "produced_types": [],
+  "steps": [{ "id": "process", "match": "process" }],
+  "warningLabels": [
+    { "code": "unlinked-parameters", "defect": false, "path": "actions/" },
+    { "code": "permanent-fact", "defect": false, "path": "predicates/.*certif" }
+  ]
+}

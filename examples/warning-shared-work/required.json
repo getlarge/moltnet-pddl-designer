@@ -1,0 +1,19 @@
+{
+  "actor_type": null,
+  "global_order": [],
+  "items": ["ticket-1", "ticket-2"],
+  "order": [["claim", "finish"]],
+  "produced_types": [],
+  "steps": [
+    { "id": "claim", "match": "claim" },
+    { "id": "finish", "match": "finish|complete" }
+  ],
+  "warningLabels": [
+    { "code": "unlinked-parameters", "defect": false, "path": "actions/" },
+    {
+      "code": "permanent-fact",
+      "defect": true,
+      "path": "predicates/.*(claim|ready)"
+    }
+  ]
+}
