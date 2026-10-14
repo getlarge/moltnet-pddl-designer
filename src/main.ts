@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
 import { connect } from '@themoltnet/sdk/node';
-import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
+import { createTeamTaskClient } from './task-client.js';
 
 import { createClassifyDecisionClient } from './decision.js';
 import { buildTypesTask, type DesignInput } from './stages.js';
@@ -97,7 +97,7 @@ export async function main(argv = process.argv.slice(2)) {
   const claimTimeoutSec = Number(values['claim-timeout']);
   if (!Number.isInteger(claimTimeoutSec) || claimTimeoutSec < 0)
     throw new Error('--claim-timeout must be a non-negative integer (seconds)');
-  const tasks = createSdkTaskClient(agent);
+  const tasks = createTeamTaskClient(agent.tasks, input.teamId);
   const run = await runPddlDesign(tasks, input, {
     maxCorrections,
     claimTimeoutSec,

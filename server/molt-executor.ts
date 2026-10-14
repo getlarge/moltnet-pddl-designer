@@ -1,5 +1,5 @@
 import { connect } from '@themoltnet/sdk/node';
-import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
+import { createTeamTaskClient } from '../src/task-client.js';
 import { runPddlDesign } from '../src/workflow.js';
 import type { Execute } from './run-service.js';
 
@@ -34,5 +34,9 @@ export const moltExecute: Execute = async (input, options) => {
   const resolved = options.ctx
     ? await options.ctx.step('profiles.resolve', resolve)
     : await resolve();
-  return runPddlDesign(createSdkTaskClient(agent), resolved, options);
+  return runPddlDesign(
+    createTeamTaskClient(agent.tasks, input.teamId),
+    resolved,
+    options,
+  );
 };
