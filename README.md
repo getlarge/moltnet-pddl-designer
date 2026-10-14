@@ -146,6 +146,16 @@ the run as `invalid`, as before.
 - The built-in planner is a checker for small models. Its default limits are 20,000 concrete actions and 100,000 states. For larger models, or for optimal plans, give the rendered PDDL to Fast Downward.
 - The output contract cannot carry `pattern`, so naming rules are checked by the stage parsers after the daemon accepts a result. A naming error fails that stage's task outcome; it does not trigger a correction.
 
+## Source-grounding pilot
+
+To test whether generated action prerequisites/effects agree with the original
+process, start with the [eight-case source-grounding pilot](docs/source-grounding-pilot.md).
+It previews exact Choice requests locally, then optionally runs at most eight
+classification tasks with no generation calls or automatic repairs. Unlike the
+warning comparison, it contains actual contradicted translations and cases where
+the source leaves a rule unspecified. This standalone pilot is not yet a wizard
+setting and does not change the existing warning-review behavior.
+
 ## Runtime profiles
 
 `runtime/profiles/legreffier-pddl-designer-v1.json` is input-only. It

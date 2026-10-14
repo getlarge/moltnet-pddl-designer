@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "observedAt": "2026-10-14",
+  "requestHash": "e433b6a0b400d4a86d6b287ab0e72f64a586b00eb99ab93876c26b36fc3e268a",
+  "model": {
+    "provider": "typesafe",
+    "model": "jev-latest"
+  },
+  "profileRevision": 1,
+  "scope": "Eight fixed, synthetic field-grounding cases, one attempt each. No generation, complete-process coverage, repair evaluation, or calibration claim.",
+  "usage": {
+    "inputTokens": 5796,
+    "outputTokens": 393
+  },
+  "rows": [
+    {
+      "id": "case-01",
+      "question": "claim_1",
+      "expected": "supported",
+      "actual": "supported",
+      "correct": true,
+      "probabilities": {
+        "supported": 1,
+        "contradicted": 0,
+        "not_established": 0
+      },
+      "confidence": 1,
+      "expectedReason": "The ownership prerequisite is explicitly required.",
+      "taskId": "a2baf149-e5a3-49ec-b1db-639ecc95bbaf",
+      "durationMs": 3633
+    },
+    {
+      "id": "case-02",
+      "question": "claim_1",
+      "expected": "contradicted",
+      "actual": "contradicted",
+      "correct": true,
+      "probabilities": {
+        "supported": 0,
+        "contradicted": 1,
+        "not_established": 0
+      },
+      "confidence": 1,
+      "expectedReason": "The source requires the missing ownership prerequisite.",
+      "taskId": "f5631f1f-5c97-4798-ad38-b47299fdc2de",
+      "durationMs": 3390
+    },
+    {
+      "id": "case-03",
+      "question": "claim_1",
+      "expected": "supported",
+      "actual": "supported",
+      "correct": true,
+      "probabilities": {
+        "supported": 0.99,
+        "contradicted": 0.01,
+        "not_established": 0
+      },
+      "confidence": 0.98,
+      "expectedReason": "The source explicitly consumes the inspection.",
+      "taskId": "3c87b99c-9f4b-4760-a5ed-615691a8effb",
+      "durationMs": 3250
+    },
+    {
+      "id": "case-04",
+      "question": "claim_1",
+      "expected": "contradicted",
+      "actual": "contradicted",
+      "correct": true,
+      "probabilities": {
+        "supported": 0.03,
+        "contradicted": 0.96,
+        "not_established": 0.01
+      },
+      "confidence": 0.94,
+      "expectedReason": "Retaining the inspection contradicts its required consumption.",
+      "taskId": "28b0b45d-251a-46e0-b7e2-3805e91377a5",
+      "durationMs": 4294
+    },
+    {
+      "id": "case-05",
+      "question": "claim_1",
+      "expected": "contradicted",
+      "actual": "contradicted",
+      "correct": true,
+      "probabilities": {
+        "supported": 0,
+        "contradicted": 1,
+        "not_established": 0
+      },
+      "confidence": 1,
+      "expectedReason": "Deleting certification contradicts permanence.",
+      "taskId": "a80900aa-d07c-422b-b22d-7993bb59afbd",
+      "durationMs": 4271
+    },
+    {
+      "id": "case-06",
+      "question": "claim_1",
+      "expected": "supported",
+      "actual": "supported",
+      "correct": true,
+      "probabilities": {
+        "supported": 1,
+        "contradicted": 0,
+        "not_established": 0
+      },
+      "confidence": 1,
+      "expectedReason": "Leaving certification intact preserves the source rule.",
+      "taskId": "175e5715-9fc7-416b-9670-d53d5d4b9c72",
+      "durationMs": 4281
+    },
+    {
+      "id": "case-07",
+      "question": "claim_1",
+      "expected": "not_established",
+      "actual": "not_established",
+      "correct": true,
+      "probabilities": {
+        "supported": 0.01,
+        "contradicted": 0,
+        "not_established": 0.99
+      },
+      "confidence": 0.98,
+      "expectedReason": "The source does not establish an ownership prerequisite.",
+      "taskId": "c8f81739-1071-4f1a-a709-f5d31633d972",
+      "durationMs": 2147
+    },
+    {
+      "id": "case-08",
+      "question": "claim_1",
+      "expected": "not_established",
+      "actual": "not_established",
+      "correct": true,
+      "probabilities": {
+        "supported": 0.19,
+        "contradicted": 0.01,
+        "not_established": 0.8
+      },
+      "confidence": 0.7,
+      "expectedReason": "The source does not establish that ownership is unnecessary either.",
+      "taskId": "8327d2e2-16c7-4bba-98cd-94d8640cf6d9",
+      "durationMs": 3277
+    }
+  ]
+}
