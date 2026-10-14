@@ -365,4 +365,5 @@ repository's explicit `.secretlintignore` instead of inherited Git ignore rules;
 dependencies, generated output, screenshots, and local runtime state are excluded.
 For a deliberate fake credential in a fixture, use a rule-scoped
 `secretlint-disable-next-line` comment with an explanation; do not disable the
-scanner for the whole test directory. These tools require Node 22.13 or newer.
+scanner for the whole test directory. Use Node 24.14.1 or newer, matching the
+minimum version in `package.json`.
