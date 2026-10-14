@@ -221,6 +221,9 @@ export function App() {
   const key = stage === 'refine' ? 'actions' : stage;
   const marks = (Array.isArray(result[key]) ? result[key] : []) as unknown[];
   const gate = snapshot?.gate;
+  const gateId = gate?.id;
+  const gateStage = gate?.stage;
+  const hasPlan = !!snapshot?.run?.plan;
   const isGate = gate?.stage === stage;
   const findings = isGate ? gate.issues : (record?.issues ?? []);
   const ownsFinding = (name: string, finding: Issue) =>
@@ -353,8 +356,8 @@ export function App() {
     };
   }, [snapshot?.id]);
   useEffect(() => {
-    if (gate) {
-      setStage(gate.stage);
+    if (gateId && gateStage) {
+      setStage(gateStage);
       setEditor(false);
       setGateMode(undefined);
       setNote('');
@@ -362,13 +365,13 @@ export function App() {
         .querySelector<HTMLElement>('.gate-summary')
         ?.focus({ preventScroll: true });
     }
-  }, [gate?.id]);
+  }, [gateId, gateStage]);
   useEffect(() => {
-    if (snapshot?.state === 'finished' && snapshot.run?.plan) {
+    if (snapshot?.state === 'finished' && hasPlan) {
       setStage('plan');
       setEditor(false);
     }
-  }, [snapshot?.state]);
+  }, [snapshot?.state, hasPlan]);
   useEffect(() => {
     setSelectedMark('');
     setSelectedLine(undefined);

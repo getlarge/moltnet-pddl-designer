@@ -53,7 +53,7 @@ describe('local wizard API', () => {
     });
   async function awaiting(id: string): Promise<RunSnapshot> {
     let snapshot: RunSnapshot;
-    do {
+    for (;;) {
       snapshot = (await (
         await fetch(base + `runs/${id}`)
       ).json()) as RunSnapshot;
@@ -64,7 +64,7 @@ describe('local wizard API', () => {
       )
         return snapshot;
       await new Promise((r) => setTimeout(r, 5));
-    } while (true);
+    }
   }
   it('rejects cross-origin writes and non-JSON requests', async () => {
     expect(
