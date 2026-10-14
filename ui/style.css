@@ -1566,10 +1566,6 @@ td:first-child {
 .source-check-preview {
   margin-block: 20px;
 }
-.source-check blockquote {
-  white-space: pre-wrap;
-  margin-inline: 0;
-}
 @media (max-width: 500px) {
   .source-check-flow {
     grid-template-columns: 1fr;

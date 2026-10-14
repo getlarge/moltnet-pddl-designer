@@ -61,7 +61,7 @@ describe('source-grounded action judgments', () => {
       'not_established',
     );
     expect(request.questions.claim_1.instructions).toContain(
-      'Only state.source is authoritative',
+      'Only state.source and state.situation provide evidence',
     );
   });
   it('states a delete effect as a world-state transition, with related action context', () => {
@@ -89,6 +89,20 @@ describe('source-grounded action judgments', () => {
       'ordinary meanings',
     );
     expect(request.state.predicates).toHaveProperty('held-by-arm');
+  });
+  it('includes the situation as concrete context without treating starting facts as universal rules', () => {
+    const situation =
+      'Blocks a, b and c start on the table and the arm is empty. Build a tower.';
+    const request = buildGroundingRequest(
+      'An arm moves blocks.',
+      blocksDomain,
+      [target],
+      situation,
+    );
+    expect(request.state.situation).toBe(situation);
+    expect(request.questions.claim_1.instructions).toContain(
+      'without turning its starting facts into rules for every execution',
+    );
   });
   it('rejects invalid participants, duplicates and oversized batches before dispatch', () => {
     expect(() =>

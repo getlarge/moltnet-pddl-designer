@@ -296,8 +296,8 @@ export function SourceCheck({
               rules
             </h4>
             <p className="small">
-              This request, source and task record apply to every judgment
-              above, across all checked actions.
+              This request and task record apply to every judgment above, across
+              all checked actions.
             </p>
             <details>
               <summary>
@@ -312,10 +312,6 @@ export function SourceCheck({
                 language="json"
                 label="Complete source-check evidence"
               />
-            </details>
-            <details>
-              <summary>Source used for all checked rules</summary>
-              <blockquote>{String(active.input.state.source)}</blockquote>
             </details>
             {active.usage && (
               <p className="small">

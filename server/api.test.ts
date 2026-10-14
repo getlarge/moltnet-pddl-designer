@@ -304,6 +304,7 @@ describe('local wizard API', () => {
       })
     ).json()) as { input: import('@themoltnet/sdk').ClassifyInput };
     expect(preview.input.state.source).toBe(input.description);
+    expect(preview.input.state.situation).toBe(input.problemDescription);
     expect(Object.keys(preview.input.questions)).toHaveLength(1);
     expect(
       ((await (await fetch(base + `runs/${started.id}`)).json()) as RunSnapshot)

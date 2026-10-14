@@ -104,6 +104,7 @@ export class Session {
       this.snapshot.input.description,
       domain,
       targets,
+      this.snapshot.input.problemDescription,
     );
   }
   async checkSource(

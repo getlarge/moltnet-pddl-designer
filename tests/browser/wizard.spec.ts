@@ -518,8 +518,13 @@ test('source check previews requests and informs the Actions review decision', a
   });
   await expect(shared).toContainText('Shared evidence for all 3 checked rules');
   await expect(
-    shared.getByText('Source used for all checked rules', { exact: true }),
+    shared.getByText('Exact request and raw response — all checked rules', {
+      exact: true,
+    }),
   ).toBeVisible();
+  await expect(
+    panel.getByText('Source used for all checked rules', { exact: true }),
+  ).toHaveCount(0);
   await expect(
     panel
       .locator('.source-check-result')

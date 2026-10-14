@@ -81,7 +81,7 @@ and gates. The problem is reused only while it remains valid for the new domain.
 
 At the **Actions review gate**, expand **Compare actions with your description**
 and select the rules you want checked. **Preview source check** constructs the
-exact request locally: your original description, the selected prerequisites or
+exact request locally: your original process description and situation, the selected prerequisites or
 effects, the complete selected actions, related predicate definitions and typed
 participants, and a question per rule. It creates no task. Enter a **Classification profile name or ID** and
 choose **Run source check** to submit one `classify` task for up to 20 rules.
