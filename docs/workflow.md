@@ -63,3 +63,38 @@ generation result passes schema and static checks. Automatic corrections are
 bounded by `maxCorrections`; `confirmStage`, when supplied, can accept a valid
 result, edit and recheck it, request a feedback task, or abort. Classification
 cannot waive these checks. Early review has no separate semantic retry loop.
+
+## Wizard flow (built on PR #3)
+
+```mermaid
+flowchart TD
+    Setup["Expert writes process + situation"] --> OptIn{"Enable optional warning assessment?"}
+    OptIn -->|Yes| Profile["Choose classification profile<br/>Separate worker serves classify tasks"]
+    OptIn -->|No| Generate
+    Profile --> Generate["Generate types, facts, draft actions<br/>Expert reviews each stage"]
+    Generate --> Gate["Expert edits and passes Actions"]
+    Gate --> Candidates{"Assessment enabled<br/>and candidate warnings exist?"}
+    Candidates -->|No| Refine["Generate Refinement"]
+    Candidates -->|Yes| Classify["Paid classify tasks<br/>Original description + accepted model + warning"]
+    Classify --> Evidence["Display warning, exact question, criteria,<br/>probability, task ID and reported usage"]
+    Evidence --> Route{"Probability of defect"}
+    Route -->|At least 90%| Feedback["Add targeted repair feedback"]
+    Route -->|10% or less| Keep["Dismiss warning; no targeted repair"]
+    Route -->|Between 10% and 90%| Uncertain["Record uncertainty; no targeted repair"]
+    Feedback --> Refine
+    Keep --> Refine
+    Uncertain --> Refine
+    Refine --> Expert["Expert reviews Refinement<br/>Accept, edit, return with note, or stop"]
+    Expert --> Plan["Review situation + local plan walkthrough"]
+    Plan --> Save["Save proof with assessment evidence"]
+    Save --> Edit["Offline model edits invalidate old assessments<br/>No model calls"]
+```
+
+Classification is a run setting, not an extra approval stamp. It runs only after
+an accepted action model, and it cannot waive a blocking static error. This UI
+exposes early warning assessment; final plan review remains a separate CLI/library
+option. Failure retains partial answers and identifies the warning-review stage.
+
+See [Decision models](decision-models.md) for the exact payload construction and
+possible next designs. The narrower questions described there are proposals,
+not the questions used by the completed benchmark.

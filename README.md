@@ -249,6 +249,18 @@ improved pass rates beyond run-to-run noise.
 
 ### Early warning review (experimental, optional)
 
+In the wizard, enable **Assess action warnings against my description** before
+starting a proof and choose a separate **Classification profile name or ID**.
+It is off by default. After you pass Actions (including edits), candidate warnings
+create paid `classify` tasks before Refinement. No candidates means no tasks.
+The warning-assessment panel in Actions, Refinement, and Plan shows each question,
+yes/no criteria, probability, task ID, elapsed time, and usage when reported.
+Saving preserves these historical judgments; editing the types, facts, or actions
+invalidates them. An offline edit never starts a classification task.
+
+Read [Decision models in this workflow](docs/decision-models.md) for the request
+format, a worked example, current evidence limits, and official learning resources.
+
 `--warning-review --classify-profile <profile>` classifies two kinds of draft
 warnings **before refinement**: unlinked action parameters and facts that no
 action deletes. The question is whether the original process establishes a
