@@ -27,6 +27,99 @@ declared no objects of the types the actions produce, so the goal was
 unreachable. With those objects added, the planner's plan merged a second issue
 by reusing the first issue's pull request and approval.
 
+## Workflow at a glance
+
+The **Actions review gate** is where you inspect the draft action definitions,
+compare them with your description, and choose **Pass**, **Correct**, **Return
+with note**, or **Withdraw**. It sits **after action generation and local checks,
+before Refinement**. The blue node below marks that location.
+
+`freeform` nodes are generation tasks; `classify` nodes are decision-model tasks.
+`Local` nodes run in code. Review gates pause for the expert in the wizard; library
+callers opt into them with `confirmStage`. The first diagram describes the current
+workflow on `main`, including optional final plan review.
+
+```mermaid
+flowchart TD
+    Input["Expert's process description + concrete situation"]
+    Input --> Types["freeform: extract types"]
+    Types --> TypesGate{"Local checks + Types review gate"}
+    TypesGate -->|Pass| Facts["freeform: extract facts / predicates"]
+    Facts --> FactsGate{"Local checks + Facts review gate"}
+    FactsGate -->|Pass| Actions["freeform: draft actions<br/>Parameters, prerequisites, added / removed facts"]
+    Actions --> ActionsGate{"Local checks + ACTIONS REVIEW GATE<br/>Expert reviews the draft"}
+    ActionsGate -->|Pass| Refine["freeform: refine actions"]
+    Refine --> RefineGate{"Local checks + Refinement review gate"}
+    RefineGate -->|Pass| Domain["Local: render domain PDDL"]
+    Domain --> Problem["freeform: build problem<br/>Objects, starting facts, goal"]
+    Problem --> ProblemGate{"Local checks + reachability<br/>Situation review gate"}
+    ProblemGate -->|Pass| Render["Local: render problem PDDL"]
+    Render --> Plan["Local: ground actions + search for a plan"]
+    Plan --> Review{"Plan found and final review enabled?<br/>CLI / library option"}
+    Review -->|No| Result["Model, plan or search result, and task evidence"]
+    Review -->|Yes| Analysis["Local: analyze skippable actions + shared work"]
+    Analysis -->|Skippable actions and classifier configured| Classify["classify: must this step happen<br/>according to the process?"]
+    Analysis -->|No classification needed| Repair
+    Classify --> Repair{"Local: findings and repair budget?"}
+    Repair -->|No findings or budget exhausted| Result
+    Repair -->|Required step can be skipped| Refine
+    Repair -->|Work incorrectly shared between items| Facts
+
+    classDef gate fill:#eaf2f7,stroke:#225b78,stroke-width:3px,color:#1a1a1a
+    classDef decision fill:#fff6e7,stroke:#805313,stroke-width:2px,color:#1a1a1a
+    class ActionsGate gate
+    class Classify decision
+```
+
+Generation retries and the other gates' edit/feedback/withdraw paths are omitted
+from this overview. Every generated or edited result is checked; blocking errors
+prevent passing. Final-review repairs are bounded and re-enter the normal checks
+and gates. The problem is reused only while it remains valid for the new domain.
+
+### Proposed source grounding: before the Actions review gate
+
+This is the placement proposed for the [source-grounding pilot in PR #8](https://github.com/getlarge/moltnet-pddl-designer/pull/8).
+**It is not integrated into the wizard yet.** The pilot builds claims from actual
+action fields and asks whether the source supports, contradicts, or does not
+establish them. Its results would be shown **before you decide whether to pass
+Actions**, rather than arrive after that decision.
+
+```mermaid
+flowchart TD
+    Source["Original process description"] --> Generate["freeform: draft actions<br/>Uses accepted types + facts"]
+    Generate --> Check{"Local: schema + static checks"}
+    Check -->|Blocking errors| CorrectTask["freeform: revise actions<br/>Bounded correction / reviewer feedback"]
+    CorrectTask --> Check
+    Check -->|Current path: ready for expert review| Gate{"ACTIONS REVIEW GATE<br/>Expert reviews draft + available evidence"}
+
+    Check -.->|Proposed: structurally valid draft| Claims["Local: construct claims from<br/>actual prerequisites and effects"]
+    Source -.-> Assess
+    Claims -.-> Assess["classify: compare each claim with source<br/>Supported / contradicted / not established"]
+    Assess -.-> Evidence["Show source, model field, claim,<br/>returned probabilities and task evidence"]
+    Evidence -.-> Gate
+
+    Gate -->|Pass| Refine["freeform: refine actions"]
+    Gate -->|Correct| Edit["Expert edits actions locally"]
+    Edit --> Check
+    Gate -->|Return with note| CorrectTask
+    Gate -->|Withdraw| Stop["Stop the run"]
+
+    classDef gate fill:#eaf2f7,stroke:#225b78,stroke-width:3px,color:#1a1a1a
+    classDef proposed fill:#fff6e7,stroke:#805313,stroke-width:2px,stroke-dasharray:5 5,color:#1a1a1a
+    class Gate gate
+    class Claims,Assess,Evidence proposed
+```
+
+Solid edges show the current action-review flow. Dashed edges and amber nodes
+show the proposed source-grounding addition. Any edit must be checked again and
+would invalidate grounding judgments about the changed fields. A decision-model
+answer would inform the expert; it would not approve the stage or waive errors.
+
+The optional **warning assessment in [PR #4](https://github.com/getlarge/moltnet-pddl-designer/pull/4)**
+is a different step: it runs **after Actions is passed and before Refinement**, to
+judge static ownership/lifetime warnings. It is not included in `main`'s current
+path above and is not the proposed source-grounding check shown in dashed lines.
+
 ## Local wizard
 
 Install the Node version in `.tool-versions`, then enable pnpm through Corepack:
