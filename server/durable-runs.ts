@@ -39,6 +39,12 @@ export class DurableRuns implements RunService {
   }) {
     this.queue = options.queue ?? DESIGN_QUEUE;
     this.pool = new Pool({ connectionString: options.databaseUrl });
+    this.pool.on('error', (error) => {
+      console.error(
+        'Idle database connection failed; the pool will reconnect.',
+        error,
+      );
+    });
     this.absurd = new Absurd({ db: this.pool, queueName: this.queue });
     this.absurd.registerTask<Params, null>(
       { name: TASK_NAME, defaultMaxAttempts: 5 },

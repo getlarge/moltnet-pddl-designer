@@ -1,9 +1,10 @@
 import { request as httpRequest } from 'node:http';
+import { setTimeout as delay } from 'node:timers/promises';
 import type { FastifyInstance } from 'fastify';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApi } from './api.js';
 import { RunStore } from './store.js';
 import {
@@ -19,13 +20,15 @@ describe('local wizard API', () => {
   let directory: string;
   let base: string;
   let store: RunStore;
+  let runs: MemoryRuns;
   beforeEach(async () => {
     directory = await mkdtemp(join(tmpdir(), 'galley-test-'));
     store = new RunStore(directory);
+    runs = new MemoryRuns();
     server = createApi({
       root: resolve('.'),
       store,
-      runs: new MemoryRuns(),
+      runs,
     });
     await server.listen({ port: 0, host: '127.0.0.1' });
     base = `http://127.0.0.1:${(server.server.address() as { port: number }).port}/api/`;
@@ -59,6 +62,39 @@ describe('local wizard API', () => {
       await new Promise((r) => setTimeout(r, 5));
     }
   }
+  it.each([true, false])(
+    'stops SSE reads once terminal (terminal on connect: %s)',
+    async (terminalOnConnect) => {
+      const started = await runs.start(syntheticInput, {});
+      await awaiting(started.id);
+      if (terminalOnConnect) await runs.withdraw(started.id, 'finish fixture');
+      const get = vi.spyOn(runs, 'get');
+      const controller = new AbortController();
+      try {
+        const response = await fetch(base + `runs/${started.id}/events`, {
+          signal: controller.signal,
+        });
+        const reader = response.body!.getReader();
+        if (!terminalOnConnect)
+          await runs.withdraw(started.id, 'finish fixture');
+        let received = '';
+        while (
+          !received.includes('"state":"failed"') &&
+          !received.includes('"state":"finished"')
+        ) {
+          const chunk = await reader.read();
+          expect(chunk.done).toBe(false);
+          received += new TextDecoder().decode(chunk.value);
+        }
+        const reads = get.mock.calls.length;
+        await delay(650);
+        expect(get).toHaveBeenCalledTimes(reads);
+      } finally {
+        controller.abort();
+        get.mockRestore();
+      }
+    },
+  );
   it('rejects cross-origin writes and non-JSON requests', async () => {
     expect(
       (await post('runs', {}, { Origin: 'https://elsewhere.example' })).status,

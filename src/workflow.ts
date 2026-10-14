@@ -271,7 +271,7 @@ export async function runPddlDesign(
       const { task, checkedAt } = await ctx.step(
         `claim.${taskId}.poll`,
         async () => ({
-          task: await tasks.getTask(taskId),
+          task: { status: (await tasks.getTask(taskId)).status },
           checkedAt: Date.now(),
         }),
       );
@@ -413,8 +413,28 @@ export async function runPddlDesign(
             await waitForTaskOutcome(task.id, {
               tasks: {
                 ...tasks,
-                getTask: (id) =>
-                  ctx.step(`outcome.${id}.poll`, () => tasks.getTask(id)),
+                getTask: async (id) => {
+                  const observation = await ctx.step(
+                    `outcome.${id}.poll`,
+                    async () => {
+                      const current = await tasks.getTask(id);
+                      return [
+                        'completed',
+                        'failed',
+                        'cancelled',
+                        'expired',
+                      ].includes(current.status)
+                        ? current
+                        : {
+                            status: current.status,
+                            acceptedAttemptN: current.acceptedAttemptN,
+                          };
+                    },
+                  );
+                  // Pending polls need no copy of the input brief. The immutable
+                  // creation task supplies metadata; terminal observations stay complete.
+                  return { ...task, ...observation };
+                },
                 listAttempts: (id) => tasks.listAttempts(id),
               },
               // Each observation is checkpointed: replay reuses old observations,

@@ -270,6 +270,8 @@ export function createApi(options: ApiOptions) {
               sequence = snapshot.sequence;
               if (!send(snapshot)) return close(); // A slow client reconnects to the latest snapshot.
             }
+            if (snapshot.state === 'finished' || snapshot.state === 'failed')
+              return;
           } catch {
             return close();
           } // EventSource reconnects and refetches; no stuck stream.
@@ -280,7 +282,8 @@ export function createApi(options: ApiOptions) {
         }, 15000);
         streams.add(close);
         reply.raw.once('close', close);
-        timer = setTimeout(() => void poll(), 250);
+        if (initial.state !== 'finished' && initial.state !== 'failed')
+          timer = setTimeout(() => void poll(), 250);
       });
       api.post<RunParams>('/runs/:id/decisions', async (request) => {
         const data = request.body as {

@@ -583,6 +583,10 @@ describe('durable polling', () => {
           status === 'running' && replay === 0 ? 2 : 1,
         );
       }
+      for (const [name, value] of ctx.checkpointEntries) {
+        if (name.includes('.poll'))
+          expect(JSON.stringify(value).length).toBeLessThan(120);
+      }
       completed = true;
       ctx.resetForReplay();
       names.clear();

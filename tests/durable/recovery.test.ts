@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import { afterEach, beforeEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { DurableRuns } from '../../server/durable-runs.js';
 import { syntheticExecute, syntheticInput } from '../../server/test-support.js';
 import type { RunSnapshot } from '../../server/types.js';
@@ -79,8 +79,13 @@ async function kill(child: ChildProcess) {
   child.kill('SIGKILL');
   await once(child, 'exit');
 }
-async function until(id: string, predicate: (s: RunSnapshot) => boolean) {
-  for (let n = 0; n < 400; n++) {
+async function until(
+  id: string,
+  predicate: (s: RunSnapshot) => boolean,
+  timeoutMs = 20000,
+) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
     const s = await runs.get(id);
     if (s && predicate(s)) return s;
     await delay(50);
@@ -175,15 +180,16 @@ it('reuses the external idempotency key after a crash between creation and check
 });
 it('retains the original claim deadline across process death', async () => {
   const first = await worker({ QUEUED: '1' });
-  const start = await runs.start(syntheticInput, { claimTimeoutSec: 1 });
+  const start = await runs.start(syntheticInput, { claimTimeoutSec: 5 });
   await until(start.id, (s) =>
     s.events.some((e) => e.event.type === 'task-created'),
   );
   await delay(300);
   await kill(first);
-  await delay(1200);
+  await delay(5200);
   await worker({ QUEUED: '1' });
-  const finished = await until(start.id, (s) => s.state === 'finished');
+  // A reset deadline would need another five seconds after this worker starts.
+  const finished = await until(start.id, (s) => s.state === 'finished', 3000);
   expect(finished.run?.failure?.code).toBe('claim-timeout');
   expect(await count()).toBe(1);
 });
@@ -240,4 +246,41 @@ it('recovers outcome polling while an external task is running, then presents on
       )
     ).rows[0].count,
   ).toBe('1');
+});
+
+it('reconnects after an idle pooled connection fails', async () => {
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const client = await runs.pool.connect();
+    const { rows } = await client.query<{ pid: number }>(
+      'SELECT pg_backend_pid() AS pid',
+    );
+    client.release();
+    const failed = new Promise<void>((resolve) =>
+      runs.pool.once('error', () => resolve()),
+    );
+    // Kill only this test pool's idle connection, using an independent connection.
+    const control = new DurableRuns({
+      databaseUrl: databaseUrl!,
+      queue,
+      execute: syntheticExecute,
+    });
+    try {
+      await control.pool.query('SELECT pg_terminate_backend($1)', [
+        rows[0].pid,
+      ]);
+      await failed;
+      expect(log).toHaveBeenCalledWith(
+        expect.stringContaining('pool will reconnect'),
+        expect.any(Error),
+      );
+      expect((await runs.pool.query('SELECT 1 AS value')).rows[0].value).toBe(
+        1,
+      );
+    } finally {
+      await control.close();
+    }
+  } finally {
+    log.mockRestore();
+  }
 });
