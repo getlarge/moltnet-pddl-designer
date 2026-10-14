@@ -47,6 +47,29 @@ const bodies = {
 };
 
 describe('stage task bodies', () => {
+  it('routes overrides to their own stages and inherits the default elsewhere', () => {
+    const routed: DesignInput = {
+      ...input,
+      stageProfiles: { actions: 'reasoning', refine: 'reviewer' },
+    };
+    const tasks = [
+      buildTypesTask(routed),
+      buildPredicatesTask(routed, blocksTypes),
+      buildActionsTask(routed, blocksTypes, blocksPredicates),
+      buildRefineTask(routed, blocksTypes, blocksPredicates, blocksActions, []),
+      buildProblemTask(routed, '(define (domain blocks-world))', ['block']),
+    ];
+    expect(tasks.map((task) => task.allowedProfiles)).toEqual(
+      ['profile', 'profile', 'reasoning', 'reviewer', 'profile'].map(
+        (profileId) => [{ profileId }],
+      ),
+    );
+    expect(
+      buildActionsTask(routed, blocksTypes, blocksPredicates, 2)
+        .allowedProfiles,
+    ).toEqual([{ profileId: 'reasoning' }]);
+  });
+
   it.each(Object.entries(bodies))(
     '%s body passes the SDK task validator, output contract included',
     (_stage, body) => {

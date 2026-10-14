@@ -20,18 +20,33 @@
   "scripts": {
     "cli": "tsx src/cli.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
+    "dev": "tsx server/main.ts --dev",
+    "start": "tsx server/main.ts",
+    "build": "vite build",
+    "test:browser": "playwright test",
+    "format:check": "prettier --check ui server src/provenance.ts src/saved-run.ts"
   },
   "dependencies": {
+    "@fontsource/literata": "^5.3.0",
+    "@fontsource/public-sans": "^5.3.0",
     "@themoltnet/os-keyring": "0.5.0",
     "@themoltnet/sdk": "^0.153.0",
     "@themoltnet/tasks-orchestrator": "^0.5.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "typebox": "^1.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/node": "^22.19.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "~5.9.2",
+    "vite": "^8.3.4",
     "vitest": "^3.2.6"
   }
 }

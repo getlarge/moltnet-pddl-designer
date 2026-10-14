@@ -1,0 +1,428 @@
+{
+  "components": [
+    {
+      "css": ".ds-button-primary{font:600 14px/1.55 var(--body);min-height:38px;border:1px solid var(--ink);border-radius:2px;padding:8px 14px;cursor:pointer;background:var(--focus);color:var(--paper);border-color:var(--focus);}.ds-button-primary:hover{background:var(--focus-hover);}.ds-button-primary:active{background:var(--selected);color:var(--ink);}.ds-button-primary:focus-visible{outline:2px solid var(--focus);outline-offset:4px;}",
+      "description": "Explicit action with visible keyboard focus.",
+      "html": "<button class=\"ds-button-primary\">Pass this stage</button>",
+      "kind": "button",
+      "name": "Pass this stage",
+      "refersTo": "button-primary"
+    },
+    {
+      "css": ".ds-button-secondary{font:600 14px/1.55 var(--body);min-height:38px;border:1px solid var(--ink);border-radius:2px;padding:8px 14px;cursor:pointer;background:var(--paper);color:var(--ink);border-color:var(--ink);}.ds-button-secondary:hover{background:var(--wash);}.ds-button-secondary:active{background:var(--selected);color:var(--ink);}.ds-button-secondary:focus-visible{outline:2px solid var(--focus);outline-offset:4px;}",
+      "description": "Explicit action with visible keyboard focus.",
+      "html": "<button class=\"ds-button-secondary\">Show construction</button>",
+      "kind": "button",
+      "name": "Show construction",
+      "refersTo": "button-secondary"
+    },
+    {
+      "css": ".ds-button-quiet{font:600 14px/1.55 var(--body);min-height:38px;border:1px solid var(--ink);border-radius:2px;padding:8px 14px;cursor:pointer;background:var(--paper);color:var(--ink);border-color:var(--paper);font-weight:400;padding:4px 6px;border-color:transparent;background:transparent;}.ds-button-quiet:hover{background:var(--wash);}.ds-button-quiet:active{background:var(--selected);color:var(--ink);}.ds-button-quiet:focus-visible{outline:2px solid var(--focus);outline-offset:4px;}",
+      "description": "Explicit action with visible keyboard focus.",
+      "html": "<button class=\"ds-button-quiet\">Return with note</button>",
+      "kind": "button",
+      "name": "Return with note",
+      "refersTo": "button-quiet"
+    },
+    {
+      "css": ".ds-field{display:flex;flex-direction:column;gap:7px;font:600 12px/1.55 var(--body);color:var(--ink)}.ds-field input{font:400 14px/1.55 var(--body);min-height:42px;padding:10px 12px;border:1px solid #aaa9a6;border-radius:2px;background:var(--paper);color:var(--ink);caret-color:var(--focus)}.ds-field input:focus-visible{outline:2px solid var(--focus);outline-offset:4px;}",
+      "description": "Compact label above an editable value.",
+      "html": "<label class=\"ds-field\">Run name<input value=\"Blocks on a table\"></label>",
+      "kind": "input",
+      "name": "Labeled field",
+      "refersTo": "input"
+    },
+    {
+      "css": ".ds-stage{font:600 14px/1.55 var(--body);min-height:38px;border:1px solid var(--ink);border-radius:2px;padding:8px 14px;cursor:pointer;text-align:left;border:0;border-radius:0;padding:16px 8px;background:var(--selected);color:var(--focus);box-shadow:inset 0 -2px 0 var(--focus)}.ds-stage span{display:block;font-size:11px;font-weight:400;margin-top:6px}.ds-stage:hover{background:var(--wash)}.ds-stage:focus-visible{outline:2px solid var(--focus);outline-offset:4px;}",
+      "description": "Routing slip item showing current location.",
+      "html": "<nav aria-label=\"Workflow\"><button class=\"ds-stage\" aria-current=\"step\">03 Actions<span>Review this stage</span></button></nav>",
+      "kind": "nav",
+      "name": "Current stage",
+      "refersTo": "navigation-current"
+    },
+    {
+      "css": ".ds-stamp{display:inline-block;font:600 10px/1.1 var(--body);letter-spacing:.045em;border:1px solid var(--success);padding:5px 7px;background:var(--success-wash);color:var(--success)}",
+      "description": "A recorded passed state; never a decorative badge.",
+      "html": "<span class=\"ds-stamp\">PASSED</span>",
+      "kind": "chip",
+      "name": "Passed stamp",
+      "refersTo": "stamp-passed"
+    },
+    {
+      "css": ".ds-finding{font:400 12px/1.55 var(--body);padding:12px;border-top:1px solid var(--warning);color:var(--warning);background:var(--warning-wash)}.ds-finding summary{font-weight:600;cursor:pointer;padding:10px 0}.ds-finding summary:hover{text-decoration:underline}.ds-finding summary:focus-visible{outline:2px solid var(--focus);outline-offset:4px;}",
+      "description": "A compact expandable warning in its relevant action.",
+      "html": "<details class=\"ds-finding\"><summary>Source references missing</summary><p>Check the supplied quote against your description.</p></details>",
+      "kind": "custom",
+      "name": "Author question",
+      "refersTo": "finding-warning"
+    }
+  ],
+  "extensions": {
+    "breakpoints": [
+      {
+        "name": "small-phone",
+        "value": "500px"
+      },
+      {
+        "name": "stacked-workspace",
+        "value": "850px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1100px"
+      },
+      {
+        "name": "wide-desktop",
+        "value": "1500px"
+      },
+      {
+        "name": "proof-sheet-reference-reflow (container)",
+        "value": "1150px"
+      },
+      {
+        "name": "proof-sheet-reference-stack (container)",
+        "value": "750px"
+      }
+    ],
+    "colorMeta": {
+      "field-border": {
+        "displayName": "Field Border",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.0044 91.46)",
+          "oklch(26% 0.0044 91.46)",
+          "oklch(38% 0.0044 91.46)",
+          "oklch(49% 0.0044 91.46)",
+          "oklch(61% 0.0044 91.46)",
+          "oklch(72% 0.0044 91.46)",
+          "oklch(84% 0.0044 91.46)",
+          "oklch(95% 0.0044 91.46)"
+        ]
+      },
+      "focus": {
+        "displayName": "Focus",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15% 0.0754 234.30)",
+          "oklch(26% 0.0754 234.30)",
+          "oklch(38% 0.0754 234.30)",
+          "oklch(49% 0.0754 234.30)",
+          "oklch(61% 0.0754 234.30)",
+          "oklch(72% 0.0754 234.30)",
+          "oklch(84% 0.0754 234.30)",
+          "oklch(95% 0.0754 234.30)"
+        ]
+      },
+      "focus-hover": {
+        "displayName": "Focus Hover",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15% 0.0636 235.67)",
+          "oklch(26% 0.0636 235.67)",
+          "oklch(38% 0.0636 235.67)",
+          "oklch(49% 0.0636 235.67)",
+          "oklch(61% 0.0636 235.67)",
+          "oklch(72% 0.0636 235.67)",
+          "oklch(84% 0.0636 235.67)",
+          "oklch(95% 0.0636 235.67)"
+        ]
+      },
+      "ink": {
+        "displayName": "Ink",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(49% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(72% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "muted": {
+        "displayName": "Muted",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(49% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(72% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "paper": {
+        "displayName": "Paper",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(49% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(72% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "red": {
+        "displayName": "Red",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15% 0.2031 27.04)",
+          "oklch(26% 0.2031 27.04)",
+          "oklch(38% 0.2031 27.04)",
+          "oklch(49% 0.2031 27.04)",
+          "oklch(61% 0.2031 27.04)",
+          "oklch(72% 0.2031 27.04)",
+          "oklch(84% 0.2031 27.04)",
+          "oklch(95% 0.2031 27.04)"
+        ]
+      },
+      "red-wash": {
+        "displayName": "Red Wash",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15% 0.0141 22.76)",
+          "oklch(26% 0.0141 22.76)",
+          "oklch(38% 0.0141 22.76)",
+          "oklch(49% 0.0141 22.76)",
+          "oklch(61% 0.0141 22.76)",
+          "oklch(72% 0.0141 22.76)",
+          "oklch(84% 0.0141 22.76)",
+          "oklch(95% 0.0141 22.76)"
+        ]
+      },
+      "rule": {
+        "displayName": "Rule",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.0047 78.30)",
+          "oklch(26% 0.0047 78.30)",
+          "oklch(38% 0.0047 78.30)",
+          "oklch(49% 0.0047 78.30)",
+          "oklch(61% 0.0047 78.30)",
+          "oklch(72% 0.0047 78.30)",
+          "oklch(84% 0.0047 78.30)",
+          "oklch(95% 0.0047 78.30)"
+        ]
+      },
+      "selected": {
+        "displayName": "Selected",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15% 0.0109 234.82)",
+          "oklch(26% 0.0109 234.82)",
+          "oklch(38% 0.0109 234.82)",
+          "oklch(49% 0.0109 234.82)",
+          "oklch(61% 0.0109 234.82)",
+          "oklch(72% 0.0109 234.82)",
+          "oklch(84% 0.0109 234.82)",
+          "oklch(95% 0.0109 234.82)"
+        ]
+      },
+      "success": {
+        "displayName": "Success",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15% 0.0851 152.42)",
+          "oklch(26% 0.0851 152.42)",
+          "oklch(38% 0.0851 152.42)",
+          "oklch(49% 0.0851 152.42)",
+          "oklch(61% 0.0851 152.42)",
+          "oklch(72% 0.0851 152.42)",
+          "oklch(84% 0.0851 152.42)",
+          "oklch(95% 0.0851 152.42)"
+        ]
+      },
+      "success-wash": {
+        "displayName": "Success Wash",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15% 0.0125 149.25)",
+          "oklch(26% 0.0125 149.25)",
+          "oklch(38% 0.0125 149.25)",
+          "oklch(49% 0.0125 149.25)",
+          "oklch(61% 0.0125 149.25)",
+          "oklch(72% 0.0125 149.25)",
+          "oklch(84% 0.0125 149.25)",
+          "oklch(95% 0.0125 149.25)"
+        ]
+      },
+      "syntax-key": {
+        "displayName": "Syntax Key",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15% 0.1000 240.79)",
+          "oklch(26% 0.1000 240.79)",
+          "oklch(38% 0.1000 240.79)",
+          "oklch(49% 0.1000 240.79)",
+          "oklch(61% 0.1000 240.79)",
+          "oklch(72% 0.1000 240.79)",
+          "oklch(84% 0.1000 240.79)",
+          "oklch(95% 0.1000 240.79)"
+        ]
+      },
+      "syntax-keyword": {
+        "displayName": "Syntax Keyword",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15% 0.1332 345.30)",
+          "oklch(26% 0.1332 345.30)",
+          "oklch(38% 0.1332 345.30)",
+          "oklch(49% 0.1332 345.30)",
+          "oklch(61% 0.1332 345.30)",
+          "oklch(72% 0.1332 345.30)",
+          "oklch(84% 0.1332 345.30)",
+          "oklch(95% 0.1332 345.30)"
+        ]
+      },
+      "syntax-number": {
+        "displayName": "Syntax Number",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15% 0.1162 48.64)",
+          "oklch(26% 0.1162 48.64)",
+          "oklch(38% 0.1162 48.64)",
+          "oklch(49% 0.1162 48.64)",
+          "oklch(61% 0.1162 48.64)",
+          "oklch(72% 0.1162 48.64)",
+          "oklch(84% 0.1162 48.64)",
+          "oklch(95% 0.1162 48.64)"
+        ]
+      },
+      "syntax-punctuation": {
+        "displayName": "Syntax Punctuation",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(49% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(72% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "warning": {
+        "displayName": "Warning",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15% 0.0958 69.99)",
+          "oklch(26% 0.0958 69.99)",
+          "oklch(38% 0.0958 69.99)",
+          "oklch(49% 0.0958 69.99)",
+          "oklch(61% 0.0958 69.99)",
+          "oklch(72% 0.0958 69.99)",
+          "oklch(84% 0.0958 69.99)",
+          "oklch(95% 0.0958 69.99)"
+        ]
+      },
+      "warning-wash": {
+        "displayName": "Warning Wash",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15% 0.0220 80.69)",
+          "oklch(26% 0.0220 80.69)",
+          "oklch(38% 0.0220 80.69)",
+          "oklch(49% 0.0220 80.69)",
+          "oklch(61% 0.0220 80.69)",
+          "oklch(72% 0.0220 80.69)",
+          "oklch(84% 0.0220 80.69)",
+          "oklch(95% 0.0220 80.69)"
+        ]
+      },
+      "wash": {
+        "displayName": "Wash",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.0040 106.47)",
+          "oklch(26% 0.0040 106.47)",
+          "oklch(38% 0.0040 106.47)",
+          "oklch(49% 0.0040 106.47)",
+          "oklch(61% 0.0040 106.47)",
+          "oklch(72% 0.0040 106.47)",
+          "oklch(84% 0.0040 106.47)",
+          "oklch(95% 0.0040 106.47)"
+        ]
+      }
+    },
+    "motion": [
+      {
+        "name": "proof-focus",
+        "purpose": "Background moves from paper to selected only under prefers-reduced-motion: no-preference.",
+        "value": "180ms ease-out"
+      }
+    ],
+    "shadows": [
+      {
+        "name": "current-stage-mark",
+        "purpose": "Flat underline marking current workflow stage.",
+        "value": "inset 0 -2px 0 var(--focus)"
+      },
+      {
+        "name": "selected-source-mark",
+        "purpose": "Flat underline accompanying selected source text.",
+        "value": "inset 0 -1px 0 var(--ink)"
+      }
+    ],
+    "typographyMeta": {
+      "code": {
+        "displayName": "Construction",
+        "purpose": "Literal JSON and PDDL."
+      },
+      "source": {
+        "displayName": "Expert source",
+        "purpose": "Numbered process sentences."
+      }
+    }
+  },
+  "generatedAt": "2026-10-14T14:53:17.611140+00:00",
+  "narrative": {
+    "donts": [
+      "Don't assign a different accent hue to every stage.",
+      "Don't hide model omissions or silently fabricate source references.",
+      "Don't use decorative imagery, paper texture or ornamental shadows.",
+      "Don't use color alone to communicate a correction, selection or completed state."
+    ],
+    "dos": [
+      "Do connect selected annotations to recorded source evidence, or label missing references.",
+      "Do keep state labels, borders and disclosure controls alongside color.",
+      "Do keep description and construction visibility controls as buttons with Show/Hide wording.",
+      "Do present plain-language meaning before optional model notation.",
+      "Do distinguish a passed model check from a claim that the described process is correct."
+    ],
+    "keyCharacteristics": [
+      "Flat sheets and fine rules, without decorative imagery.",
+      "Readable source prose beside compact controls and annotations.",
+      "Linked selection, explicit findings, and recorded gate status.",
+      "Progressive disclosure for technical detail."
+    ],
+    "northStar": "Galley Proof",
+    "overview": "A working proof for a process expert in ordinary daylight. The expert's sentences remain the source of truth; numbered lines and keyed model annotations make their relationship inspectable. The interface has its own identity, separate from MoltNet branding.\n\nWhite stock, dark ink, book text and fine rules create a quiet editing desk. Color directs attention to the current work or communicates a labeled outcome; it does not decorate individual workflow stages. Construction remains available without dominating the plain-language review.",
+    "rules": [
+      {
+        "body": "Blue identifies focus and selection; green identifies achieved or added state; amber asks for review or marks facts made false; red identifies corrections and errors. Keep the accompanying labels and structural cues.",
+        "name": "The Meaning Before Color Rule",
+        "section": "colors"
+      },
+      {
+        "body": "Use Literata for source prose and principal headings, Public Sans for operation and interpretation, and mono for formal notation and numeric references.",
+        "name": "The Two Reading Voices Rule",
+        "section": "typography"
+      },
+      {
+        "body": "Use rules, spacing and tonal selection to separate regions. Do not add ornamental shadows or simulated paper texture.",
+        "name": "The Flat Sheet Rule",
+        "section": "elevation"
+      }
+    ]
+  },
+  "schemaVersion": 2,
+  "title": "Design System: Galley Proof"
+}

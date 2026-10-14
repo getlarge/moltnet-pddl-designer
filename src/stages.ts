@@ -8,6 +8,7 @@
  * contract transport drops) after the daemon has accepted the result.
  */
 import { createHash } from 'node:crypto';
+import { sourceSentences } from './provenance.js';
 
 import { toOutputContractSchema } from '@themoltnet/sdk';
 import type { TSchema } from 'typebox';
@@ -29,11 +30,7 @@ import {
 } from './ir.js';
 
 export type StageName =
-  | 'types'
-  | 'predicates'
-  | 'actions'
-  | 'refine'
-  | 'problem';
+  'types' | 'predicates' | 'actions' | 'refine' | 'problem';
 
 export interface DesignInput {
   /** Natural-language description of the process to model. */
@@ -46,6 +43,8 @@ export interface DesignInput {
   diaryId: string;
   correlationId: string;
   profileId: string;
+  /** Optional generation profile overrides, keyed by modeling stage. */
+  stageProfiles?: Partial<Record<StageName, string>>;
   projectId?: string;
 }
 
@@ -105,7 +104,9 @@ function stageTask(
     diaryId: input.diaryId,
     ...(input.projectId ? { projectId: input.projectId } : {}),
     correlationId: input.correlationId,
-    allowedProfiles: [{ profileId: input.profileId }],
+    allowedProfiles: [
+      { profileId: input.stageProfiles?.[stage] ?? input.profileId },
+    ],
     runningTimeoutSec: 300,
     dispatchTimeoutSec: 300,
     expiresInSec: 3600,
@@ -117,7 +118,16 @@ function stageTask(
       'stage-attempt:' + attempt,
     ],
     input: {
-      brief: brief.join('\n\n'),
+      brief: [
+        ...brief,
+        'Source evidence: for every type, predicate and action, include sourceLines with the numbered description lines that support it. Leave sourceLines empty when the description does not provide evidence; never invent a citation.',
+        fence(
+          'numbered-description',
+          sourceSentences(input.description)
+            .map((s) => `${s.line}: ${s.text}`)
+            .join('\n'),
+        ),
+      ].join('\n\n'),
       expectedOutput:
         'Put the requested structured object in result and a one-sentence summary in summary. Omit branch: this task does no git work.',
       outputContract: {

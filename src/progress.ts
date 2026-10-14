@@ -8,6 +8,8 @@ export function formatEvent(event: DesignEvent): string | undefined {
       return `${event.stage} #${event.attempt}: task ${event.taskId} created`;
     case 'task-claimed':
       return `${event.stage} #${event.attempt}: claimed`;
+    case 'stage-checking':
+      return `${event.stage} #${event.attempt}: checking`;
     case 'stage-result': {
       const { record } = event;
       const errors = record.issues.filter((i) => i.severity === 'error').length;

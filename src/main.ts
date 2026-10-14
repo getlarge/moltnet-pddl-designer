@@ -17,6 +17,7 @@ import { validateWarningThreshold } from './warning-review.js';
 const USAGE =
   'Usage: pddl-designer --description FILE --problem FILE [--domain-name NAME --problem-name NAME] ' +
   '[--team UUID --diary UUID --profile NAME|ID --correlation UUID --project UUID] [--out FILE] [--max-corrections N] ' +
+  '[--types-profile NAME|ID --predicates-profile NAME|ID --actions-profile NAME|ID --refine-profile NAME|ID --problem-profile NAME|ID] ' +
   '[--review] [--warning-review] [--classify-profile NAME|ID --review-threshold 0.9] [--claim-timeout SEC] [--dry-run]';
 
 export async function main(argv = process.argv.slice(2)) {
@@ -30,6 +31,11 @@ export async function main(argv = process.argv.slice(2)) {
       team: { type: 'string' },
       diary: { type: 'string' },
       profile: { type: 'string' },
+      'types-profile': { type: 'string' },
+      'predicates-profile': { type: 'string' },
+      'actions-profile': { type: 'string' },
+      'refine-profile': { type: 'string' },
+      'problem-profile': { type: 'string' },
       project: { type: 'string' },
       correlation: { type: 'string' },
       out: { type: 'string' },
@@ -91,6 +97,17 @@ export async function main(argv = process.argv.slice(2)) {
     return found.id;
   };
   input.profileId = profileId(values.profile);
+  input.stageProfiles = {};
+  for (const stage of [
+    'types',
+    'predicates',
+    'actions',
+    'refine',
+    'problem',
+  ] as const) {
+    const reference = values[`${stage}-profile`];
+    if (reference) input.stageProfiles[stage] = profileId(reference);
+  }
   const classifyOptions = () => ({
     teamId: input.teamId,
     diaryId: input.diaryId,
