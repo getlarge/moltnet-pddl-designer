@@ -56,12 +56,17 @@ export const LiteralSchema = Type.Object(
   { additionalProperties: false },
 );
 
+const SourceLines = Type.Optional(
+  Type.Array(Type.Integer({ minimum: 1 }), { maxItems: 40, uniqueItems: true }),
+);
+
 export const TypeDefSchema = Type.Object(
   {
     name: Name,
     /** Omit for a direct child of PDDL's root type `object`. */
     parent: Type.Optional(Name),
     description: Note(200),
+    sourceLines: SourceLines,
   },
   { additionalProperties: false },
 );
@@ -71,6 +76,7 @@ export const PredicateDefSchema = Type.Object(
     name: Name,
     parameters: Type.Array(ParameterSchema, { maxItems: 6 }),
     description: Note(200),
+    sourceLines: SourceLines,
   },
   { additionalProperties: false },
 );
@@ -84,6 +90,7 @@ export const ActionDefSchema = Type.Object(
     deleteEffects: Type.Array(AtomSchema, { maxItems: 20 }),
     /** The sentence of the description this action models. */
     source: Note(400),
+    sourceLines: SourceLines,
   },
   { additionalProperties: false },
 );

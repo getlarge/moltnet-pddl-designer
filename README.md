@@ -27,6 +27,47 @@ declared no objects of the types the actions produce, so the goal was
 unreachable. With those objects added, the planner's plan merged a second issue
 by reusing the first issue's pull request and approval.
 
+## Local wizard
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Open `http://127.0.0.1:4317`. The local server serves the UI and talks to
+MoltNet; generation workers run separately (see [Runtime profiles](#runtime-profiles)).
+For a built UI, run `pnpm build` followed by `pnpm start`. Saved proofs default
+to `runs/`; override with `pnpm dev --runs-dir /path/to/proofs`.
+
+Review extracted meaning alongside numbered source sentences, then Pass,
+Correct, Return with note, or Withdraw. Description and construction are
+independent Show/Hide panels. The screenshots below use the synthetic Blocks
+World browser-test fixture; they demonstrate interaction, not model accuracy.
+
+![Types review with source selection, stage routing and review controls](docs/images/wizard-review.png)
+
+Step through the plan to inspect typed participants, changed facts and goal
+conditions. The description starts collapsed here to give the walkthrough room.
+
+![Plan walkthrough showing typed action bindings, changed facts and achieved goals](docs/images/plan-walkthrough.png)
+
+An unfinished live run can be recovered from **Resume current run** on a fresh
+page. At its review gate, continue reading or withdraw it before starting another
+run. Live sessions last only as long as the local server process; save completed
+proofs to reopen them after a restart. A worker-claim timeout explains which step
+was not picked up and offers **Review setup and retry**. Generated corrections
+cannot skip earlier saved edits that still need your approval.
+
+### Source evidence
+
+Code numbers description sentences; generation tasks receive that numbered
+copy and request citations. Citations are model output: local checks reject
+nonexistent sentence numbers, while you verify whether the cited text supports
+the result. Missing citations remain visible and are not silently invented.
+These checks also apply to CLI runs: invalid numbers can trigger the normal
+automatic correction attempt. Numbering currently uses Node's `Intl.Segmenter`;
+keep the Node/ICU version consistent when moving saved proofs between machines.
+
 ## Stages
 
 | Stage        | Returns                                                  | Checked by                                                                                                                                              |
@@ -99,7 +140,7 @@ the run as `invalid`, as before.
 - The built-in planner is a checker for small models. Its default limits are 20,000 concrete actions and 100,000 states. For larger models, or for optimal plans, give the rendered PDDL to Fast Downward.
 - The output contract cannot carry `pattern`, so naming rules are checked by the stage parsers after the daemon accepts a result. A naming error fails that stage's task outcome; it does not trigger a correction.
 
-## Runtime profile
+## Runtime profiles
 
 `runtime/profiles/legreffier-pddl-designer-v1.json` is input-only. It
 has no workspace and no network, and it binds the empty tool policy
@@ -116,6 +157,89 @@ moltnet profile create --from-file runtime/profiles/legreffier-pddl-designer-v1.
 moltnet profile set-policies legreffier-pddl-designer-v1 --policy legreffier-pddl-designer-input-only-v1 --team-id "$TEAM"
 moltnet profile allowed-tools legreffier-pddl-designer-v1 --team-id "$TEAM"
 ```
+
+### Choose a default and override only where useful
+
+A runtime profile selects a model and its generation settings, shared context,
+tool policy, and sandbox. It is not a workflow step: each task carries its own
+step instructions, output contract, and earlier results. One generation profile
+can therefore serve all five modeling steps.
+
+In the wizard, open **MoltNet connection**, enter a **Default generation profile
+name or ID**, and expand **Choose profiles by step** for optional overrides.
+Names and IDs must belong to the selected team. Empty overrides inherit the
+default. The app resolves all selected profiles before creating modeling tasks.
+
+| Wizard step            | CLI override           | What to optimize for                                    |
+| ---------------------- | ---------------------- | ------------------------------------------------------- |
+| Types                  | `--types-profile`      | Reliable extraction of entity kinds                     |
+| Facts                  | `--predicates-profile` | Relationships and typed arguments                       |
+| Actions                | `--actions-profile`    | Preconditions, add/delete effects, resource constraints |
+| Refinement             | `--refine-profile`     | Reasoning across actions and repairing inconsistencies  |
+| Situation              | `--problem-profile`    | Concrete objects, initial facts, and goals              |
+| Plan and static checks | None                   | Deterministic local code; no model call                 |
+
+Start with the supplied profile as a baseline. If actions or refinement need
+more reliable reasoning, create a second profile from the supplied definition:
+change its `name` and `models.generation` to a model/provider supported by your
+runtime, then create it and bind the same input-only tool policy. Keep the
+shared modeling context and output-submission instructions. No workspace,
+network access, or additional tools are needed for these stages. The bundled
+model is an experimental baseline, not a requirement or a quality guarantee.
+Compare results on your own process descriptions before changing models.
+
+For example, after creating a second profile named `pddl-reasoning`:
+
+```bash
+pnpm --silent cli \
+  --description examples/issue-workflow/description.md \
+  --problem examples/issue-workflow/situation.md \
+  --team "$TEAM" --diary "$DIARY" \
+  --profile legreffier-pddl-designer-v1 \
+  --actions-profile pddl-reasoning --refine-profile pddl-reasoning \
+  --out run.json
+```
+
+The library equivalent is `DesignInput.profileId` plus optional
+`stageProfiles: { actions: reasoningProfileId, refine: reasoningProfileId }`.
+Library callers pass resolved profile IDs; the wizard and CLI also accept names.
+Corrections and retries use the profile selected for their modeling step.
+
+### Start matching workers
+
+Creating a profile does not start a worker. Your daemon must serve `freeform`
+tasks for every selected generation profile in the same team. Run a worker for
+each profile using your configured daemon identity (separate terminals/processes
+when using `drain`):
+
+```bash
+moltnet-agent drain --profile legreffier-pddl-designer-v1
+# In another terminal, when this profile is used by an override:
+moltnet-agent drain --profile pddl-reasoning
+```
+
+To prefill the wizard's default connection:
+
+```bash
+pnpm dev --team "$TEAM" --diary "$DIARY" --profile legreffier-pddl-designer-v1
+```
+
+The local server also reads `MOLTNET_TEAM_ID`, `MOLTNET_DIARY_ID`, and
+`MOLTNET_PROFILE_ID`; explicit flags take precedence. Profile references are
+configuration, not credentials. Authentication stays on the server. Saved proofs
+can be inspected and manually edited offline; asking for a generated correction
+requires the selected workers again.
+
+If a profile is **not found**, check its name/ID and team. If a step is **waiting
+for a worker**, check that the daemon serves that exact profile and task type,
+and that its team/correlation filters admit the run. If execution fails, check
+provider credentials and model availability in the daemon environment. Granting
+extra filesystem or network permissions is not a remedy for a routing problem.
+
+Optional semantic review uses `--review --classify-profile` with a profile
+configured for `models.classification` and a worker serving `classify` tasks.
+This is separate from generation overrides and is currently CLI-only. See
+[Plan review](#plan-review-optional); static validation remains authoritative.
 
 ## Writing the inputs
 

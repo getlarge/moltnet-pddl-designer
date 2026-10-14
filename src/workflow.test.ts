@@ -202,6 +202,7 @@ describe('runPddlDesign', () => {
 
     // Assert
     expect(run.status).toBe('failed');
+    expect(run.failure?.code).toBe('claim-timeout');
     expect(run.failure?.reason).toMatch(
       /no worker claimed task task-1 within 0s; check that a poller is running/,
     );
@@ -346,6 +347,7 @@ describe('runPddlDesign progress and review gates', () => {
     expect(typesEvents).toEqual([
       'task-created',
       'task-claimed',
+      'stage-checking',
       'stage-accepted',
     ]);
     expect(
@@ -470,5 +472,70 @@ describe('runPddlDesign progress and review gates', () => {
     // Assert
     expect(run.status).toBe('invalid');
     expect(run.failure?.stage).toBe('types');
+  });
+});
+
+describe('saved correction runs', () => {
+  it('retains checked preceding stages and creates only correction/downstream tasks', async () => {
+    const prior = await runPddlDesign(fakeTasks(), input);
+    const tasks = fakeTasks();
+    const next = await runPddlDesign(
+      tasks,
+      { ...input, correlationId: 'new-correction' },
+      {
+        resume: {
+          run: prior,
+          stage: 'refine',
+          feedback: 'Keep separate work for each block.',
+        },
+      },
+    );
+    expect(next.status).toBe('planned');
+    expect(tasks.creationOptions).toHaveLength(2);
+    expect(next.stages.slice(0, 3)).toEqual(prior.stages.slice(0, 3));
+    expect(next.stages.find((s) => s.stage === 'refine')?.brief).toContain(
+      'Keep separate work for each block.',
+    );
+  });
+  it('requires approval of preceding saved edits before creating correction tasks', async () => {
+    const prior = await runPddlDesign(fakeTasks(), input);
+    prior.needsReview = ['types', 'predicates', 'actions', 'refine', 'problem'];
+    const tasks = fakeTasks();
+    await expect(
+      runPddlDesign(tasks, input, {
+        resume: { run: prior, stage: 'refine', feedback: 'Review this.' },
+      }),
+    ).rejects.toThrow('Pass the saved types stage');
+    expect(tasks.creationOptions).toHaveLength(0);
+  });
+  it('stops before creating tasks when preceding saved evidence fails checks', async () => {
+    const prior = await runPddlDesign(fakeTasks(), input);
+    prior.stages[0].result = {
+      types: [{ name: 'arm', parent: 'missing', description: 'bad' }],
+    };
+    const tasks = fakeTasks();
+    const run = await runPddlDesign(
+      tasks,
+      { ...input, correlationId: 'new-correction' },
+      { resume: { run: prior, stage: 'refine', feedback: 'Correct this.' } },
+    );
+    expect(run.status).toBe('invalid');
+    expect(tasks.creationOptions).toHaveLength(0);
+  });
+  it('rejects invented source lines even when the model is otherwise valid', async () => {
+    const tasks = fakeTasks({
+      types: [
+        ok({
+          types: [
+            { name: 'block', description: 'a block', sourceLines: [999] },
+          ],
+        }),
+      ],
+    });
+    const run = await runPddlDesign(tasks, input, { maxCorrections: 0 });
+    expect(run.status).toBe('invalid');
+    expect(run.stages[0].issues.some((i) => i.code === 'source-line')).toBe(
+      true,
+    );
   });
 });
