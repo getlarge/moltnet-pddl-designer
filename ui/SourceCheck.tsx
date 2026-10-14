@@ -227,90 +227,109 @@ export function SourceCheck({
       {active && answers && claims && (
         <div className="source-check-results">
           <h4>Read these judgments before passing Actions</h4>
-          {Object.entries(answers).map(([id, answer]) => (
-            <article
-              className={`source-check-result ${answer.choice}`}
-              key={id}
-            >
-              <h4>{outcomeLabels[answer.choice]}</h4>
-              <p>
-                {claims[id].target.action.replaceAll('-', ' ')}:{' '}
-                {targetLabel(claims[id].target, domain)}
-              </p>
-              <p className="small">
-                {(answer.probabilities[answer.choice] * 100).toFixed(0)}%
-                probability of this answer. This is a judgment about one rule,
-                not approval of the model.
-              </p>
-              {answer.choice === 'contradicted' && (
+          <div className="source-check-judgments">
+            {Object.entries(answers).map(([id, answer]) => (
+              <article
+                className={`source-check-result ${answer.choice}`}
+                key={id}
+              >
+                <h4>{outcomeLabels[answer.choice]}</h4>
                 <p>
-                  Review this rule against your description. Correct it directly
-                  or return the draft with a correction note.
+                  {claims[id].target.action.replaceAll('-', ' ')}:{' '}
+                  {targetLabel(claims[id].target, domain)}
                 </p>
-              )}
-              {answer.choice === 'not_established' && (
-                <p>
-                  The description leaves this rule open. Review it with the
-                  process author; the model should not invent the missing
-                  requirement.
+                <p className="small">
+                  {(answer.probabilities[answer.choice] * 100).toFixed(0)}%
+                  model probability for this label. This is not a measured
+                  accuracy score or approval of the model.
                 </p>
-              )}
-              {gateId && answer.choice !== 'supported' && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onNote(
-                      `Please review this action rule against the process description: ${claims[id].statement}\n${answer.choice === 'contradicted' ? 'The source check found a contradiction. Correct the action to match the source.' : 'The source check found insufficient evidence. My clarification: '}`,
-                    )
-                  }
-                >
-                  Prepare correction note
-                </button>
-              )}
-              <details>
-                <summary>Question, criteria and returned distribution</summary>
-                <p>{claims[id].statement}</p>
-                <p>{active.input.questions[id].instructions}</p>
-                <CodeBlock
-                  code={JSON.stringify(
-                    { criteria: active.input.questions[id].criteria, answer },
-                    null,
-                    2,
-                  )}
-                  language="json"
-                  label="Decision evidence"
-                />
-              </details>
-            </article>
-          ))}
-          <details>
-            <summary>Exact request and raw response</summary>
-            <CodeBlock
-              code={JSON.stringify(
-                { input: active.input, output: active.output },
-                null,
-                2,
-              )}
-              language="json"
-              label="Complete source-check evidence"
-            />
-          </details>
-          <details>
-            <summary>Source used for this check</summary>
-            <blockquote>{String(active.input.state.source)}</blockquote>
-          </details>
-          {active.usage && (
+                {answer.choice === 'contradicted' && (
+                  <p>
+                    Review this rule against your description. Correct it
+                    directly or return the draft with a correction note.
+                  </p>
+                )}
+                {answer.choice === 'not_established' && (
+                  <p>
+                    The model did not establish this rule from the description.
+                    Compare it with the source; clarify with the process author
+                    if needed.
+                  </p>
+                )}
+                {gateId && answer.choice !== 'supported' && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onNote(
+                        `Please review this action rule against the process description: ${claims[id].statement}\n${answer.choice === 'contradicted' ? 'The source check found a contradiction. Correct the action to match the source.' : 'The source check found insufficient evidence. My clarification: '}`,
+                      )
+                    }
+                  >
+                    Prepare correction note
+                  </button>
+                )}
+                <details>
+                  <summary>
+                    Question, criteria and returned distribution
+                  </summary>
+                  <p>{claims[id].statement}</p>
+                  <p>{active.input.questions[id].instructions}</p>
+                  <CodeBlock
+                    code={JSON.stringify(
+                      { criteria: active.input.questions[id].criteria, answer },
+                      null,
+                      2,
+                    )}
+                    language="json"
+                    label="Decision evidence"
+                  />
+                </details>
+              </article>
+            ))}
+          </div>
+          <section
+            className="source-check-evidence"
+            aria-label="Shared evidence for all checked rules"
+          >
+            <h4>
+              Shared evidence for all {Object.keys(answers).length} checked
+              rules
+            </h4>
             <p className="small">
-              {active.usage.provider} / {active.usage.model} ·{' '}
-              {active.usage.inputTokens} input tokens ·{' '}
-              {active.usage.outputTokens} output tokens
+              This request, source and task record apply to every judgment
+              above, across all checked actions.
             </p>
-          )}
-          <p className="small">
-            Task {active.taskId} · {(active.durationMs / 1000).toFixed(1)}s ·
-            draft attempt {active.attempt}. The model returned labels and
-            probabilities, not an explanation.
-          </p>
+            <details>
+              <summary>
+                Exact request and raw response — all checked rules
+              </summary>
+              <CodeBlock
+                code={JSON.stringify(
+                  { input: active.input, output: active.output },
+                  null,
+                  2,
+                )}
+                language="json"
+                label="Complete source-check evidence"
+              />
+            </details>
+            <details>
+              <summary>Source used for all checked rules</summary>
+              <blockquote>{String(active.input.state.source)}</blockquote>
+            </details>
+            {active.usage && (
+              <p className="small">
+                {active.usage.provider} / {active.usage.model} ·{' '}
+                {active.usage.inputTokens} input tokens ·{' '}
+                {active.usage.outputTokens} output tokens
+              </p>
+            )}
+            <p className="small">
+              Task {active.taskId} · {(active.durationMs / 1000).toFixed(1)}s ·
+              draft attempt {active.attempt}. The model returned labels and
+              probabilities, not an explanation.
+            </p>
+          </section>
         </div>
       )}
       {!gateId && !answers && (

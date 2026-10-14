@@ -1074,6 +1074,25 @@ export function App() {
                   </span>
                 </div>
                 <p className="stage-explanation">{explain[stage]}</p>
+                {!editor && (
+                  <details
+                    key={stage}
+                    open={stage !== 'plan'}
+                    className="stage-reading-guide"
+                    aria-label={`${labels[stage]} reading guide`}
+                  >
+                    <summary>How to read {labels[stage].toLowerCase()}</summary>
+                    {readingGuide[stage].map((paragraph) => (
+                      <p key={paragraph}>{paragraph}</p>
+                    ))}
+                    {stage === 'predicates' && !allActions.length && (
+                      <p>
+                        Action references will appear after the Actions step.
+                      </p>
+                    )}
+                  </details>
+                )}
+
                 {stage === 'actions' && canPass && !editor && (
                   <SourceCheck
                     key={gate?.id ?? `saved-${record?.attempt}`}
@@ -1109,24 +1128,6 @@ export function App() {
                   />
                 )}
 
-                {!editor && (
-                  <details
-                    key={stage}
-                    open={stage !== 'plan'}
-                    className="stage-reading-guide"
-                    aria-label={`${labels[stage]} reading guide`}
-                  >
-                    <summary>How to read {labels[stage].toLowerCase()}</summary>
-                    {readingGuide[stage].map((paragraph) => (
-                      <p key={paragraph}>{paragraph}</p>
-                    ))}
-                    {stage === 'predicates' && !allActions.length && (
-                      <p>
-                        Action references will appear after the Actions step.
-                      </p>
-                    )}
-                  </details>
-                )}
                 {stage === 'plan' ? (
                   run?.domain && run?.problem ? (
                     <PlanExplorer
@@ -1271,25 +1272,45 @@ export function App() {
                                   </p>
                                 )}
                               {['actions', 'refine'].includes(stage) && (
-                                <dl className="action-facts">
-                                  <dt>Before</dt>
-                                  <dd>
-                                    {atoms(mark.preconditions)
-                                      .map(fact)
-                                      .join(' · ') || 'No facts required'}
-                                  </dd>
-                                  <dt>Add</dt>
-                                  <dd>
-                                    {atoms(mark.addEffects)
-                                      .map(fact)
-                                      .join(' · ') || 'No facts added'}
-                                  </dd>
-                                  <dt>Remove</dt>
-                                  <dd>
-                                    {atoms(mark.deleteEffects)
-                                      .map(fact)
-                                      .join(' · ') || 'No facts removed'}
-                                  </dd>
+                                <dl
+                                  className="action-facts"
+                                  tabIndex={0}
+                                  aria-label={`${name.replaceAll('-', ' ')} action rules`}
+                                >
+                                  {(
+                                    [
+                                      [
+                                        'preconditions',
+                                        'Before',
+                                        'No facts required',
+                                      ],
+                                      ['addEffects', 'Add', 'No facts added'],
+                                      [
+                                        'deleteEffects',
+                                        'Remove',
+                                        'No facts removed',
+                                      ],
+                                    ] as const
+                                  ).map(([field, label, empty]) => (
+                                    <div key={field}>
+                                      <dt>{label}</dt>
+                                      <dd>
+                                        {atoms(mark[field]).length ? (
+                                          <ul>
+                                            {atoms(mark[field]).map(
+                                              (atom, index) => (
+                                                <li key={index}>
+                                                  {fact(atom)}
+                                                </li>
+                                              ),
+                                            )}
+                                          </ul>
+                                        ) : (
+                                          empty
+                                        )}
+                                      </dd>
+                                    </div>
+                                  ))}
                                 </dl>
                               )}
                               {selected &&

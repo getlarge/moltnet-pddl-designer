@@ -476,6 +476,26 @@ test('source check previews requests and informs the Actions review decision', a
     name: 'Compare actions with your description',
   });
   await expect(panel).toBeVisible();
+  // Guidance belongs before optional classification, regardless of result length.
+  expect(
+    await page
+      .locator('.stage-reading-guide')
+      .evaluate(
+        (guide) =>
+          !!(
+            guide.compareDocumentPosition(
+              document.querySelector('.source-check')!,
+            ) & Node.DOCUMENT_POSITION_FOLLOWING
+          ),
+      ),
+  ).toBe(true);
+  const actionRules = page.locator('.action-facts').first();
+  await expect(actionRules.locator(':scope > div')).toHaveCount(3);
+  const columns = await actionRules
+    .locator(':scope > div')
+    .evaluateAll((nodes) => nodes.map((n) => n.getBoundingClientRect().x));
+  expect(columns[0]).toBeLessThan(columns[1]);
+  expect(columns[1]).toBeLessThan(columns[2]);
   const choices = panel.getByRole('checkbox');
   for (let n = 0; n < 3; n++) await choices.nth(n).check();
   await panel.getByRole('button', { name: 'Preview source check' }).click();
@@ -493,6 +513,19 @@ test('source check previews requests and informs the Actions review decision', a
   await expect(
     panel.getByText('Your description does not settle this', { exact: true }),
   ).toBeVisible();
+  const shared = panel.getByRole('region', {
+    name: 'Shared evidence for all checked rules',
+  });
+  await expect(shared).toContainText('Shared evidence for all 3 checked rules');
+  await expect(
+    shared.getByText('Source used for all checked rules', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel
+      .locator('.source-check-result')
+      .last()
+      .getByText('Source used for all checked rules', { exact: true }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: 'Pass', exact: true }),
   ).toBeEnabled();

@@ -47,15 +47,48 @@ describe('source-grounded action judgments', () => {
       claim_1: {
         present: false,
         statement:
-          'pick-up does not make the fact arm-empty(?a) false as an explicit effect.',
+          'If arm-empty(?a) is true before pick-up, it remains true afterward: the action does not remove that fact.',
       },
     });
+    expect(request.state.actions).toMatchObject({
+      'pick-up': {
+        addEffects: domain.actions[0].addEffects,
+        preconditions: domain.actions[0].preconditions,
+      },
+    });
+    expect(request.state.predicates).toHaveProperty('held-by-arm');
     expect(request.questions.claim_1.criteria).toHaveProperty(
       'not_established',
     );
     expect(request.questions.claim_1.instructions).toContain(
       'Only state.source is authoritative',
     );
+  });
+  it('states a delete effect as a world-state transition, with related action context', () => {
+    const request = buildGroundingRequest(
+      'An arm picks up blocks from the table.',
+      blocksDomain,
+      [
+        {
+          action: 'pick-up',
+          field: 'deleteEffects',
+          atom: { predicate: 'on-table', args: ['?b'] },
+        },
+      ],
+    );
+    expect(request.state.claims).toMatchObject({
+      claim_1: {
+        statement:
+          'Immediately after pick-up, on-table(?b) is false: the action removes that fact.',
+      },
+    });
+    expect(request.state.actions).toEqual({
+      'pick-up': blocksDomain.actions[0],
+    });
+    expect(request.questions.claim_1.instructions).toContain(
+      'ordinary meanings',
+    );
+    expect(request.state.predicates).toHaveProperty('held-by-arm');
   });
   it('rejects invalid participants, duplicates and oversized batches before dispatch', () => {
     expect(() =>
