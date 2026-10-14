@@ -8,3 +8,6 @@ export * from './render.js';
 export * from './review.js';
 export * from './stages.js';
 export * from './workflow.js';
+
+export * from './provenance.js';
+export * from './saved-run.js';

@@ -15,6 +15,11 @@
  * stage's brief, result and findings, the rendered PDDL, and the plan check.
  */
 import { createHash } from 'node:crypto';
+import {
+  checkSources,
+  sourceSentences,
+  type SourceSentence,
+} from './provenance.js';
 
 import {
   createInlineContext,
@@ -83,14 +88,13 @@ export interface StageRecord {
 }
 
 export type DesignStatus =
-  | 'planned'
-  | 'unsolvable'
-  | 'search_limit'
-  | 'invalid'
-  | 'failed';
+  'planned' | 'unsolvable' | 'search_limit' | 'invalid' | 'failed';
 
 export interface DesignRun {
   version: 1;
+  sourceSentences?: SourceSentence[];
+  /** Gates needing renewed approval after an offline edit. */
+  needsReview?: StageName[];
   status: DesignStatus;
   failure?: { stage: StageName; reason: string };
   input: Pick<
@@ -124,6 +128,7 @@ export interface DesignRun {
 export type DesignEvent =
   | { type: 'task-created'; stage: StageName; attempt: number; taskId: string }
   | { type: 'task-claimed'; stage: StageName; attempt: number; taskId: string }
+  | { type: 'stage-checking'; stage: StageName; attempt: number }
   | { type: 'stage-result'; record: StageRecord }
   | { type: 'stage-accepted'; stage: StageName; attempt: number }
   | { type: 'plan-checked'; status: DesignStatus; plan: PlanResult }
@@ -149,6 +154,8 @@ export type StageDecision =
   | { action: 'abort'; reason?: string };
 
 export interface DesignOptions {
+  /** Start a correction at a saved stage; preceding results are checked again. */
+  resume?: { run: DesignRun; stage: StageName; feedback: string };
   /** Receives progress events. It runs inline, so it must not block. */
   onEvent?: (event: DesignEvent) => void;
   /**
@@ -213,6 +220,7 @@ export async function runPddlDesign(
   };
   const run: DesignRun = {
     version: 1,
+    sourceSentences: sourceSentences(input.description),
     status: 'failed',
     input: {
       description: input.description,
@@ -242,6 +250,19 @@ export async function runPddlDesign(
     }
   }
 
+  const resumed = new Set<StageName>();
+  const stageOrder: StageName[] = [
+    'types',
+    'predicates',
+    'actions',
+    'refine',
+    'problem',
+  ];
+  if (
+    options.resume &&
+    options.resume.run.input.description !== input.description
+  )
+    throw new Error('A correction must use the saved description.');
   const emit = (event: DesignEvent) => options.onEvent?.(event);
   const record = (entry: StageRecord) => {
     run.stages.push(entry);
@@ -269,6 +290,45 @@ export async function runPddlDesign(
     // Attempts keep counting across review rounds so idempotency keys differ.
     let attempt = run.stages.filter((s) => s.stage === name).length + 1;
     let correction: Correction | undefined = seed;
+    const resume = options.resume;
+    if (resume && !resumed.has(name)) {
+      resumed.add(name);
+      const saved = resume.run.stages.findLast((s) => s.stage === name);
+      if (stageOrder.indexOf(name) < stageOrder.indexOf(resume.stage)) {
+        if (!saved)
+          throw new StageStopped(
+            name,
+            'invalid',
+            'The saved run has no preceding stage result.',
+          );
+        const result = parse({ result: saved.result });
+        const issues = [
+          ...check(result),
+          ...checkSources(result, run.sourceSentences ?? []),
+        ];
+        if (hasErrors(issues))
+          throw new StageStopped(
+            name,
+            'invalid',
+            'Correct the preceding saved stage before continuing.',
+          );
+        record({ ...saved, issues });
+        emit({ type: 'stage-accepted', stage: name, attempt: saved.attempt });
+        return { result, issues };
+      }
+      if (name === resume.stage)
+        correction = {
+          previous: saved?.result ?? {},
+          issues: [
+            {
+              severity: 'error',
+              path: name,
+              code: 'reviewer-feedback',
+              message: resume.feedback,
+            },
+          ],
+        };
+    }
     let corrections = 0;
     for (;;) {
       const stageStart = Date.now();
@@ -288,7 +348,11 @@ export async function runPddlDesign(
       if (outcome.kind !== 'accepted')
         throw new StageStopped(name, 'failed', outcome.reason);
       let result = outcome.result.state;
-      let issues = check(result);
+      emit({ type: 'stage-checking', stage: name, attempt });
+      let issues = [
+        ...check(result),
+        ...checkSources(result, run.sourceSentences ?? []),
+      ];
       record({
         stage: name,
         attempt,
@@ -344,7 +408,11 @@ export async function runPddlDesign(
         shown = decision.result;
         try {
           result = parse({ result: decision.result });
-          issues = check(result);
+          emit({ type: 'stage-checking', stage: name, attempt });
+          issues = [
+            ...check(result),
+            ...checkSources(result, run.sourceSentences ?? []),
+          ];
         } catch (error) {
           issues = [
             {
