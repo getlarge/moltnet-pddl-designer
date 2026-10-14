@@ -547,4 +547,21 @@ test('source check previews requests and informs the Actions review decision', a
   await expect(
     panel.getByText('Your description disagrees', { exact: true }),
   ).toHaveCount(0);
+  await panel.getByRole('checkbox').first().check();
+  await panel.getByRole('button', { name: 'Preview source check' }).click();
+  await panel
+    .getByLabel('Classification profile name or ID')
+    .fill('synthetic-failure');
+  await panel
+    .getByRole('button', { name: 'Run source check', exact: true })
+    .click();
+  await expect(panel.getByRole('alert')).toContainText(
+    'Synthetic provider unavailable.',
+  );
+  await expect(panel.getByRole('alert')).toContainText(
+    'Task synthetic-source-check',
+  );
+  await expect(
+    page.getByRole('button', { name: 'Pass', exact: true }),
+  ).toBeEnabled();
 });

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { ClassifyInput, ClassifyOutput } from '@themoltnet/sdk';
 import {
   createInlineContext,
@@ -43,8 +43,13 @@ export function createSourceAssessor(
   },
 ): SourceAssessor {
   return async (input, profileId, onTask) => {
+    // A manual rerun is a new submission, even when its input is unchanged.
+    // Transport retries within createTask reuse this submission's fixed key.
+    const submissionId = randomUUID();
     const digest = createHash('sha256')
-      .update(JSON.stringify([options.correlationId, profileId, input]))
+      .update(
+        JSON.stringify([options.correlationId, profileId, input, submissionId]),
+      )
       .digest('hex');
     const task = await tasks.createTask(
       {
@@ -79,22 +84,24 @@ export function createSourceAssessor(
         );
       await ctx.sleepFor('claim', interval);
     }
-    let output: ClassifyOutput | undefined;
     const outcome = await waitForTaskOutcome(task.id, {
       tasks,
       ctx,
       pollIntervalSec: interval,
       parse: (raw) => {
         parseGroundingAnswers(raw, input);
-        output = raw as ClassifyOutput;
-        return output;
+        return raw as ClassifyOutput;
       },
     });
-    if (outcome.kind !== 'accepted' || !output)
+    if (outcome.kind !== 'accepted')
       throw new Error(
-        'The source check failed. The draft is still available for review.',
+        `The source check failed: ${outcome.reason}. The draft is still available for review.`,
       );
-    return { taskId: task.id, output, usage: outcome.result.attempt.usage };
+    return {
+      taskId: task.id,
+      output: outcome.result.state,
+      usage: outcome.result.attempt.usage,
+    };
   };
 }
 

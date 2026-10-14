@@ -128,6 +128,14 @@ describe('source-grounded action judgments', () => {
       'block';
     expect(() => buildGroundingRequest('source', domain, [target])).toThrow();
   });
+  it('accepts a typed parameter in an implicitly object-typed predicate', () => {
+    const domain = structuredClone(blocksDomain);
+    domain.predicates.find((p) => p.name === 'arm-empty')!.parameters[0].type =
+      'object';
+    expect(() =>
+      buildGroundingRequest('The arm holds one block.', domain, [target]),
+    ).not.toThrow();
+  });
   it('rejects missing answers, unknown labels and inconsistent distributions', () => {
     expect(parseGroundingAnswers(output(), input()).claim_1.choice).toBe(
       'supported',

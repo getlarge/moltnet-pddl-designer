@@ -305,6 +305,13 @@ export async function runPddlDesign(
     options.resume.run.input.description !== input.description
   )
     throw new Error('A correction must use the saved description.');
+  if (
+    options.resume &&
+    stageOrder.indexOf(options.resume.stage) > stageOrder.indexOf('actions') &&
+    options.resume.run.input.problemDescription === input.problemDescription &&
+    options.resume.run.sourceChecks
+  )
+    run.sourceChecks = structuredClone(options.resume.run.sourceChecks);
   const emit = (event: DesignEvent) => options.onEvent?.(event);
   const record = async (entry: StageRecord) => {
     run.stages.push(entry);
@@ -376,6 +383,8 @@ export async function runPddlDesign(
         };
     }
     let corrections = 0;
+    if (['types', 'predicates', 'actions'].includes(name))
+      delete run.sourceChecks;
     for (;;) {
       const stageStart = await ctx.step(
         `stage.${name}.${attempt}.started`,

@@ -221,7 +221,10 @@ export function SourceCheck({
         </p>
       )}
       {active?.status === 'failed' && (
-        <p role="alert">{active.failure} Your draft is unchanged.</p>
+        <div role="alert">
+          <p>{active.failure} Your draft is unchanged.</p>
+          {active.taskId && <p className="small">Task {active.taskId}</p>}
+        </div>
       )}
       {error && <p role="alert">{error}</p>}
       {active && answers && claims && (

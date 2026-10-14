@@ -120,6 +120,8 @@ export const syntheticAssess: import('../src/source-check.js').SourceAssessor =
   async (input, _profile, onTask) => {
     onTask('synthetic-source-check');
     await new Promise((resolve) => setTimeout(resolve, 150));
+    if (_profile === 'synthetic-failure')
+      throw new Error('Synthetic provider unavailable.');
     const labels = ['supported', 'contradicted', 'not_established'] as const;
     const answers = Object.fromEntries(
       Object.keys(input.questions).map((id, index) => {

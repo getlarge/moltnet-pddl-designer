@@ -6,6 +6,7 @@ import {
   checkPredicates,
   checkTypes,
   hasErrors,
+  isSubtype,
 } from './check.js';
 import type { Atom, Domain, Literal } from './ir.js';
 
@@ -86,13 +87,7 @@ export function buildGroundingRequest(
           'Grounding target references an unknown action parameter.',
         );
       const expected = predicate.parameters[position].type;
-      let actual: string | undefined = parameter.type;
-      const seenTypes = new Set<string>();
-      while (actual && actual !== expected && !seenTypes.has(actual)) {
-        seenTypes.add(actual);
-        actual = domain.types.find((type) => type.name === actual)?.parent;
-      }
-      if (actual !== expected)
+      if (!isSubtype(domain.types, parameter.type, expected))
         throw new Error('Grounding target parameter type does not match.');
     });
     const identity = JSON.stringify([

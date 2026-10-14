@@ -1,3 +1,4 @@
+import { buildGroundingRequest, groundingTargets } from './source-grounding.js';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +15,7 @@ import type { Domain, Problem } from './ir.js';
 import type { DesignInput } from './stages.js';
 import {
   blocksActions,
+  blocksDomain,
   blocksPredicates,
   blocksProblemResult,
   blocksTypes,
@@ -59,6 +61,68 @@ function fakeTasks(overrides: Record<string, FakeTaskOutput[]> = {}) {
 }
 
 describe('runPddlDesign', () => {
+  it('preserves checked Actions evidence on later-stage resume and drops it for changed context or Actions', async () => {
+    const original = await runPddlDesign(fakeTasks(), input);
+    const request = buildGroundingRequest(
+      input.description,
+      blocksDomain,
+      [groundingTargets(blocksDomain)[0]],
+      input.problemDescription,
+    );
+    original.sourceChecks = [
+      {
+        attempt: 1,
+        input: request,
+        status: 'complete',
+        taskId: 'synthetic-check',
+        durationMs: 10,
+        output: {
+          version: 1,
+          answers: {
+            claim_1: {
+              type: 'choice',
+              choice: 'supported',
+              probabilities: {
+                supported: 1,
+                contradicted: 0,
+                not_established: 0,
+              },
+              confidence: 1,
+            },
+          },
+        },
+      },
+    ];
+    for (const stage of ['refine', 'problem'] as const) {
+      const resumed = await runPddlDesign(fakeTasks(), input, {
+        resume: { run: original, stage, feedback: 'Review this stage.' },
+      });
+      expect(resumed.status).toBe('planned');
+      expect(resumed.sourceChecks).toEqual(original.sourceChecks);
+      expect(resumed.sourceChecks).not.toBe(original.sourceChecks);
+    }
+    const changedActions = await runPddlDesign(fakeTasks(), input, {
+      resume: {
+        run: original,
+        stage: 'actions',
+        feedback: 'Change the actions.',
+      },
+    });
+    expect(changedActions.sourceChecks).toBeUndefined();
+    const changedSituation = await runPddlDesign(
+      fakeTasks(),
+      { ...input, problemDescription: 'A different situation.' },
+      {
+        resume: {
+          run: original,
+          stage: 'problem',
+          feedback: 'Use the different situation.',
+        },
+      },
+    );
+    expect(changedSituation.sourceChecks).toBeUndefined();
+  });
+
   it('runs five stages, renders PDDL and finds a plan', async () => {
     // Arrange
     const tasks = fakeTasks();
