@@ -54,7 +54,13 @@ export class DurableRuns implements RunService {
         await options.execute(input, {
           ...runOptions,
           ctx: asWorkflowContext(ctx),
-          onEvent: (event) => this.publish(id, ++eventOrdinal, event),
+          onEvent: async (event) => {
+            const ordinal = ++eventOrdinal;
+            await ctx.step(`publish.${ordinal}`, async () => {
+              await this.publish(id, ordinal, event);
+              return null;
+            });
+          },
           confirmStage: (gate) => this.confirm(id, ++gateOrdinal, gate, ctx),
         });
         return null;
@@ -210,16 +216,19 @@ export class DurableRuns implements RunService {
     ctx: TaskContext,
   ): Promise<StageDecision> {
     const gateId = `${id}:${ordinal}`;
-    await this.transaction(async (db) => {
-      const { snapshot } = await this.lock(db, id);
-      const result = await db.query(
-        'INSERT INTO pddl_run_gates(run_id,gate_id) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING gate_id',
-        [id, gateId],
-      );
-      if (!result.rowCount || !active(snapshot)) return;
-      snapshot.gate = { ...gate, id: gateId };
-      snapshot.state = 'awaiting';
-      await this.save(db, snapshot);
+    await ctx.step(`gate.${ordinal}.publish`, async () => {
+      await this.transaction(async (db) => {
+        const { snapshot } = await this.lock(db, id);
+        const result = await db.query(
+          'INSERT INTO pddl_run_gates(run_id,gate_id) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING gate_id',
+          [id, gateId],
+        );
+        if (!result.rowCount || !active(snapshot)) return;
+        snapshot.gate = { ...gate, id: gateId };
+        snapshot.state = 'awaiting';
+        await this.save(db, snapshot);
+      });
+      return null;
     });
     // Gate names are unique per run and review generation. Accepted events survive
     // both an HTTP-process crash and a worker crash before checkpoint persistence.

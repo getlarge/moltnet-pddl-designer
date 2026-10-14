@@ -176,6 +176,13 @@ it('reuses the external idempotency key after a crash between creation and check
   expect(await count()).toBe(1);
   await runs.withdraw(start.id, 'stop recovery test');
   expect((await runs.get(start.id))?.state).toBe('failed');
+  const { rows } = await runs.pool.query<{ task_id: string }>(
+    'SELECT task_id FROM pddl_runs WHERE id=$1',
+    [start.id],
+  );
+  expect((await runs.absurd.fetchTaskResult(rows[0].task_id))?.state).toBe(
+    'cancelled',
+  );
   expect(await runs.list()).toEqual([]);
 });
 it('retains the original claim deadline across process death', async () => {
@@ -282,5 +289,43 @@ it('reconnects after an idle pooled connection fails', async () => {
     }
   } finally {
     log.mockRestore();
+  }
+});
+
+it('reuses published events and gates without replaying projection transactions', async () => {
+  await runs.close();
+  runs = new DurableRuns({
+    databaseUrl: databaseUrl!,
+    queue,
+    execute: syntheticExecute,
+  });
+  const queries: Array<{ mock: { calls: unknown[][] } }> = [];
+  runs.pool.on('connect', (client) => queries.push(vi.spyOn(client, 'query')));
+  await runs.initialize();
+  const running = await runs.startWorker({
+    claimTimeout: 2,
+    pollInterval: 0.05,
+  });
+  try {
+    const start = await runs.start(syntheticInput, {});
+    const first = await until(start.id, (s) => s.state === 'awaiting');
+    await runs.decide(start.id, first.gate!.id, { action: 'accept' });
+    const second = await until(
+      start.id,
+      (s) => s.state === 'awaiting' && s.gate?.id !== first.gate!.id,
+    );
+    await running.close();
+    const statements = queries.flatMap((query) =>
+      query.mock.calls.map(([sql]) => String(sql)),
+    );
+    expect(
+      statements.filter((sql) => sql.startsWith('INSERT INTO pddl_run_events')),
+    ).toHaveLength(second.events.length);
+    expect(
+      statements.filter((sql) => sql.startsWith('INSERT INTO pddl_run_gates')),
+    ).toHaveLength(2);
+    expect(second.gate?.stage).toBe('predicates');
+  } finally {
+    await running.close();
   }
 });
