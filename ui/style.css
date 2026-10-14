@@ -540,6 +540,31 @@ td:first-child {
   color: var(--muted);
   margin: 8px 0 0;
 }
+.proof-heading > div:first-child {
+  min-width: 0;
+}
+.run-details {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.run-details summary {
+  color: var(--muted);
+  cursor: pointer;
+}
+.run-correlation {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.run-correlation code {
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.run-correlation button {
+  font-size: 12px;
+}
 .proof-tools {
   display: flex;
   flex-wrap: wrap;

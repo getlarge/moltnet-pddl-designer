@@ -300,3 +300,8 @@ During a running stage, a withdrawal control stops orchestration without waiting
 for a review gate. The copy explains that an already-dispatched generation task
 may still finish. Saved JSON proofs remain readable and editable in explicit
 offline mode. Recovery must never hide model findings or auto-pass a review gate.
+
+Run debugging lives in a collapsed **Run details** disclosure below the proof
+status. Show the correlation ID shared by the run's stage tasks, with a labeled
+copy action and wrapping at narrow widths. Keep it available on saved proofs;
+a new correction run receives its own correlation ID.

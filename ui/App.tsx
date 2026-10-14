@@ -199,6 +199,8 @@ export function App() {
   const [clock, setClock] = useState(Date.now());
   const [runsDirectory, setRunsDirectory] = useState('runs/');
   const run = saved?.run ?? snapshot?.run;
+  const correlationId =
+    run?.input.correlationId ?? snapshot?.input.correlationId;
   const rows = records(snapshot, run);
   const record = latest(rows, stage);
   const description =
@@ -867,6 +869,29 @@ export function App() {
                           : 'Work in progress'}
                   {run?.needsReview?.length ? ' · edits need review' : ''}
                 </p>
+                {correlationId && (
+                  <details className="run-details">
+                    <summary>Run details</summary>
+                    <p>
+                      Correlation ID · shared by this run’s stage tasks and
+                      retries.
+                    </p>
+                    <div className="run-correlation">
+                      <code>{correlationId}</code>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void perform(async () => {
+                            await navigator.clipboard.writeText(correlationId);
+                            setNotice('Correlation ID copied.');
+                          })
+                        }
+                      >
+                        Copy correlation ID
+                      </button>
+                    </div>
+                  </details>
+                )}
               </div>
               <div className="proof-tools">
                 <button
