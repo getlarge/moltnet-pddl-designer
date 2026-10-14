@@ -6,3 +6,6 @@ out-tsc/
 .moltnet/
 # Eval output.
 runs/
+# Impeccable decision-page working state (the chosen direction lives in issue #2).
+.impeccable/questions/
+.impeccable/*-round.json
