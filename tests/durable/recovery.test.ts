@@ -207,3 +207,37 @@ it('atomically enforces one active run across API processes', async () => {
     await other.close();
   }
 });
+
+it('recovers outcome polling while an external task is running, then presents one gate', async () => {
+  const first = await worker({ RUNNING: '1' });
+  const start = await runs.start(syntheticInput, {});
+  await until(start.id, (s) =>
+    s.events.some((e) => e.event.type === 'task-claimed'),
+  );
+  // Allow several actual durable sleeps before killing the OS worker.
+  await delay(500);
+  await kill(first);
+  await worker({ RUNNING: '1' });
+  await delay(500);
+  await runs.pool.query(
+    "UPDATE pddl_test_tasks SET task=jsonb_set(task, '{status}', '\"completed\"') WHERE queue=$1",
+    [queue],
+  );
+  const review = await until(start.id, (s) => s.state === 'awaiting');
+  expect(review.gate?.stage).toBe('types');
+  expect(await count()).toBe(1);
+  expect(review.events.map((e) => e.event.type)).toEqual([
+    'task-created',
+    'task-claimed',
+    'stage-checking',
+    'stage-result',
+  ]);
+  expect(
+    (
+      await runs.pool.query(
+        'SELECT count(*) FROM pddl_run_gates WHERE run_id=$1',
+        [start.id],
+      )
+    ).rows[0].count,
+  ).toBe('1');
+});

@@ -10,7 +10,6 @@ import type { Execute } from './run-service.js';
 export class Session {
   snapshot: RunSnapshot;
   private pending?: (decision: StageDecision) => void;
-  private listeners = new Set<(snapshot: RunSnapshot) => void>();
   constructor(
     input: DesignInput,
     private execute: Execute,
@@ -27,12 +26,6 @@ export class Session {
   }
   private publish() {
     this.snapshot.sequence++;
-    for (const notify of this.listeners) notify(this.snapshot);
-  }
-  subscribe(notify: (snapshot: RunSnapshot) => void) {
-    this.listeners.add(notify);
-    notify(this.snapshot);
-    return () => this.listeners.delete(notify);
   }
   async start(input: DesignInput) {
     try {

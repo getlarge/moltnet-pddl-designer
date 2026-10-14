@@ -37,7 +37,11 @@ const tasks: TaskClient = {
     const task = {
       ...original,
       id: randomUUID(),
-      ...(process.env.QUEUED ? { status: 'queued' } : {}),
+      ...(process.env.QUEUED
+        ? { status: 'queued' }
+        : process.env.RUNNING
+          ? { status: 'running' }
+          : {}),
     };
     const attempts = await fake.listAttempts(original.id);
     await runs.pool.query(

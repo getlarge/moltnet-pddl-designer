@@ -268,12 +268,18 @@ export async function runPddlDesign(
       async () => Date.now() + claimTimeoutSec * 1000,
     );
     for (;;) {
-      const task = await tasks.getTask(taskId);
+      const { task, checkedAt } = await ctx.step(
+        `claim.${taskId}.poll`,
+        async () => ({
+          task: await tasks.getTask(taskId),
+          checkedAt: Date.now(),
+        }),
+      );
       if (task.status !== 'queued') {
         await completeWorkflowStep(ctx, handle, true);
         return;
       }
-      if (Date.now() >= deadline)
+      if (checkedAt >= deadline)
         throw new StageStopped(
           name,
           'failed',
@@ -405,9 +411,14 @@ export async function runPddlDesign(
             ctx,
             outcomeHandle,
             await waitForTaskOutcome(task.id, {
-              tasks,
-              // MoltNet task update events have no generation. Fresh reads + durable
-              // timers avoid reusing immutable events during repeated polling.
+              tasks: {
+                ...tasks,
+                getTask: (id) =>
+                  ctx.step(`outcome.${id}.poll`, () => tasks.getTask(id)),
+                listAttempts: (id) => tasks.listAttempts(id),
+              },
+              // Each observation is checkpointed: replay reuses old observations,
+              // while the next iteration reads fresh state after its durable timer.
               ctx: { ...ctx, awaitEvent: undefined },
               pollIntervalSec,
               parse,
@@ -477,9 +488,10 @@ export async function runPddlDesign(
         // An edit is checked like a model result, schema first.
         attempt++;
         shown = decision.result;
+        let parsed = false;
         try {
           result = parse({ result: decision.result });
-          await emit({ type: 'stage-checking', stage: name, attempt });
+          parsed = true;
           issues = [
             ...check(result),
             ...checkSources(result, run.sourceSentences ?? []),
@@ -494,6 +506,9 @@ export async function runPddlDesign(
             },
           ];
         }
+        // Persistence failures must retry the workflow, never become model findings.
+        if (parsed)
+          await emit({ type: 'stage-checking', stage: name, attempt });
         await record({
           stage: name,
           attempt,
