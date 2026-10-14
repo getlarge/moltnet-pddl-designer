@@ -1,44 +1,37 @@
-import { createServer, request as httpRequest, type Server } from 'node:http';
+import { request as httpRequest } from 'node:http';
+import type { FastifyInstance } from 'fastify';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createApi } from './api.js';
 import { RunStore } from './store.js';
-import { syntheticExecute, syntheticInput } from './test-support.js';
+import {
+  MemoryRuns,
+  syntheticExecute,
+  syntheticInput,
+} from './test-support.js';
 import type { DesignRun } from '../src/workflow.js';
 import type { RunSnapshot } from './types.js';
 
 describe('local wizard API', () => {
-  let server: Server;
+  let server: FastifyInstance;
   let directory: string;
   let base: string;
   let store: RunStore;
   beforeEach(async () => {
     directory = await mkdtemp(join(tmpdir(), 'galley-test-'));
     store = new RunStore(directory);
-    const api = createApi({
+    server = createApi({
       root: resolve('.'),
       store,
-      execute: syntheticExecute,
+      runs: new MemoryRuns(),
     });
-    server = createServer((req, res) => {
-      void api(req, res).then((handled) => {
-        if (!handled) {
-          res.writeHead(404);
-          res.end();
-        }
-      });
-    });
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(0, '127.0.0.1', resolve);
-    });
-    base = `http://127.0.0.1:${(server.address() as { port: number }).port}/api/`;
+    await server.listen({ port: 0, host: '127.0.0.1' });
+    base = `http://127.0.0.1:${(server.server.address() as { port: number }).port}/api/`;
   });
   afterEach(async () => {
-    server.closeAllConnections();
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await server.close();
     await rm(directory, { recursive: true, force: true });
   });
   const post = (
@@ -97,12 +90,17 @@ describe('local wizard API', () => {
         })
       ).status,
     ).toBe(403);
-    const oversized = await post('saved', {
-      padding: 'x'.repeat(5 * 1024 * 1024),
+    // Inject the oversized body so early socket rejection cannot race the
+    // client's upload; Host/Origin checks above use real HTTP connections.
+    const oversized = await server.inject({
+      method: 'POST',
+      url: '/api/saved',
+      headers: { host: '127.0.0.1', 'content-type': 'application/json' },
+      payload: JSON.stringify({ padding: 'x'.repeat(5 * 1024 * 1024) }),
     });
-    expect(oversized.status).toBe(400);
+    expect(oversized.statusCode).toBe(413);
     expect(await oversized.json()).toEqual({
-      error: 'The request exceeds 5 MB.',
+      error: 'Request body is too large',
     });
   });
   it('rediscovers an abandoned gate and releases the one-run lock after withdrawal', async () => {
@@ -111,7 +109,7 @@ describe('local wizard API', () => {
       await post('runs', { input })
     ).json()) as RunSnapshot;
     const gate = (await awaiting(started.id)).gate!;
-    expect((await post('runs', { input })).status).toBe(400);
+    expect((await post('runs', { input })).status).toBe(409);
     const active = (await (await fetch(base + 'runs')).json()) as RunSnapshot[];
     expect(active.map((s) => s.id)).toEqual([started.id]);
     expect(active[0].gate?.id).toBe(gate.id);

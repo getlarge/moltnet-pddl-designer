@@ -1,19 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { hasErrors } from '../src/check.js';
 import type { DesignInput } from '../src/stages.js';
-import {
-  runPddlDesign,
-  type DesignOptions,
-  type DesignRun,
-  type StageDecision,
-} from '../src/workflow.js';
-import type { TaskClient } from '@themoltnet/tasks-orchestrator';
+import { type DesignOptions, type StageDecision } from '../src/workflow.js';
 import type { RunSnapshot } from './types.js';
 
-export type Execute = (
-  input: DesignInput,
-  options: DesignOptions,
-) => Promise<DesignRun>;
+import type { Execute } from './run-service.js';
+
+/** In-memory review gates for test fixtures only. */
 export class Session {
   snapshot: RunSnapshot;
   private pending?: (decision: StageDecision) => void;
@@ -85,7 +78,4 @@ export class Session {
     this.publish();
     resolve(decision);
   }
-}
-export function executor(tasks: TaskClient): Execute {
-  return (input, options) => runPddlDesign(tasks, input, options);
 }

@@ -287,3 +287,16 @@ user has not requested reduced motion. There is no ornamental motion.
 - Don't hide model omissions or silently fabricate source references.
 - Don't use decorative imagery, paper texture or ornamental shadows.
 - Don't use color alone to communicate a correction, selection or completed state.
+
+## Runtime state and recovery
+
+The React SPA reads persisted run snapshots from Fastify over HTTP and SSE.
+Rendering stays client-side. Postgres and Absurd own workflow progress, gate
+identity and accepted decisions; component state owns panel visibility, selection
+and unsubmitted editor text. Restarting the server must preserve accepted work,
+not silently turn it into a new proof. Unsubmitted browser edits are not durable.
+
+During a running stage, a withdrawal control stops orchestration without waiting
+for a review gate. The copy explains that an already-dispatched generation task
+may still finish. Saved JSON proofs remain readable and editable in explicit
+offline mode. Recovery must never hide model findings or auto-pass a review gate.

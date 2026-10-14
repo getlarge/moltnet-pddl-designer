@@ -915,6 +915,39 @@ export function App() {
                 </button>
               </div>
             </div>
+            {snapshot?.state === 'running' && (
+              <details className="finding warning">
+                <summary>Withdraw running proof</summary>
+                <p>
+                  Stop this workflow and release it for a new proof. A task
+                  already sent to a generation worker may still finish.
+                </p>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const reason = new FormData(event.currentTarget).get(
+                      'reason',
+                    );
+                    void perform(async () => {
+                      const next = await api<RunSnapshot>(
+                        `runs/${snapshot.id}/withdraw`,
+                        { reason },
+                      );
+                      setSnapshot(next);
+                      setRecoverableRun(undefined);
+                    });
+                  }}
+                >
+                  <label>
+                    Reason for withdrawal
+                    <input name="reason" required maxLength={10000} />
+                  </label>
+                  <button disabled={busy} type="submit">
+                    Withdraw proof
+                  </button>
+                </form>
+              </details>
+            )}
             {run?.failure?.code === 'claim-timeout' ? (
               <section
                 className="finding warning"

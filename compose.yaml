@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: designer
+      POSTGRES_DB: designer
+      # Local development only; the port is restricted to loopback.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - '127.0.0.1:5440:5432'
+    volumes:
+      - designer-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U designer -d designer']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+volumes:
+  designer-data:
+    name: moltnet-pddl-designer-data

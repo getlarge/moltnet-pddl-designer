@@ -337,7 +337,9 @@ describe('runPddlDesign progress and review gates', () => {
 
     // Act
     await runPddlDesign(fakeTasks(), input, {
-      onEvent: (event) => events.push(event),
+      onEvent: (event) => {
+        events.push(event);
+      },
     });
 
     // Assert
