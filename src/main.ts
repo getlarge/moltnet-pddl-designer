@@ -7,6 +7,7 @@ import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
 import { createClassifyDecisionClient } from './decision.js';
 import { buildTypesTask, type DesignInput } from './stages.js';
+import { formatEvent } from './progress.js';
 import { runPddlDesign } from './workflow.js';
 
 const USAGE =
@@ -83,6 +84,10 @@ export async function main(argv = process.argv.slice(2)) {
   const run = await runPddlDesign(tasks, input, {
     maxCorrections,
     claimTimeoutSec,
+    onEvent: (event) => {
+      const line = formatEvent(event);
+      if (line) process.stderr.write(`[pddl-designer] ${line}\n`);
+    },
     ...(values.review
       ? {
           review: {

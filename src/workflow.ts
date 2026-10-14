@@ -72,7 +72,10 @@ import {
 export interface StageRecord {
   stage: StageName;
   attempt: number;
-  taskId: string;
+  /** `task`: a model produced the result; `edit`: the reviewer replaced it. */
+  source: 'task' | 'edit';
+  /** The stage task, for `task` records. */
+  taskId?: string;
   brief: string;
   result: unknown;
   issues: Issue[];
@@ -117,7 +120,43 @@ export interface DesignRun {
   durationMs: number;
 }
 
+/** Progress of a run, emitted as it happens, for live display. */
+export type DesignEvent =
+  | { type: 'task-created'; stage: StageName; attempt: number; taskId: string }
+  | { type: 'task-claimed'; stage: StageName; attempt: number; taskId: string }
+  | { type: 'stage-result'; record: StageRecord }
+  | { type: 'stage-accepted'; stage: StageName; attempt: number }
+  | { type: 'plan-checked'; status: DesignStatus; plan: PlanResult }
+  | { type: 'review'; round: number; findings: Issue[] }
+  | { type: 'finished'; run: DesignRun };
+
+/** A stage result waiting for the reviewer's decision. */
+export interface StageGate {
+  stage: StageName;
+  attempt: number;
+  result: unknown;
+  /** Check findings on `result`; errors mean it cannot be accepted. */
+  issues: Issue[];
+}
+
+export type StageDecision =
+  /** Continue with this result. Refused while the checks report errors. */
+  | { action: 'accept' }
+  /** Replace the result; it is re-checked and the gate asks again. */
+  | { action: 'edit'; result: unknown }
+  /** Send a correction task carrying this message. */
+  | { action: 'feedback'; message: string }
+  | { action: 'abort'; reason?: string };
+
 export interface DesignOptions {
+  /** Receives progress events. It runs inline, so it must not block. */
+  onEvent?: (event: DesignEvent) => void;
+  /**
+   * Called when a stage result is ready: after it passes the checks, or once
+   * the automatic corrections are used up. Without it, a passing result is
+   * accepted and a failing one stops the run as `invalid`.
+   */
+  confirmStage?: (gate: StageGate) => Promise<StageDecision>;
   /** Correction tasks allowed per stage after a result fails the checks. */
   maxCorrections?: number;
   pollIntervalSec?: number;
@@ -203,7 +242,23 @@ export async function runPddlDesign(
     }
   }
 
-  /** Run one stage, retrying with a correction while checks report errors. */
+  const emit = (event: DesignEvent) => options.onEvent?.(event);
+  const record = (entry: StageRecord) => {
+    run.stages.push(entry);
+    emit({ type: 'stage-result', record: entry });
+  };
+  const decide = (gate: StageGate): Promise<StageDecision> =>
+    options.confirmStage
+      ? options.confirmStage(gate)
+      : Promise.resolve(
+          hasErrors(gate.issues) ? { action: 'abort' } : { action: 'accept' },
+        );
+
+  /**
+   * Run one stage: automatic corrections while the checks report errors, then
+   * the reviewer's decision, which may edit the result or ask for another
+   * task with feedback.
+   */
   async function stage<T>(
     name: StageName,
     build: (attempt: number, correction?: Correction) => StageTaskBody,
@@ -212,15 +267,18 @@ export async function runPddlDesign(
     seed?: Correction,
   ): Promise<{ result: T; issues: Issue[] }> {
     // Attempts keep counting across review rounds so idempotency keys differ.
-    const first = run.stages.filter((s) => s.stage === name).length + 1;
+    let attempt = run.stages.filter((s) => s.stage === name).length + 1;
     let correction: Correction | undefined = seed;
-    for (let attempt = first; attempt <= first + maxCorrections; attempt++) {
+    let corrections = 0;
+    for (;;) {
       const stageStart = Date.now();
       const body = build(attempt, correction);
       const task = await tasks.createTask(body, {
         idempotencyKey: idempotencyKey(input, name, attempt),
       });
+      emit({ type: 'task-created', stage: name, attempt, taskId: task.id });
       await awaitClaim(name, task.id);
+      emit({ type: 'task-claimed', stage: name, attempt, taskId: task.id });
       const outcome = await waitForTaskOutcome(task.id, {
         tasks,
         ctx,
@@ -229,28 +287,98 @@ export async function runPddlDesign(
       });
       if (outcome.kind !== 'accepted')
         throw new StageStopped(name, 'failed', outcome.reason);
-      const result = outcome.result.state;
-      const issues = check(result);
-      run.stages.push({
+      let result = outcome.result.state;
+      let issues = check(result);
+      record({
         stage: name,
         attempt,
+        source: 'task',
         taskId: task.id,
         brief: body.input.brief,
         result,
         issues,
         durationMs: Date.now() - stageStart,
       });
-      if (!hasErrors(issues)) return { result, issues };
+      const errors = () => issues.filter((i) => i.severity === 'error');
+      if (hasErrors(issues) && corrections < maxCorrections) {
+        corrections++;
+        correction = { previous: result, issues: errors() };
+        attempt++;
+        continue;
+      }
+
+      // What the reviewer last saw: the result, or an edit the schema rejected.
+      let shown: unknown = result;
+      let feedback: string | undefined;
+      while (feedback === undefined) {
+        const decision = await decide({
+          stage: name,
+          attempt,
+          result: shown,
+          issues,
+        });
+        if (decision.action === 'accept' && !hasErrors(issues)) {
+          emit({ type: 'stage-accepted', stage: name, attempt });
+          return { result, issues };
+        }
+        if (decision.action === 'accept' || decision.action === 'abort') {
+          throw hasErrors(issues)
+            ? new StageStopped(
+                name,
+                'invalid',
+                `still failing checks after ${maxCorrections} correction(s)`,
+              )
+            : new StageStopped(
+                name,
+                'failed',
+                (decision.action === 'abort' && decision.reason) ||
+                  `stopped by the reviewer at the ${name} stage`,
+              );
+        }
+        if (decision.action === 'feedback') {
+          feedback = decision.message;
+          break;
+        }
+        // An edit is checked like a model result, schema first.
+        attempt++;
+        shown = decision.result;
+        try {
+          result = parse({ result: decision.result });
+          issues = check(result);
+        } catch (error) {
+          issues = [
+            {
+              severity: 'error',
+              path: name,
+              code: 'schema',
+              message: error instanceof Error ? error.message : String(error),
+            },
+          ];
+        }
+        record({
+          stage: name,
+          attempt,
+          source: 'edit',
+          brief: '',
+          result: decision.result,
+          issues,
+          durationMs: 0,
+        });
+      }
       correction = {
-        previous: result,
-        issues: issues.filter((i) => i.severity === 'error'),
+        previous: shown,
+        issues: [
+          {
+            severity: 'error',
+            path: name,
+            code: 'reviewer-feedback',
+            message: feedback,
+          },
+          ...errors(),
+        ],
       };
+      attempt++;
     }
-    throw new StageStopped(
-      name,
-      'invalid',
-      `still failing checks after ${maxCorrections} correction(s)`,
-    );
   }
 
   try {
@@ -377,6 +505,7 @@ export async function runPddlDesign(
           : check.plan.status === 'unsolvable'
             ? 'unsolvable'
             : 'search_limit';
+      emit({ type: 'plan-checked', status: run.status, plan: check.plan });
       if (!options.review || check.plan.status !== 'found') break;
 
       const review = await reviewPlan(
@@ -386,6 +515,7 @@ export async function runPddlDesign(
         { ...options.review, limits: options.limits ?? DEFAULT_LIMITS },
       );
       run.review = [...(run.review ?? []), { ...review, round: round + 1 }];
+      emit({ type: 'review', round: round + 1, findings: review.findings });
       run.reviewPassed = review.findings.length === 0;
       if (run.reviewPassed || round >= rounds) break;
 
@@ -426,5 +556,6 @@ export async function runPddlDesign(
     run.failure = { stage: error.stage, reason: error.message };
   }
   run.durationMs = Date.now() - started;
+  emit({ type: 'finished', run });
   return run;
 }

@@ -17,7 +17,12 @@ import {
   blocksProblemResult,
   blocksTypes,
 } from './test-fixtures.js';
-import { runPddlDesign } from './workflow.js';
+import {
+  type DesignEvent,
+  runPddlDesign,
+  type StageDecision,
+  type StageGate,
+} from './workflow.js';
 
 const input: DesignInput = {
   description: 'Blocks can be stacked by a robotic arm.',
@@ -307,5 +312,163 @@ describe('runPddlDesign', () => {
     expect(run.status).toBe('failed');
     expect(run.failure?.stage).toBe('predicates');
     expect(run.stages.map((s) => s.stage)).toEqual(['types']);
+  });
+});
+
+const badTypes = ok({
+  types: [{ name: 'arm', parent: 'agent', description: 'x' }],
+});
+
+/** A reviewer answering each gate from a per-stage script, then accepting. */
+function reviewer(script: Partial<Record<string, StageDecision[]>> = {}) {
+  const gates: StageGate[] = [];
+  const confirmStage = async (gate: StageGate): Promise<StageDecision> => {
+    gates.push(gate);
+    return script[gate.stage]?.shift() ?? { action: 'accept' };
+  };
+  return { gates, confirmStage };
+}
+
+describe('runPddlDesign progress and review gates', () => {
+  it('emits task, result and acceptance events per stage, then the plan', async () => {
+    // Arrange
+    const events: DesignEvent[] = [];
+
+    // Act
+    await runPddlDesign(fakeTasks(), input, {
+      onEvent: (event) => events.push(event),
+    });
+
+    // Assert
+    const typesEvents = events
+      .filter((e) => 'stage' in e && e.stage === 'types')
+      .map((e) => e.type);
+    expect(typesEvents).toEqual([
+      'task-created',
+      'task-claimed',
+      'stage-accepted',
+    ]);
+    expect(
+      events
+        .filter((e) => e.type === 'stage-result')
+        .map((e) => e.type === 'stage-result' && e.record.stage),
+    ).toEqual(['types', 'predicates', 'actions', 'refine', 'problem']);
+    expect(events.slice(-2).map((e) => e.type)).toEqual([
+      'plan-checked',
+      'finished',
+    ]);
+  });
+
+  it('asks the reviewer once per stage and continues on accept', async () => {
+    // Arrange
+    const { gates, confirmStage } = reviewer();
+
+    // Act
+    const run = await runPddlDesign(fakeTasks(), input, { confirmStage });
+
+    // Assert
+    expect(gates.map((g) => g.stage)).toEqual([
+      'types',
+      'predicates',
+      'actions',
+      'refine',
+      'problem',
+    ]);
+    expect(run.status).toBe('planned');
+  });
+
+  it('lets the reviewer fix a stage by editing once corrections are used up', async () => {
+    // Arrange: both automatic attempts return an undefined parent type
+    const tasks = fakeTasks({ types: [badTypes, badTypes] });
+    const { gates, confirmStage } = reviewer({
+      types: [{ action: 'edit', result: blocksTypes }],
+    });
+
+    // Act
+    const run = await runPddlDesign(tasks, input, { confirmStage });
+
+    // Assert
+    const types = run.stages.filter((s) => s.stage === 'types');
+    expect(types.map((s) => [s.source, s.attempt])).toEqual([
+      ['task', 1],
+      ['task', 2],
+      ['edit', 3],
+    ]);
+    expect(types[2].taskId).toBeUndefined();
+    expect(gates[0].issues.some((i) => i.severity === 'error')).toBe(true);
+    expect(run.status).toBe('planned');
+  });
+
+  it('shows a schema-rejected edit back to the reviewer with the error', async () => {
+    // Arrange
+    const rejected = { types: 'not a list' };
+    const { gates, confirmStage } = reviewer({
+      types: [
+        { action: 'edit', result: rejected },
+        { action: 'edit', result: blocksTypes },
+      ],
+    });
+
+    // Act
+    const run = await runPddlDesign(fakeTasks(), input, { confirmStage });
+
+    // Assert
+    expect(gates[1].result).toBe(rejected);
+    expect(gates[1].issues).toMatchObject([
+      { severity: 'error', code: 'schema', path: 'types' },
+    ]);
+    expect(run.status).toBe('planned');
+  });
+
+  it('sends reviewer feedback as a new correction task', async () => {
+    // Arrange
+    const tasks = fakeTasks();
+    const { confirmStage } = reviewer({
+      types: [{ action: 'feedback', message: 'Add a type for the table.' }],
+    });
+
+    // Act
+    const run = await runPddlDesign(tasks, input, { confirmStage });
+
+    // Assert
+    const types = run.stages.filter((s) => s.stage === 'types');
+    expect(types.map((s) => [s.source, s.attempt])).toEqual([
+      ['task', 1],
+      ['task', 2],
+    ]);
+    expect(types[1].brief).toContain('Add a type for the table.');
+    expect(
+      new Set(tasks.creationOptions.map((o) => o?.idempotencyKey)).size,
+    ).toBe(tasks.creationOptions.length);
+  });
+
+  it('stops as failed with the reason when the reviewer aborts', async () => {
+    // Arrange
+    const { confirmStage } = reviewer({
+      predicates: [{ action: 'abort', reason: 'description is wrong' }],
+    });
+
+    // Act
+    const run = await runPddlDesign(fakeTasks(), input, { confirmStage });
+
+    // Assert
+    expect(run.status).toBe('failed');
+    expect(run.failure).toEqual({
+      stage: 'predicates',
+      reason: 'description is wrong',
+    });
+  });
+
+  it('refuses to accept a result the checks still reject', async () => {
+    // Arrange
+    const tasks = fakeTasks({ types: [badTypes, badTypes] });
+    const { confirmStage } = reviewer();
+
+    // Act
+    const run = await runPddlDesign(tasks, input, { confirmStage });
+
+    // Assert
+    expect(run.status).toBe('invalid');
+    expect(run.failure?.stage).toBe('types');
   });
 });
