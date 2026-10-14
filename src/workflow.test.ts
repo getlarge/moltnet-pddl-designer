@@ -10,6 +10,8 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import type { Domain, Problem } from './ir.js';
+import { createClassifyQuestionClient } from './decision.js';
+import { validatePlan } from './planner.js';
 import type { DesignInput } from './stages.js';
 import {
   blocksActions,
@@ -470,5 +472,337 @@ describe('runPddlDesign progress and review gates', () => {
     // Assert
     expect(run.status).toBe('invalid');
     expect(run.failure?.stage).toBe('types');
+  });
+});
+
+const warningClient = (tasks: TaskClient) =>
+  createClassifyQuestionClient(tasks, {
+    teamId: input.teamId,
+    diaryId: input.diaryId,
+    correlationId: input.correlationId,
+    profileId: 'classifier',
+    purpose: 'warning-review',
+    pollIntervalSec: 0,
+  });
+const classified = (probability: number): FakeTaskOutput => ({
+  version: 1,
+  answers: { answer: { type: 'bool', probability } },
+});
+
+describe('early warning review', () => {
+  it('classifies accepted drafts before refinement and records uncertain and dismissed findings', async () => {
+    const answers = [0.9, 0.1, 0.5];
+    const tasks = new FakeTasks((body) =>
+      body.taskType === 'classify'
+        ? classified(answers.shift()!)
+        : HAPPY[stageOf(body.tags)],
+    );
+    const events: DesignEvent[] = [];
+
+    const run = await runPddlDesign(tasks, input, {
+      warningReview: { questions: warningClient(tasks) },
+      onEvent: (event) => events.push(event),
+    });
+
+    expect(run.status).toBe('planned');
+    expect(tasks.created.map((t) => t.taskType)).toEqual([
+      'freeform',
+      'freeform',
+      'freeform',
+      'classify',
+      'classify',
+      'classify',
+      'freeform',
+      'freeform',
+    ]);
+    const assessment = run.warningReviews![0];
+    expect(assessment.after).toEqual({ stage: 'actions', attempt: 1 });
+    expect(assessment.decisions.map((d) => d.verdict)).toEqual([
+      'confirmed',
+      'dismissed',
+      'uncertain',
+    ]);
+    expect(
+      assessment.decisions.every((d) => d.taskId && d.question.instructions),
+    ).toBe(true);
+    const refine = run.stages.find((s) => s.stage === 'refine')!;
+    expect(refine.brief).toContain('Classifier-supported semantic finding');
+    expect(refine.brief).toContain('actions/pick-up');
+    expect(refine.brief).not.toContain('[warning] actions/stack');
+    expect(refine.brief).not.toContain('[warning] actions/unstack');
+    expect(run.stages.find((s) => s.stage === 'actions')?.issues).toHaveLength(
+      3,
+    );
+    expect(run.issues).toHaveLength(3); // Advisory: unchanged defects stay visible.
+    const start = events.findIndex((e) => e.type === 'warning-review-started');
+    expect(events[start - 1]).toMatchObject({
+      type: 'stage-accepted',
+      stage: 'actions',
+    });
+    expect(
+      events.filter((e) => e.type === 'warning-review-result'),
+    ).toHaveLength(3);
+  });
+
+  it('classifies a reviewer-edited model rather than the original task result', async () => {
+    const edited = {
+      actions: blocksActions.map((a) => ({
+        ...a,
+        source: 'Reviewer-edited source',
+      })),
+    };
+    const tasks = new FakeTasks((body) =>
+      body.taskType === 'classify'
+        ? classified(0.01)
+        : HAPPY[stageOf(body.tags)],
+    );
+    const { confirmStage } = reviewer({
+      actions: [{ action: 'edit', result: edited }],
+    });
+
+    const run = await runPddlDesign(tasks, input, {
+      confirmStage,
+      warningReview: { questions: warningClient(tasks) },
+    });
+
+    expect(run.warningReviews![0].after).toEqual({
+      stage: 'actions',
+      attempt: 2,
+    });
+    const question = tasks.created.find((t) => t.taskType === 'classify')!;
+    expect(question.input).toMatchObject({
+      state: {
+        process: input.description,
+        domain: { actions: edited.actions },
+      },
+    });
+  });
+
+  it('does not classify structurally invalid drafts or override a reviewer abort', async () => {
+    for (const mode of ['invalid', 'abort']) {
+      const tasks = fakeTasks(
+        mode === 'invalid'
+          ? {
+              actions: [
+                ok({
+                  actions: [
+                    {
+                      ...blocksActions[0],
+                      addEffects: [{ predicate: 'unknown', args: [] }],
+                    },
+                  ],
+                }),
+              ],
+            }
+          : {},
+      );
+      const { confirmStage } = reviewer(
+        mode === 'abort'
+          ? { actions: [{ action: 'abort', reason: 'stop' }] }
+          : {},
+      );
+      const run = await runPddlDesign(tasks, input, {
+        maxCorrections: 0,
+        confirmStage,
+        warningReview: { questions: warningClient(tasks) },
+      });
+      expect(run.failure?.stage).toBe('actions');
+      expect(tasks.created.every((t) => t.taskType === 'freeform')).toBe(true);
+      expect(run.warningReviews).toEqual([]);
+    }
+  });
+
+  it('preserves successful answers and the failed task when classification stops', async () => {
+    let asked = 0;
+    const tasks = new FakeTasks((body) =>
+      body.taskType === 'classify'
+        ? ++asked === 1
+          ? classified(0.99)
+          : { __taskStatus: 'failed' }
+        : HAPPY[stageOf(body.tags)],
+    );
+    const events: DesignEvent[] = [];
+
+    const run = await runPddlDesign(tasks, input, {
+      warningReview: { questions: warningClient(tasks) },
+      onEvent: (e) => events.push(e),
+    });
+
+    expect(run.status).toBe('failed');
+    expect(run.failure).toMatchObject({
+      stage: 'warning-review',
+      reason: expect.stringContaining('review question failed'),
+    });
+    expect(run.warningReviews![0].decisions).toHaveLength(1);
+    expect(run.warningReviews![0].failure).toMatchObject({
+      taskId: expect.any(String),
+      issue: { path: 'actions/stack' },
+    });
+    expect(tasks.created.some((t) => t.tags?.includes('stage:refine'))).toBe(
+      false,
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: 'finished',
+      run: { status: 'failed' },
+    });
+  });
+
+  it('reassesses the current refined model when final review requests another refinement', async () => {
+    const revised = {
+      actions: blocksActions.map((a) => ({
+        ...a,
+        source: 'Revised after first refinement',
+      })),
+      changes: [],
+    };
+    const tasks = new FakeTasks((body) =>
+      body.taskType === 'classify'
+        ? classified(0.01)
+        : stageOf(body.tags) === 'refine'
+          ? ok(revised)
+          : HAPPY[stageOf(body.tags)],
+    );
+
+    const run = await runPddlDesign(tasks, input, {
+      warningReview: { questions: warningClient(tasks) },
+      review: {
+        decisions: {
+          yesNo: async (state) => (state.step === 'put-down' ? 0.99 : 0.01),
+        },
+        rounds: 1,
+      },
+    });
+
+    expect(run.warningReviews!.map((r) => r.after.stage)).toEqual([
+      'actions',
+      'refine',
+    ]);
+    const questions = tasks.created.filter((t) => t.taskType === 'classify');
+    expect(questions[3].input).toMatchObject({
+      state: { domain: { actions: revised.actions } },
+    });
+    const keys = tasks.creationOptions
+      .filter((_, i) => tasks.created[i].taskType === 'classify')
+      .map((o) => o?.idempotencyKey);
+    expect(keys[0]).not.toBe(keys[3]);
+  });
+
+  it('uses confirmed feedback to close an ownership loophole with an existing predicate', async () => {
+    const domain: Domain = {
+      name: 'owned-work',
+      types: [
+        { name: 'agent', description: 'Worker' },
+        { name: 'item', description: 'Ticket' },
+      ],
+      predicates: [
+        {
+          name: 'assigned',
+          parameters: [
+            { name: '?a', type: 'agent' },
+            { name: '?i', type: 'item' },
+          ],
+          description: 'Worker owns the item',
+        },
+        {
+          name: 'ready',
+          parameters: [{ name: '?i', type: 'item' }],
+          description: 'Ready to finish',
+        },
+        {
+          name: 'done',
+          parameters: [{ name: '?i', type: 'item' }],
+          description: 'Finished',
+        },
+      ],
+      actions: [
+        {
+          name: 'finish',
+          parameters: [
+            { name: '?a', type: 'agent' },
+            { name: '?i', type: 'item' },
+          ],
+          preconditions: [{ predicate: 'ready', args: ['?i'], negated: false }],
+          addEffects: [{ predicate: 'done', args: ['?i'] }],
+          deleteEffects: [],
+          source: 'Only the assigned worker can finish a ticket.',
+        },
+      ],
+    };
+    const problem: Problem = {
+      name: 'owned-ticket',
+      objects: [
+        { name: 'owner', type: 'agent' },
+        { name: 'other', type: 'agent' },
+        { name: 'ticket', type: 'item' },
+      ],
+      init: [
+        { predicate: 'assigned', args: ['owner', 'ticket'] },
+        { predicate: 'ready', args: ['ticket'] },
+      ],
+      goal: [{ predicate: 'done', args: ['ticket'], negated: false }],
+    };
+    const fixed = domain.actions.map((a) => ({
+      ...a,
+      preconditions: [
+        ...a.preconditions,
+        { predicate: 'assigned', args: ['?a', '?i'], negated: false },
+      ],
+    }));
+    const outputs: Record<string, FakeTaskOutput> = {
+      types: ok({ types: domain.types }),
+      predicates: ok({ predicates: domain.predicates }),
+      actions: ok({ actions: domain.actions }),
+      problem: ok({
+        objects: problem.objects,
+        init: problem.init,
+        goal: problem.goal,
+      }),
+    };
+    const tasks = new FakeTasks((body) =>
+      body.taskType === 'classify'
+        ? classified(0.99)
+        : stageOf(body.tags) === 'refine'
+          ? ok({
+              actions: String(body.input.brief).includes('Classifier-supported')
+                ? fixed
+                : domain.actions,
+              changes: ['Require the assigned worker.'],
+            })
+          : outputs[stageOf(body.tags)],
+    );
+
+    const run = await runPddlDesign(
+      tasks,
+      {
+        ...input,
+        domainName: domain.name,
+        description: domain.actions[0].source,
+      },
+      { warningReview: { questions: warningClient(tasks) } },
+    );
+
+    expect(validatePlan(domain, problem, ['(finish other ticket)']).valid).toBe(
+      true,
+    );
+    expect(run.status).toBe('planned');
+    expect(
+      validatePlan(run.domain!, run.problem!, ['(finish other ticket)']).valid,
+    ).toBe(false);
+    expect(
+      validatePlan(run.domain!, run.problem!, ['(finish owner ticket)']).valid,
+    ).toBe(true);
+    expect(run.warningReviews![0].decisions[0].verdict).toBe('confirmed');
+  });
+
+  it('creates no classifier tasks when a draft has no candidates', async () => {
+    const tasks = fakeTasks({
+      actions: [ok({ actions: [blocksActions[1]] })],
+      refine: [ok({ actions: [blocksActions[1]], changes: [] })],
+    });
+    const run = await runPddlDesign(tasks, input, {
+      warningReview: { questions: warningClient(tasks) },
+    });
+    expect(run.warningReviews).toEqual([]);
+    expect(tasks.created.some((t) => t.taskType === 'classify')).toBe(false);
   });
 });
