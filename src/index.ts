@@ -12,3 +12,5 @@ export * from './warning-review.js';
 
 export * from './provenance.js';
 export * from './saved-run.js';
+
+export * from './source-grounding.js';
