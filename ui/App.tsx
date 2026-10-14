@@ -189,6 +189,7 @@ export function App() {
   const [rack, setRack] = useState<SavedItem[]>([]);
   const [snapshot, setSnapshot] = useState<RunSnapshot>();
   const [saved, setSaved] = useState<Saved>();
+  const [recoverableRun, setRecoverableRun] = useState<RunSnapshot>();
   const [stage, setStage] = useState<ViewStage>('types');
   const stageRail = useCurrentInView<HTMLOListElement>(`${page}/${stage}`);
   const [selectedLine, setSelectedLine] = useState<number>();
@@ -275,10 +276,12 @@ export function App() {
     Promise.all([
       api<Example[]>('examples'),
       api<{ defaults: Partial<RunInput>; runsDirectory: string }>('config'),
+      api<RunSnapshot[]>('runs'),
     ])
-      .then(([items, config]) => {
+      .then(([items, config, runs]) => {
         if (!cancelled) {
           setExamples(items);
+          setRecoverableRun(runs[0]);
           setInput((v) => ({
             ...v,
             ...Object.fromEntries(
@@ -317,25 +320,29 @@ export function App() {
     if (!snapshot?.id) return;
     let disposed = false;
     const events = new EventSource(`/api/runs/${snapshot.id}/events`);
-    events.onmessage = (e) => {
-      const next = JSON.parse(e.data) as RunSnapshot;
-      setConnected(true);
+    const applySnapshot = (next: RunSnapshot) => {
+      if (disposed || next.id !== snapshot.id) return;
       setSnapshot((previous) =>
-        !previous ||
-        previous.id !== next.id ||
-        next.sequence >= previous.sequence
+        previous?.id === next.id && next.sequence >= previous.sequence
           ? next
           : previous,
       );
     };
+    events.onmessage = (e) => {
+      if (disposed) return;
+      setConnected(true);
+      applySnapshot(JSON.parse(e.data) as RunSnapshot);
+    };
     events.onerror = () => {
+      if (disposed) return;
       setConnected(false);
-      void api<RunSnapshot>(`runs/${snapshot.id}`).catch((e) => {
-        if (!disposed) {
-          setError(e.message);
-          events.close();
-        }
-      });
+      void api<RunSnapshot>(`runs/${snapshot.id}`)
+        .then(applySnapshot)
+        .catch((e) => {
+          if (!disposed) {
+            setError(e.message);
+          }
+        });
     };
     return () => {
       disposed = true;
@@ -529,6 +536,27 @@ export function App() {
           </div>
         )}
         {notice && <p className="notice">{notice}</p>}
+        {recoverableRun && recoverableRun.id !== snapshot?.id && (
+          <p className="notice">
+            An unfinished run is waiting: {recoverableRun.input.domainName}.{' '}
+            <button
+              onClick={() =>
+                void perform(async () => {
+                  const current = await api<RunSnapshot>(
+                    `runs/${recoverableRun.id}`,
+                  );
+                  setSaved(undefined);
+                  setSnapshot(current);
+                  setPage('proof');
+                  setRecoverableRun(undefined);
+                  location.hash = `run/${current.id}`;
+                })
+              }
+            >
+              Resume current run
+            </button>
+          </p>
+        )}
         {!connected && snapshot && (
           <p className="error-banner">
             Connection interrupted. Reconnecting to the local server; the run
@@ -559,8 +587,8 @@ export function App() {
               ))}
             </div>
             <p className="small">
-              You approve each stage. Your description stays beside the model,
-              all the way through.
+              You approve each stage. Keep your description beside the model, or
+              hide it to make room while exploring the plan.
             </p>
             <label className="import-button">
               Open a saved proof
@@ -901,10 +929,47 @@ export function App() {
                 </button>
               </div>
             </div>
-            {(snapshot?.error || run?.failure) && (
-              <div className="error-banner" role="alert">
-                {snapshot?.error ?? run?.failure?.reason}
-              </div>
+            {run?.failure?.code === 'claim-timeout' ? (
+              <section
+                className="finding warning"
+                role="status"
+                aria-label="Worker timeout"
+              >
+                <h2>No worker picked up this step</h2>
+                <p>
+                  The{' '}
+                  {run.failure.stage === 'warning-review'
+                    ? 'Warning assessment'
+                    : labels[run.failure.stage]}{' '}
+                  task was not claimed before the waiting limit. Start a daemon
+                  worker for the selected profile and team, then retry from New
+                  proof.
+                </p>
+                <p>
+                  Check that the worker serves freeform tasks and that its
+                  correlation filters allow this run.
+                </p>
+                <details>
+                  <summary>Task details</summary>
+                  <p>{run.failure.reason}</p>
+                </details>
+                <button
+                  onClick={() => {
+                    const { correlationId: _correlation, ...retryInput } =
+                      snapshot?.input ?? run.input;
+                    setInput((previous) => ({ ...previous, ...retryInput }));
+                    setPage('new');
+                  }}
+                >
+                  Review setup and retry
+                </button>
+              </section>
+            ) : (
+              (snapshot?.error || run?.failure) && (
+                <div className="error-banner" role="alert">
+                  {snapshot?.error ?? run?.failure?.reason}
+                </div>
+              )
             )}
             <div
               className={`proof-columns ${descriptionVisible ? 'with-description' : 'without-description'} ${construction ? 'with-construction' : ''}`}

@@ -1,4 +1,4 @@
-import { createServer, type Server } from 'node:http';
+import { createServer, request as httpRequest, type Server } from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -73,6 +73,73 @@ describe('local wizard API', () => {
     expect(
       (await fetch(base + 'runs', { method: 'POST', body: '{}' })).status,
     ).toBe(415);
+  });
+  it('rejects hostile hosts, cross-site requests and oversized writes', async () => {
+    const hostileHostStatus = await new Promise<number | undefined>(
+      (resolve, reject) => {
+        const request = httpRequest(
+          base + 'runs',
+          { headers: { Host: 'attacker.example' } },
+          (response) => {
+            response.resume();
+            resolve(response.statusCode);
+          },
+        );
+        request.on('error', reject);
+        request.end();
+      },
+    );
+    expect(hostileHostStatus).toBe(403);
+    expect(
+      (
+        await fetch(base + 'runs', {
+          headers: { 'Sec-Fetch-Site': 'cross-site' },
+        })
+      ).status,
+    ).toBe(403);
+    const oversized = await post('saved', {
+      padding: 'x'.repeat(5 * 1024 * 1024),
+    });
+    expect(oversized.status).toBe(400);
+    expect(await oversized.json()).toEqual({
+      error: 'The request exceeds 5 MB.',
+    });
+  });
+  it('rediscovers an abandoned gate and releases the one-run lock after withdrawal', async () => {
+    const { correlationId: _, ...input } = syntheticInput;
+    const started = (await (
+      await post('runs', { input })
+    ).json()) as RunSnapshot;
+    const gate = (await awaiting(started.id)).gate!;
+    expect((await post('runs', { input })).status).toBe(400);
+    const active = (await (await fetch(base + 'runs')).json()) as RunSnapshot[];
+    expect(active.map((s) => s.id)).toEqual([started.id]);
+    expect(active[0].gate?.id).toBe(gate.id);
+    await post(`runs/${started.id}/decisions`, {
+      gateId: gate.id,
+      decision: { action: 'abort', reason: 'Recovered abandoned gate.' },
+    });
+    await awaiting(started.id);
+    expect(await (await fetch(base + 'runs')).json()).toEqual([]);
+    expect((await post('runs', { input })).status).toBe(201);
+  });
+  it('rejects correction requests that skip unapproved saved edits', async () => {
+    const run = await syntheticExecute(syntheticInput, {});
+    run.needsReview = ['types', 'predicates', 'actions', 'refine', 'problem'];
+    const savedId = await store.save(run);
+    const { correlationId: _, ...input } = syntheticInput;
+    const response = await post('runs', {
+      input,
+      savedId,
+      stage: 'refine',
+      feedback: 'Review this.',
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error:
+        'Pass the saved types stage before requesting a correction to refine.',
+    });
+    expect(await (await fetch(base + 'runs')).json()).toEqual([]);
   });
   it('streams snapshots, enforces gates once, retains rejected edits, and saves finished runs', async () => {
     const { correlationId: _, ...input } = syntheticInput;

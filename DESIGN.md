@@ -248,6 +248,11 @@ Author questions and missing-reference warnings start collapsed inside the
 relevant action; blocking errors start open. The source quote remains available
 for review rather than being silently converted into inferred evidence.
 
+The wizard uses plain-language collapsible findings rather than literal Qy
+proofreading symbols. Questions belong inside the corresponding action; errors
+start expanded. Do not add strike-through or replacement marks without an actual
+recorded edit. The Plan description is optional and starts hidden.
+
 ### Plan walkthrough
 
 Show the selected step's effects alongside the current facts and goals. Label

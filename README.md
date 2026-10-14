@@ -27,6 +27,47 @@ declared no objects of the types the actions produce, so the goal was
 unreachable. With those objects added, the planner's plan merged a second issue
 by reusing the first issue's pull request and approval.
 
+## Local wizard
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Open `http://127.0.0.1:4317`. The local server serves the UI and talks to
+MoltNet; generation workers run separately (see [Runtime profiles](#runtime-profiles)).
+For a built UI, run `pnpm build` followed by `pnpm start`. Saved proofs default
+to `runs/`; override with `pnpm dev --runs-dir /path/to/proofs`.
+
+Review extracted meaning alongside numbered source sentences, then Pass,
+Correct, Return with note, or Withdraw. Description and construction are
+independent Show/Hide panels. The screenshots below use the synthetic Blocks
+World browser-test fixture; they demonstrate interaction, not model accuracy.
+
+![Types review with source selection, stage routing and review controls](docs/images/wizard-review.png)
+
+Step through the plan to inspect typed participants, changed facts and goal
+conditions. The description starts collapsed here to give the walkthrough room.
+
+![Plan walkthrough showing typed action bindings, changed facts and achieved goals](docs/images/plan-walkthrough.png)
+
+An unfinished live run can be recovered from **Resume current run** on a fresh
+page. At its review gate, continue reading or withdraw it before starting another
+run. Live sessions last only as long as the local server process; save completed
+proofs to reopen them after a restart. A worker-claim timeout explains which step
+was not picked up and offers **Review setup and retry**. Generated corrections
+cannot skip earlier saved edits that still need your approval.
+
+### Source evidence
+
+Code numbers description sentences; generation tasks receive that numbered
+copy and request citations. Citations are model output: local checks reject
+nonexistent sentence numbers, while you verify whether the cited text supports
+the result. Missing citations remain visible and are not silently invented.
+These checks also apply to CLI runs: invalid numbers can trigger the normal
+automatic correction attempt. Numbering currently uses Node's `Intl.Segmenter`;
+keep the Node/ICU version consistent when moving saved proofs between machines.
+
 ## Stages
 
 The [workflow diagram](./docs/workflow.md) maps MoltNet tasks, local checks,

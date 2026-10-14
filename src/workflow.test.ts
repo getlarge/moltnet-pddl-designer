@@ -204,6 +204,7 @@ describe('runPddlDesign', () => {
 
     // Assert
     expect(run.status).toBe('failed');
+    expect(run.failure?.code).toBe('claim-timeout');
     expect(run.failure?.reason).toMatch(
       /no worker claimed task task-1 within 0s; check that a poller is running/,
     );
@@ -829,6 +830,17 @@ describe('saved correction runs', () => {
     expect(next.stages.find((s) => s.stage === 'refine')?.brief).toContain(
       'Keep separate work for each block.',
     );
+  });
+  it('requires approval of preceding saved edits before creating correction tasks', async () => {
+    const prior = await runPddlDesign(fakeTasks(), input);
+    prior.needsReview = ['types', 'predicates', 'actions', 'refine', 'problem'];
+    const tasks = fakeTasks();
+    await expect(
+      runPddlDesign(tasks, input, {
+        resume: { run: prior, stage: 'refine', feedback: 'Review this.' },
+      }),
+    ).rejects.toThrow('Pass the saved types stage');
+    expect(tasks.creationOptions).toHaveLength(0);
   });
   it('stops before creating tasks when preceding saved evidence fails checks', async () => {
     const prior = await runPddlDesign(fakeTasks(), input);

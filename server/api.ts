@@ -233,6 +233,17 @@ export function createApi(options: ApiOptions) {
           return true;
         }
       }
+      if (resource === 'runs' && req.method === 'GET' && !id) {
+        json(
+          res,
+          [...sessions.values()]
+            .filter((session) =>
+              ['running', 'awaiting'].includes(session.snapshot.state),
+            )
+            .map((session) => session.snapshot),
+        );
+        return true;
+      }
       if (resource === 'runs' && req.method === 'POST' && !id) {
         const data = await body(req);
         if (!Value.Check(startSchema, data))
@@ -255,14 +266,6 @@ export function createApi(options: ApiOptions) {
           );
         if (data.savedId && (!data.stage || !data.feedback?.trim()))
           throw new Error('Choose a saved stage and write a correction note.');
-        if (
-          [...sessions.values()].some((s) =>
-            ['running', 'awaiting'].includes(s.snapshot.state),
-          )
-        )
-          throw new Error(
-            'Finish or withdraw the current run before starting another.',
-          );
         const input = {
           ...data.input,
           correlationId: randomUUID(),
@@ -272,6 +275,13 @@ export function createApi(options: ApiOptions) {
         };
         if (data.savedId) {
           const saved = await options.store.get(data.savedId);
+          const pending = saved.needsReview?.find(
+            (stage) => STAGES.indexOf(stage) < STAGES.indexOf(data.stage!),
+          );
+          if (pending)
+            throw new Error(
+              `Pass the saved ${pending} stage before requesting a correction to ${data.stage}.`,
+            );
           Object.assign(input, saved.input, { correlationId: randomUUID() });
           runOptions.resume = {
             run: saved,
@@ -279,6 +289,14 @@ export function createApi(options: ApiOptions) {
             feedback: data.feedback!,
           };
         }
+        if (
+          [...sessions.values()].some((s) =>
+            ['running', 'awaiting'].includes(s.snapshot.state),
+          )
+        )
+          throw new Error(
+            'Finish or withdraw the current run before starting another.',
+          );
         const session = new Session(
           input,
           execute,
