@@ -158,7 +158,7 @@ export function recheckRun(original: DesignRun): DesignRun {
     }
     try {
       const result = parsers[stage]({ result: record.result });
-      let findings: Issue[] = [
+      const findings: Issue[] = [
         ...namingIssues(schemas[stage], result),
         ...checkSources(result, run.sourceSentences),
       ];

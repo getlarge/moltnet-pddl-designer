@@ -318,7 +318,7 @@ AGPL-3.0-only. This code started in
 
 ## Continuous integration and branch protection
 
-Ready pull requests and pushes to `main` run formatting checks, TypeScript
+Ready pull requests and pushes to `main` run ESLint, Secretlint, formatting checks, TypeScript
 checks, unit/API tests, the production build, and browser tests on Node 22.
 Draft PRs skip CI until marked ready. Browser tests use Playwright Chromium in
 CI and installed Chrome locally; synthetic workers require no MoltNet secrets.
@@ -346,3 +346,20 @@ The CI setup PR does not activate repository administration settings.
 Before removing a development worktree, preserve ignored local proofs and
 exports. Use `--runs-dir` with a persistent directory outside the worktree to
 keep saved proofs independent of branch cleanup.
+
+### Local lint checks
+
+```bash
+pnpm lint
+pnpm secretlint
+pnpm format:check
+```
+
+ESLint checks JavaScript and TypeScript with recommended rules, plus React hook
+rules in the UI. Warnings fail the check. Secretlint uses its recommended preset
+and scans text files, including dotfiles and workflow configuration. It uses the
+repository's explicit `.secretlintignore` instead of inherited Git ignore rules;
+dependencies, generated output, screenshots, and local runtime state are excluded.
+For a deliberate fake credential in a fixture, use a rule-scoped
+`secretlint-disable-next-line` comment with an explanation; do not disable the
+scanner for the whole test directory. These tools require Node 22.13 or newer.
