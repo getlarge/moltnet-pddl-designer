@@ -3,7 +3,12 @@ import type { DesignRun, StageDecision } from '../src/workflow.js';
 import type { StageName } from '../src/stages.js';
 import type { ActionDef, Atom } from '../src/ir.js';
 import type { Issue } from '../src/check.js';
-import type { RunInput, RunSnapshot, SavedItem } from '../server/types.js';
+import type {
+  RunInput,
+  RunSnapshot,
+  SavedItem,
+  WarningReviewSettings,
+} from '../server/types.js';
 import { sourceLines, sourceSentences } from '../src/provenance.js';
 import {
   api,
@@ -21,6 +26,10 @@ import { emptyStage, StageEditor } from './StageEditor.js';
 import { PlanExplorer } from './PlanExplorer.js';
 import { FactDefinition } from './FactDefinition.js';
 import { CodeBlock } from './CodeBlock.js';
+import {
+  WarningAssessment,
+  WarningAssessmentSettings,
+} from './WarningAssessment.js';
 import { useCurrentInView } from './useCurrentInView.js';
 
 type Example = {
@@ -159,8 +168,8 @@ function ProfileGuidance({
         <p className="small">
           Keep modeling profiles input-only: no workspace or network access is
           needed. Static checks and the planner run locally without a profile.
-          Optional classification review has a separate profile and is currently
-          available through the CLI.
+          Optional warning assessment needs a separate classification profile
+          and a worker serving classify tasks.
         </p>
         <p className="small">
           See README.md → Runtime profiles for setup commands, model selection,
@@ -175,6 +184,7 @@ function ProfileGuidance({
 export function App() {
   const [page, setPage] = useState<'new' | 'rack' | 'proof'>('new');
   const [input, setInput] = useState<RunInput>(initialInput);
+  const [warningReview, setWarningReview] = useState<WarningReviewSettings>();
   const [examples, setExamples] = useState<Example[]>([]);
   const [rack, setRack] = useState<SavedItem[]>([]);
   const [snapshot, setSnapshot] = useState<RunSnapshot>();
@@ -250,7 +260,9 @@ export function App() {
     setSaved({ id, run: data });
     setSnapshot(undefined);
     setStage(
-      data.failure?.stage ??
+      (data.failure?.stage === 'warning-review'
+        ? 'actions'
+        : data.failure?.stage) ??
         data.needsReview?.[0] ??
         (data.plan ? 'plan' : 'types'),
     );
@@ -367,7 +379,7 @@ export function App() {
   }, [selectedLine, selectedMark, stage]);
   async function start() {
     await perform(async () => {
-      const s = await api<RunSnapshot>('runs', { input });
+      const s = await api<RunSnapshot>('runs', { input, warningReview });
       setSnapshot(s);
       setSaved(undefined);
       setStage('types');
@@ -399,6 +411,7 @@ export function App() {
             saved.run.input;
           const s = await api<RunSnapshot>('runs', {
             input: { ...input, ...savedInput },
+            warningReview,
             savedId: saved.id,
             stage,
             feedback: decision.message,
@@ -677,6 +690,10 @@ export function App() {
               ))}
               <ProfileGuidance input={input} onChange={setInput} />
             </details>
+            <WarningAssessmentSettings
+              value={warningReview}
+              onChange={setWarningReview}
+            />
             <div className="intake-submit">
               <button className="primary" disabled={busy || active}>
                 {busy ? 'Starting…' : 'Begin proof'}
@@ -950,6 +967,33 @@ export function App() {
                   </span>
                 </div>
                 <p className="stage-explanation">{explain[stage]}</p>
+                {['actions', 'refine', 'plan'].includes(stage) && (
+                  <WarningAssessment
+                    decisions={
+                      run?.warningReviews?.flatMap((r) => r.decisions) ??
+                      snapshot?.events.flatMap(({ event }) =>
+                        event.type === 'warning-review-result'
+                          ? [event.decision]
+                          : [],
+                      ) ??
+                      []
+                    }
+                    reviews={run?.warningReviews ?? []}
+                    running={
+                      !!snapshot &&
+                      snapshot.state === 'running' &&
+                      snapshot.events.findLast(({ event }) =>
+                        [
+                          'warning-review-started',
+                          'task-created',
+                          'stage-result',
+                          'finished',
+                        ].includes(event.type),
+                      )?.event.type === 'warning-review-started'
+                    }
+                  />
+                )}
+
                 {!editor && (
                   <details
                     key={stage}
@@ -1392,6 +1436,10 @@ export function App() {
                           ),
                         )}
                         <ProfileGuidance input={input} onChange={setInput} />
+                        <WarningAssessmentSettings
+                          value={warningReview}
+                          onChange={setWarningReview}
+                        />
                       </>
                     )}
                     <div className="button-row">

@@ -129,7 +129,8 @@ export function stageState(
   if (run?.needsReview?.includes(stage as StageName)) return 'Review again';
   if (snapshot?.gate?.stage === stage) return 'Awaiting you';
   if (run && !snapshot) {
-    const failed = run.failure?.stage;
+    const failed =
+      run.failure?.stage === 'warning-review' ? 'actions' : run.failure?.stage;
     if (failed && stages.indexOf(stage) >= stages.indexOf(failed))
       return stage === failed ? 'Corrections' : 'Waiting';
     if (stage === 'plan')

@@ -291,3 +291,71 @@ test('feedback and withdrawal are real gate decisions', async ({ page }) => {
     'Synthetic test complete.',
   );
 });
+
+test('opt-in warning assessment shows questions, returns and saved evidence', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page
+    .getByLabel('How does the process work?')
+    .fill('Synthetic test: A robotic arm moves blocks. Blocks can be stacked.');
+  await page
+    .getByLabel('What situation should the plan solve?')
+    .fill('Synthetic test: Build a tower a on b on c.');
+  const enable = page.getByLabel(
+    'Assess action warnings against my description',
+  );
+  await expect(enable).not.toBeChecked();
+  await enable.check();
+  await page
+    .getByLabel('Classification profile name or ID')
+    .fill('test-classifier');
+  await page.getByRole('button', { name: 'Begin proof' }).click();
+  for (let n = 0; n < 5; n++) {
+    await expect(page.getByText('Your reading is needed')).toBeVisible();
+    await page.getByRole('button', { name: 'Pass', exact: true }).click();
+    if (n < 4)
+      await expect(page.locator('.margin .column-heading h2')).toHaveText(
+        ['Facts', 'Actions', 'Refinement', 'Situation'][n],
+      );
+  }
+  const assessment = page.getByRole('region', {
+    name: 'Warning assessment',
+    exact: true,
+  });
+  await expect(assessment).toBeVisible();
+  const question = assessment.locator('details').first();
+  await question.locator('summary').click();
+  await expect(question).toContainText('4.0% probability of a defect');
+  await expect(question).toContainText('Yes means');
+  await expect(question).toContainText('No means');
+  await expect(question).toContainText(
+    'Does the original process description establish',
+  );
+  await expect(question).toContainText('"probability": 0.04');
+  await mkdir('.impeccable/review', { recursive: true });
+  await page.screenshot({
+    path: '.impeccable/review/classification.png',
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: '.impeccable/review/classification-mobile.png',
+    fullPage: false,
+  });
+  await page.getByRole('button', { name: 'Save proof', exact: true }).click();
+  await expect(page).toHaveURL(/#saved\//);
+  await page.reload();
+  const restored = page.getByRole('region', {
+    name: 'Warning assessment',
+    exact: true,
+  });
+  await expect(restored).toBeVisible();
+  await restored.locator('details').first().locator('summary').click();
+  await expect(restored).toContainText('"probability": 0.04');
+});

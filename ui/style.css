@@ -1456,3 +1456,26 @@ td:first-child {
 .changes-removed {
   color: var(--warning);
 }
+
+.warning-assessment-settings {
+  border: 1px solid var(--rule);
+  margin: 24px 0;
+  padding: 16px;
+}
+.check-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.check-option input[type='checkbox'] {
+  width: 18px;
+  min-height: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.warning-assessment {
+  margin-block: 24px;
+}
+.warning-assessment summary {
+  overflow-wrap: anywhere;
+}
