@@ -29,7 +29,10 @@ by reusing the first issue's pull request and approval.
 
 ## Local wizard
 
+Install the Node version in `.tool-versions`, then enable pnpm through Corepack:
+
 ```bash
+corepack enable pnpm
 pnpm install
 pnpm dev
 ```
@@ -319,7 +322,7 @@ AGPL-3.0-only. This code started in
 ## Continuous integration and branch protection
 
 Ready pull requests and pushes to `main` run ESLint, Secretlint, formatting checks, TypeScript
-checks, unit/API tests, the production build, and browser tests on Node 22.
+checks, unit/API tests, the production build, and browser tests using the Node version pinned in `.tool-versions`.
 Draft PRs skip CI until marked ready. Browser tests use Playwright Chromium in
 CI and installed Chrome locally; synthetic workers require no MoltNet secrets.
 Failures upload traces, screenshots, and browser reports for seven days.
