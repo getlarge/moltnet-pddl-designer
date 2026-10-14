@@ -143,6 +143,7 @@ describe('permanentFacts', () => {
       {
         severity: 'warning',
         path: 'predicates/clear',
+        code: 'permanent-fact',
         message:
           'no action deletes clear: once added it stays true. Fine for a permanent milestone; a problem if a later step should not be able to reuse it',
       },
