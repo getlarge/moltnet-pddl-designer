@@ -69,7 +69,29 @@ intended plan works and that a known-bad plan is rejected.
 - `plan`: the steps, or why no plan was found
 - `issues`: warnings left on the final domain and problem
 
-A UI can render this record directly.
+A UI can render this record directly. Each stage record says whether a model
+produced it (`source: 'task'`, with its `taskId`) or the reviewer edited it
+(`source: 'edit'`).
+
+## Progress and review gates
+
+`runPddlDesign` takes two optional hooks:
+
+- `onEvent` receives progress as it happens: `task-created`, `task-claimed`,
+  `stage-result`, `stage-accepted`, `plan-checked`, `review`, `finished`. The
+  CLI prints them on stderr.
+- `confirmStage` is called when a stage result is ready: after it passes the
+  checks, or once the automatic corrections are used up. It answers with one
+  of these decisions:
+  - `accept`: continue. Refused while the checks still report errors.
+  - `edit`: replace the result. It is checked like a model result, schema
+    first, and the gate asks again.
+  - `feedback`: send another task for the stage, with the message as a
+    correction.
+  - `abort`: stop the run as `failed`, with the reason.
+
+Without `confirmStage`, a passing result is accepted and a failing one stops
+the run as `invalid`, as before.
 
 ## Limits
 

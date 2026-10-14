@@ -3,6 +3,7 @@ export * from './decision.js';
 export * from './ir.js';
 export * from './planner.js';
 export * from './problem-check.js';
+export * from './progress.js';
 export * from './render.js';
 export * from './review.js';
 export * from './stages.js';
