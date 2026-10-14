@@ -273,4 +273,73 @@ describe('local wizard API', () => {
       snapshot.events.filter((e) => e.event.type === 'task-created'),
     ).toHaveLength(1);
   });
+  it('previews locally, classifies before passing Actions, and invalidates checks after edits', async () => {
+    const { correlationId: _, ...input } = syntheticInput;
+    const started = (await (
+      await post('runs', { input })
+    ).json()) as RunSnapshot;
+    let snapshot = await awaiting(started.id);
+    for (let n = 0; n < 2; n++) {
+      await post(`runs/${started.id}/decisions`, {
+        gateId: snapshot.gate!.id,
+        decision: { action: 'accept' },
+      });
+      snapshot = await awaiting(started.id);
+    }
+    expect(snapshot.gate!.stage).toBe('actions');
+    const gateId = snapshot.gate!.id;
+    const targets = [
+      {
+        action: 'pick-up',
+        field: 'preconditions',
+        atom: { predicate: 'clear', args: ['?b'] },
+        negated: false,
+      },
+    ];
+    const preview = (await (
+      await post(`runs/${started.id}/source-check`, {
+        gateId,
+        targets,
+        preview: true,
+      })
+    ).json()) as { input: import('@themoltnet/sdk').ClassifyInput };
+    expect(preview.input.state.source).toBe(input.description);
+    expect(Object.keys(preview.input.questions)).toHaveLength(1);
+    expect(
+      ((await (await fetch(base + `runs/${started.id}`)).json()) as RunSnapshot)
+        .sourceCheck,
+    ).toBeUndefined();
+    const checked = (await (
+      await post(`runs/${started.id}/source-check`, {
+        gateId,
+        targets,
+        profile: 'synthetic',
+      })
+    ).json()) as RunSnapshot;
+    expect(checked.sourceCheck?.status).toBe('complete');
+    expect(checked.sourceCheck?.output?.answers.claim_1).toMatchObject({
+      choice: 'supported',
+    });
+    expect(checked.gate!.id).toBe(gateId);
+    await post(`runs/${started.id}/decisions`, {
+      gateId,
+      decision: { action: 'edit', result: snapshot.gate!.result },
+    });
+    snapshot = await awaiting(started.id);
+    expect(snapshot.sourceCheck).toBeUndefined();
+    expect(snapshot.gate!.id).not.toBe(gateId);
+    expect(
+      (
+        await post(`runs/${started.id}/source-check`, {
+          gateId,
+          targets,
+          preview: true,
+        })
+      ).status,
+    ).toBe(409);
+    await post(`runs/${started.id}/decisions`, {
+      gateId: snapshot.gate!.id,
+      decision: { action: 'abort', reason: 'Test complete.' },
+    });
+  });
 });

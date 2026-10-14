@@ -461,3 +461,52 @@ test('explains a worker claim timeout and preserves the description for retry', 
   await page.getByRole('button', { name: 'Begin proof' }).click();
   await expect(page.getByText('Your reading is needed')).toBeVisible();
 });
+
+test('source check previews requests and informs the Actions review decision', async ({
+  page,
+}) => {
+  await startReview(page);
+  for (const heading of ['Facts', 'Actions']) {
+    await page.getByRole('button', { name: 'Pass', exact: true }).click();
+    await expect(page.locator('.margin .column-heading h2')).toHaveText(
+      heading,
+    );
+  }
+  const panel = page.getByRole('region', {
+    name: 'Compare actions with your description',
+  });
+  await expect(panel).toBeVisible();
+  const choices = panel.getByRole('checkbox');
+  for (let n = 0; n < 3; n++) await choices.nth(n).check();
+  await panel.getByRole('button', { name: 'Preview source check' }).click();
+  await expect(
+    panel.getByRole('heading', { name: 'Ready to compare 3 rules' }),
+  ).toBeVisible();
+  await panel.getByLabel('Classification profile name or ID').fill('synthetic');
+  await panel.getByRole('button', { name: 'Run source check' }).click();
+  await expect(
+    panel.getByText('Supported by your description', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByText('Your description disagrees', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByText('Your description does not settle this', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Pass', exact: true }),
+  ).toBeEnabled();
+  await panel
+    .getByRole('button', { name: 'Prepare correction note' })
+    .first()
+    .click();
+  await expect(page.getByLabel('What should be corrected?')).toContainText(
+    'source check found a contradiction',
+  );
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('button', { name: 'Correct', exact: true }).click();
+  await page.getByRole('button', { name: 'Check corrections' }).click();
+  await expect(
+    panel.getByText('Your description disagrees', { exact: true }),
+  ).toHaveCount(0);
+});

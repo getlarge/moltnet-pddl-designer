@@ -14,6 +14,7 @@
  * The returned DesignRun holds everything a reviewer or a UI needs: each
  * stage's brief, result and findings, the rendered PDDL, and the plan check.
  */
+import type { SourceCheckRecord } from './source-check.js';
 import { createHash } from 'node:crypto';
 import {
   checkSources,
@@ -126,6 +127,7 @@ export interface DesignRun {
   review?: Array<PlanReview & { round: number }>;
   /** True when the last review found no shortcuts. */
   reviewPassed?: boolean;
+  sourceChecks?: SourceCheckRecord[];
   durationMs: number;
 }
 

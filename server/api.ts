@@ -1,3 +1,4 @@
+import { AtomSchema } from '../src/ir.js';
 import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -46,6 +47,30 @@ const startSchema = Type.Object(
     stage: Type.Optional(Type.Union(STAGES.map((s) => Type.Literal(s)))),
     feedback: Type.Optional(Type.String({ minLength: 1, maxLength: 10000 })),
     claimTimeoutSec: Type.Optional(Type.Integer({ minimum: 1, maximum: 3600 })),
+  },
+  { additionalProperties: false },
+);
+const sourceCheckSchema = Type.Object(
+  {
+    gateId: Type.String(),
+    targets: Type.Array(
+      Type.Object(
+        {
+          action: Type.String(),
+          field: Type.Union(
+            ['preconditions', 'addEffects', 'deleteEffects'].map((s) =>
+              Type.Literal(s),
+            ),
+          ),
+          atom: AtomSchema,
+          negated: Type.Optional(Type.Boolean()),
+        },
+        { additionalProperties: false },
+      ),
+      { minItems: 1, maxItems: 20 },
+    ),
+    profile: Type.Optional(Type.String({ minLength: 1 })),
+    preview: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },
 );
@@ -222,6 +247,13 @@ export function createApi(options: ApiOptions) {
           };
         }
         return reply.code(201).send(await runs.start(input, runOptions));
+      });
+      api.post<RunParams>('/runs/:id/source-check', async request => {
+        const data = request.body;
+        if (!Value.Check(sourceCheckSchema, data)) throw new Error('Choose 1–20 valid action rules to check.');
+        if (data.preview) return { input: await runs.previewSource(request.params.id, data.gateId, data.targets) };
+        if (!data.profile?.trim()) throw new Error('Choose a classification profile.');
+        return runs.checkSource(request.params.id, data.gateId, data.targets, data.profile.trim());
       });
       api.get<RunParams>('/runs/:id', async (request, reply) => {
         const snapshot = await runs.get(request.params.id);

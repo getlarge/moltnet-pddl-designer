@@ -36,8 +36,7 @@ before Refinement**. The blue node below marks that location.
 
 `freeform` nodes are generation tasks; `classify` nodes are decision-model tasks.
 `Local` nodes run in code. Review gates pause for the expert in the wizard; library
-callers opt into them with `confirmStage`. The first diagram describes the current
-workflow on `main`, including optional final plan review.
+callers opt into them with `confirmStage`. The overview includes the optional final plan review.
 
 ```mermaid
 flowchart TD
@@ -48,6 +47,8 @@ flowchart TD
     Facts --> FactsGate{"Local checks + Facts review gate"}
     FactsGate -->|Pass| Actions["freeform: draft actions<br/>Parameters, prerequisites, added / removed facts"]
     Actions --> ActionsGate{"Local checks + ACTIONS REVIEW GATE<br/>Expert reviews the draft"}
+    ActionsGate -->|Optional: select rules and preview| SourceCheck["classify: compare selected action rules<br/>with the original description"]
+    SourceCheck -->|Judgments + probabilities| ActionsGate
     ActionsGate -->|Pass| Refine["freeform: refine actions"]
     Refine --> RefineGate{"Local checks + Refinement review gate"}
     RefineGate -->|Pass| Domain["Local: render domain PDDL"]
@@ -68,7 +69,7 @@ flowchart TD
     classDef gate fill:#eaf2f7,stroke:#225b78,stroke-width:3px,color:#1a1a1a
     classDef decision fill:#fff6e7,stroke:#805313,stroke-width:2px,color:#1a1a1a
     class ActionsGate gate
-    class Classify decision
+    class Classify,SourceCheck decision
 ```
 
 Generation retries and the other gates' edit/feedback/withdraw paths are omitted
@@ -76,49 +77,46 @@ from this overview. Every generated or edited result is checked; blocking errors
 prevent passing. Final-review repairs are bounded and re-enter the normal checks
 and gates. The problem is reused only while it remains valid for the new domain.
 
-### Proposed source grounding: before the Actions review gate
+### Source checks during Actions review
 
-This is the placement proposed for the [source-grounding pilot in PR #8](https://github.com/getlarge/moltnet-pddl-designer/pull/8).
-**It is not integrated into the wizard yet.** The pilot builds claims from actual
-action fields and asks whether the source supports, contradicts, or does not
-establish them. Its results would be shown **before you decide whether to pass
-Actions**, rather than arrive after that decision.
+At the **Actions review gate**, expand **Compare actions with your description**
+and select the rules you want checked. **Preview source check** constructs the
+exact request locally: your original description, the selected prerequisites or
+effects, their predicate definitions and typed participants, and a question per
+rule. It creates no task. Enter a **Classification profile name or ID** and
+choose **Run source check** to submit one `classify` task for up to 20 rules.
 
 ```mermaid
 flowchart TD
-    Source["Original process description"] --> Generate["freeform: draft actions<br/>Uses accepted types + facts"]
-    Generate --> Check{"Local: schema + static checks"}
-    Check -->|Blocking errors| CorrectTask["freeform: revise actions<br/>Bounded correction / reviewer feedback"]
-    CorrectTask --> Check
-    Check -->|Current path: ready for expert review| Gate{"ACTIONS REVIEW GATE<br/>Expert reviews draft + available evidence"}
-
-    Check -.->|Proposed: structurally valid draft| Claims["Local: construct claims from<br/>actual prerequisites and effects"]
-    Source -.-> Assess
-    Claims -.-> Assess["classify: compare each claim with source<br/>Supported / contradicted / not established"]
-    Assess -.-> Evidence["Show source, model field, claim,<br/>returned probabilities and task evidence"]
-    Evidence -.-> Gate
-
-    Gate -->|Pass| Refine["freeform: refine actions"]
-    Gate -->|Correct| Edit["Expert edits actions locally"]
-    Edit --> Check
-    Gate -->|Return with note| CorrectTask
-    Gate -->|Withdraw| Stop["Stop the run"]
-
+    Draft["Generated Actions draft"] --> Check{"Local: schema + static checks"}
+    Check -->|Errors| Correct["Correct draft or return with note"]
+    Correct --> Check
+    Check -->|Valid| Gate{"ACTIONS REVIEW GATE"}
+    Gate -->|Optional: select rules| Preview["Local: preview source, claims and questions"]
+    Preview -->|Run source check| Assess["classify: source supports, contradicts,<br/>or does not establish each claim"]
+    Assess --> Evidence["Show judgments, probabilities,<br/>exact questions and task evidence"]
+    Evidence --> Gate
+    Gate -->|Correct / Return with note| Correct
+    Gate -->|Pass| Refine["Refinement"]
+    Gate -->|Withdraw| Stop["Stop run"]
     classDef gate fill:#eaf2f7,stroke:#225b78,stroke-width:3px,color:#1a1a1a
-    classDef proposed fill:#fff6e7,stroke:#805313,stroke-width:2px,stroke-dasharray:5 5,color:#1a1a1a
+    classDef decision fill:#fff6e7,stroke:#805313,stroke-width:2px,color:#1a1a1a
     class Gate gate
-    class Claims,Assess,Evidence proposed
+    class Assess decision
 ```
 
-Solid edges show the current action-review flow. Dashed edges and amber nodes
-show the proposed source-grounding addition. Any edit must be checked again and
-would invalidate grounding judgments about the changed fields. A decision-model
-answer would inform the expert; it would not approve the stage or waive errors.
+For example, if processing consumes a fresh inspection but the draft preserves
+it, select **process parcel: Keeps freshly inspected after the action**. The
+check compares that precise rule with your description. Permanent certification
+can legitimately remain true; when the description does not settle a rule, the
+third answer preserves that uncertainty.
 
-The optional **warning assessment in [PR #4](https://github.com/getlarge/moltnet-pddl-designer/pull/4)**
-is a different step: it runs **after Actions is passed and before Refinement**, to
-judge static ownership/lifetime warnings. It is not included in `main`'s current
-path above and is not the proposed source-grounding check shown in dashed lines.
+Results inform your decision. They do not pass the gate, change actions, or
+waive local errors. **Prepare correction note** fills a note for you to review;
+you decide whether to send it. Pass and corrections pause while a check runs;
+Withdraw remains available. Editing or returning the draft clears its old
+judgments. Selected-rule checks do not discover every missing requirement, and
+an Actions judgment does not validate later Refinement edits.
 
 ## Local wizard
 
@@ -224,7 +222,7 @@ copy and request citations. Citations are model output: local checks reject
 nonexistent sentence numbers, while you verify whether the cited text supports
 the result. Missing citations remain visible and are not silently invented.
 These checks also apply to CLI runs: invalid numbers can trigger the normal
-automatic correction attempt. Numbering currently uses Node's `Intl.Segmenter`;
+automatic correction attempt. Numbering uses Node's `Intl.Segmenter`;
 keep the Node/ICU version consistent when moving saved proofs between machines.
 
 ## Stages
@@ -395,10 +393,36 @@ and that its team/correlation filters admit the run. If execution fails, check
 provider credentials and model availability in the daemon environment. Granting
 extra filesystem or network permissions is not a remedy for a routing problem.
 
-Optional semantic review uses `--review --classify-profile` with a profile
-configured for `models.classification` and a worker serving `classify` tasks.
-This is separate from generation overrides and is currently CLI-only. See
-[Plan review](#plan-review-optional); static validation remains authoritative.
+### Classification profiles
+
+Source checks are enabled by choosing rules at the live **Actions review gate**,
+previewing the request, and providing a classification profile there. There is
+no intake toggle and no automatic source-check charge. Use this when a draft
+prerequisite, effect, ownership link, or reusable fact needs interpretation
+against the description. Local syntax and type checks need no decision model.
+
+`runtime/profiles/legreffier-pddl-classifier-v1.json` supplies a separate
+input-only profile with `models.classification` set to TypeSafe's `jev-latest`.
+Generation profiles and per-step overrides do not select this model. Create it
+and bind the existing empty tool policy:
+
+```bash
+moltnet profile create --from-file runtime/profiles/legreffier-pddl-classifier-v1.json --team-id "$TEAM"
+moltnet profile set-policies legreffier-pddl-classifier-v1 --policy legreffier-pddl-designer-input-only-v1 --team-id "$TEAM"
+moltnet-agent poll --team "$TEAM" --profile legreffier-pddl-classifier-v1 --task-types classify --workspace-strategy none
+```
+
+The worker needs TypeSafe provider credentials in its runtime environment. No
+workspace tools or model sandbox network access are required; the daemon calls
+the provider. Keep the worker polling while you review stages. The wizard checks
+that the profile belongs to the run's team and has a classification model before
+creating a source-check task. Each explicit run has one attempt; a failure leaves
+the draft available for review. The proof retains the exact request, returned
+answers, task ID, elapsed time and available token usage.
+
+Optional **final plan review** uses `--review --classify-profile` in the CLI. It
+asks whether a skippable step is required after plan search. This is separate
+from the wizard's source checks. See [Plan review](#plan-review-optional).
 
 ## Writing the inputs
 
@@ -483,14 +507,13 @@ Draft PRs skip CI until marked ready. Browser tests use Playwright Chromium in
 CI and installed Chrome locally; synthetic workers require no MoltNet secrets.
 Failures upload traces, screenshots, and browser reports for seven days.
 
-The proposed `Protect main` ruleset requires a pull request with one approval, resolved
+The checked-in `Protect main` ruleset defines a pull request with one approval, resolved
 review conversations, and the GitHub Actions `CI passed` check against an
 up-to-date branch. New commits dismiss stale approvals. Force-pushes and branch
-deletion are blocked, with no bypass actors. This ruleset is intended to replace
-legacy branch protection; its configuration is tracked in
+deletion are blocked, with no bypass actors. Its configuration is tracked in
 [.github/rulesets/main.json](.github/rulesets/main.json). Also enable automatic
 deletion of merged PR branches in repository settings. Editing the JSON alone does not change
-the live ruleset. Once CI is available, a repository administrator can create it
+the live ruleset. A repository administrator can create it
 from a checkout containing this file:
 
 ```bash
@@ -500,7 +523,7 @@ gh repo edit getlarge/moltnet-pddl-designer --delete-branch-on-merge
 ```
 
 Run the creation command once; use the existing ruleset ID to update it later.
-The CI setup PR does not activate repository administration settings.
+Repository administration settings are applied separately from code changes.
 
 Before removing a development worktree, preserve ignored local proofs and
 exports. Use `--runs-dir` with a persistent directory outside the worktree to
