@@ -1,0 +1,4 @@
+# First-party MoltNet packages are trusted on release; the release-age gate
+# still applies to every other dependency.
+minimumReleaseAgeExclude:
+  - '@themoltnet/*'
