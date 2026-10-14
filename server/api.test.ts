@@ -172,4 +172,46 @@ describe('local wizard API', () => {
       snapshot.events.filter((e) => e.event.type === 'task-created'),
     ).toHaveLength(1);
   });
+  it('requires a classification profile and records opt-in assessment after the action gate', async () => {
+    const { correlationId: _, ...input } = syntheticInput;
+    expect(
+      (await post('runs', { input, warningReview: { profileId: ' ' } })).status,
+    ).toBe(400);
+    const started = (await (
+      await post('runs', {
+        input,
+        warningReview: { profileId: 'test-classifier' },
+      })
+    ).json()) as RunSnapshot;
+    let snapshot = await awaiting(started.id);
+    expect(snapshot.warningReview?.profileId).toBe('test-classifier');
+    for (let n = 0; n < 5; n++) {
+      expect(snapshot.gate).toBeDefined();
+      if (snapshot.gate!.stage === 'actions')
+        expect(
+          snapshot.events.some(
+            ({ event }) => event.type === 'warning-review-result',
+          ),
+        ).toBe(false);
+      await post(`runs/${started.id}/decisions`, {
+        gateId: snapshot.gate!.id,
+        decision: { action: 'accept' },
+      });
+      snapshot = await awaiting(started.id);
+    }
+    const decisions = snapshot.run?.warningReviews?.flatMap((r) => r.decisions);
+    expect(decisions?.length).toBeGreaterThan(0);
+    expect(decisions?.[0].probability).toBe(0.04);
+    expect(
+      snapshot.events.some(
+        ({ event }) => event.type === 'warning-review-result',
+      ),
+    ).toBe(true);
+    const saved = (await (
+      await post(`runs/${started.id}/save`, {})
+    ).json()) as { id: string };
+    expect((await store.get(saved.id)).warningReviews).toEqual(
+      snapshot.run?.warningReviews,
+    );
+  });
 });

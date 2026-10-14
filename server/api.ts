@@ -7,7 +7,7 @@ import { Value } from 'typebox/value';
 import { editRun, passSavedStage, readRun, STAGES } from '../src/saved-run.js';
 import type { DesignInput, StageName } from '../src/stages.js';
 import type { DesignOptions, StageDecision } from '../src/workflow.js';
-import { Session, type Execute } from './sessions.js';
+import { Session, executor, type Execute } from './sessions.js';
 import { RunStore } from './store.js';
 
 const inputSchema = Type.Object(
@@ -40,6 +40,12 @@ const startSchema = Type.Object(
     savedId: Type.Optional(Type.String()),
     stage: Type.Optional(Type.Union(STAGES.map((s) => Type.Literal(s)))),
     feedback: Type.Optional(Type.String({ minLength: 1, maxLength: 10000 })),
+    warningReview: Type.Optional(
+      Type.Object(
+        { profileId: Type.String({ minLength: 1 }) },
+        { additionalProperties: false },
+      ),
+    ),
     claimTimeoutSec: Type.Optional(Type.Integer({ minimum: 1, maximum: 3600 })),
   },
   { additionalProperties: false },
@@ -95,12 +101,11 @@ export function createApi(options: ApiOptions) {
   const sessions = new Map<string, Session>();
   const execute: Execute =
     options.execute ??
-    (async (input, runOptions) => {
+    (async (input, runOptions, warningReview) => {
       // Loaded only when starting a live run. Offline access needs no identity.
       const { connect } = await import('@themoltnet/sdk/node');
       const { createSdkTaskClient } =
         await import('@themoltnet/tasks-orchestrator');
-      const { runPddlDesign } = await import('../src/workflow.js');
       const agent = await connect();
       const { items } = await agent.runtimeProfiles.list({
         teamId: input.teamId,
@@ -122,10 +127,18 @@ export function createApi(options: ApiOptions) {
           resolveProfile(reference, stage),
         ]),
       );
-      return runPddlDesign(
-        createSdkTaskClient(agent),
+      const tasks = createSdkTaskClient(agent);
+      return executor(tasks)(
         { ...input, profileId, stageProfiles },
         runOptions,
+        warningReview
+          ? {
+              profileId: resolveProfile(
+                warningReview.profileId,
+                'Warning assessment',
+              ),
+            }
+          : undefined,
       );
     });
   return async (
@@ -236,6 +249,10 @@ export function createApi(options: ApiOptions) {
           ].some((x) => !x.trim())
         )
           throw new Error('Required fields cannot be blank.');
+        if (data.warningReview && !data.warningReview.profileId.trim())
+          throw new Error(
+            'Choose a classification profile for warning assessment.',
+          );
         if (data.savedId && (!data.stage || !data.feedback?.trim()))
           throw new Error('Choose a saved stage and write a correction note.');
         if (
@@ -262,7 +279,12 @@ export function createApi(options: ApiOptions) {
             feedback: data.feedback!,
           };
         }
-        const session = new Session(input, execute, runOptions);
+        const session = new Session(
+          input,
+          execute,
+          runOptions,
+          data.warningReview,
+        );
         sessions.set(session.snapshot.id, session);
         void session.start(input);
         json(res, session.snapshot, 201);

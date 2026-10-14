@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { createClassifyQuestionClient } from '../src/decision.js';
 import { hasErrors } from '../src/check.js';
 import type { DesignInput } from '../src/stages.js';
 import {
@@ -8,11 +9,12 @@ import {
   type StageDecision,
 } from '../src/workflow.js';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
-import type { RunSnapshot } from './types.js';
+import type { RunSnapshot, WarningReviewSettings } from './types.js';
 
 export type Execute = (
   input: DesignInput,
   options: DesignOptions,
+  warningReview?: WarningReviewSettings,
 ) => Promise<DesignRun>;
 export class Session {
   snapshot: RunSnapshot;
@@ -22,6 +24,7 @@ export class Session {
     input: DesignInput,
     private execute: Execute,
     private options: DesignOptions = {},
+    private warningReview?: WarningReviewSettings,
   ) {
     this.snapshot = {
       id: randomUUID(),
@@ -30,6 +33,7 @@ export class Session {
       sequence: 0,
       state: 'running',
       events: [],
+      ...(warningReview ? { warningReview } : {}),
     };
   }
   private publish() {
@@ -43,21 +47,25 @@ export class Session {
   }
   async start(input: DesignInput) {
     try {
-      const run = await this.execute(input, {
-        ...this.options,
-        onEvent: (event) => {
-          this.snapshot.events.push({ at: Date.now(), event });
-          if (event.type === 'finished') this.snapshot.run = event.run;
-          this.publish();
-        },
-        confirmStage: (gate) =>
-          new Promise((resolve) => {
-            this.pending = resolve;
-            this.snapshot.gate = { ...gate, id: randomUUID() };
-            this.snapshot.state = 'awaiting';
+      const run = await this.execute(
+        input,
+        {
+          ...this.options,
+          onEvent: (event) => {
+            this.snapshot.events.push({ at: Date.now(), event });
+            if (event.type === 'finished') this.snapshot.run = event.run;
             this.publish();
-          }),
-      });
+          },
+          confirmStage: (gate) =>
+            new Promise((resolve) => {
+              this.pending = resolve;
+              this.snapshot.gate = { ...gate, id: randomUUID() };
+              this.snapshot.state = 'awaiting';
+              this.publish();
+            }),
+        },
+        this.warningReview,
+      );
       this.snapshot.run = run;
       this.snapshot.state = 'finished';
     } catch (error) {
@@ -87,5 +95,23 @@ export class Session {
   }
 }
 export function executor(tasks: TaskClient): Execute {
-  return (input, options) => runPddlDesign(tasks, input, options);
+  return (input, options, warningReview) =>
+    runPddlDesign(tasks, input, {
+      ...options,
+      ...(warningReview
+        ? {
+            warningReview: {
+              questions: createClassifyQuestionClient(tasks, {
+                teamId: input.teamId,
+                diaryId: input.diaryId,
+                projectId: input.projectId,
+                correlationId: input.correlationId,
+                profileId: warningReview.profileId,
+                purpose: 'warning-review',
+                claimTimeoutSec: options.claimTimeoutSec,
+              }),
+            },
+          }
+        : {}),
+    });
 }

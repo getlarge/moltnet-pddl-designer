@@ -62,6 +62,51 @@ const issueSchema = Type.Object({
   message: Type.String(),
   code: Type.Optional(Type.String()),
 });
+const warningReviewsSchema = Type.Array(
+  Type.Object({
+    after: Type.Object({
+      stage: Type.Union([Type.Literal('actions'), Type.Literal('refine')]),
+      attempt: Type.Integer({ minimum: 1 }),
+    }),
+    threshold: Type.Number({ exclusiveMinimum: 0.5, exclusiveMaximum: 1 }),
+    decisions: Type.Array(
+      Type.Object({
+        issue: issueSchema,
+        question: Type.Object({
+          instructions: Type.String(),
+          criteria: Type.Object({ true: Type.String(), false: Type.String() }),
+        }),
+        probability: Type.Number({ minimum: 0, maximum: 1 }),
+        verdict: Type.Union(
+          ['confirmed', 'dismissed', 'uncertain'].map((x) => Type.Literal(x)),
+        ),
+        taskId: Type.String(),
+        durationMs: Type.Number({ minimum: 0 }),
+        usage: Type.Optional(
+          Type.Union([
+            Type.Null(),
+            Type.Object({
+              inputTokens: Type.Number({ minimum: 0 }),
+              outputTokens: Type.Number({ minimum: 0 }),
+              provider: Type.String(),
+              model: Type.String(),
+            }),
+          ]),
+        ),
+      }),
+      { maxItems: 1000 },
+    ),
+    durationMs: Type.Number({ minimum: 0 }),
+    failure: Type.Optional(
+      Type.Object({
+        issue: issueSchema,
+        reason: Type.String(),
+        taskId: Type.Optional(Type.String()),
+      }),
+    ),
+  }),
+  { maxItems: 1000 },
+);
 const runSchema = Type.Object({
   version: Type.Literal(1),
   status: Type.Union(
@@ -99,6 +144,14 @@ export function readRun(value: unknown): DesignRun {
     throw new Error(
       'This file is not a version 1 DesignRun. Check its input and stage records.',
     );
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'warningReviews' in value &&
+    value.warningReviews !== undefined &&
+    !Value.Check(warningReviewsSchema, value.warningReviews)
+  )
+    throw new Error('Invalid saved warning assessment evidence.');
   // Whitelist fields: imported derived results and review claims are recomputed.
   const raw = value as DesignRun;
   const run: DesignRun = {
@@ -117,6 +170,10 @@ export function readRun(value: unknown): DesignRun {
     })),
     issues: [],
     durationMs: raw.durationMs,
+    // Historical model judgments are audit data, never acceptance authority.
+    ...(raw.warningReviews
+      ? { warningReviews: structuredClone(raw.warningReviews) }
+      : {}),
   };
   if (raw.needsReview) {
     if (
@@ -237,6 +294,8 @@ export function editRun(
   result: unknown,
 ): DesignRun {
   const run = structuredClone(original);
+  // An upstream edit invalidates the model assessed by these judgments.
+  if (stage !== 'problem') delete run.warningReviews;
   run.stages.push({
     stage,
     source: 'edit',

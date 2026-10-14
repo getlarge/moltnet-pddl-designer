@@ -1,6 +1,9 @@
 import type { DesignEvent, DesignRun, StageGate } from '../src/workflow.js';
 import type { DesignInput, StageName } from '../src/stages.js';
 export type RunInput = Omit<DesignInput, 'correlationId'>;
+export interface WarningReviewSettings {
+  profileId: string;
+}
 export interface Gate extends StageGate {
   id: string;
 }
@@ -10,6 +13,7 @@ export interface RunSnapshot {
   startedAt: number;
   sequence: number;
   state: 'running' | 'awaiting' | 'finished' | 'failed' | 'offline';
+  warningReview?: WarningReviewSettings;
   events: Array<{ at: number; event: DesignEvent }>;
   gate?: Gate;
   run?: DesignRun;
@@ -23,6 +27,7 @@ export interface SavedItem {
   error?: string;
 }
 export interface StartRequest {
+  warningReview?: WarningReviewSettings;
   input: RunInput;
   savedId?: string;
   stage?: StageName;

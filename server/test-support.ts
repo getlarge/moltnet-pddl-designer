@@ -6,8 +6,7 @@ import {
   blocksProblemResult,
   blocksTypes,
 } from '../src/test-fixtures.js';
-import { runPddlDesign } from '../src/workflow.js';
-import type { Execute } from './sessions.js';
+import { executor, type Execute } from './sessions.js';
 export const syntheticInput = {
   description:
     'Synthetic test: A robotic arm moves blocks. Blocks can be stacked.',
@@ -19,7 +18,7 @@ export const syntheticInput = {
   profileId: 'test-profile',
   correlationId: 'test-correlation',
 };
-export const syntheticExecute: Execute = (input, options) => {
+export const syntheticExecute: Execute = (input, options, warningReview) => {
   const results: Record<string, unknown> = {
     types: {
       types: blocksTypes.types.map((t) => ({ ...t, sourceLines: [1] })),
@@ -39,13 +38,19 @@ export const syntheticExecute: Execute = (input, options) => {
     },
     problem: blocksProblemResult,
   };
-  return runPddlDesign(
-    new FakeTasks((body) => ({
-      summary: 'Synthetic browser test result',
-      result:
-        results[body.tags?.find((t) => t.startsWith('stage:'))?.slice(6) ?? ''],
-    })),
-    input,
-    options,
+  const tasks = new FakeTasks((body) =>
+    body.taskType === 'classify'
+      ? {
+          version: 1,
+          answers: { answer: { type: 'bool', probability: 0.04 } },
+        }
+      : {
+          summary: 'Synthetic browser test result',
+          result:
+            results[
+              body.tags?.find((t) => t.startsWith('stage:'))?.slice(6) ?? ''
+            ],
+        },
   );
+  return executor(tasks)(input, options, warningReview);
 };

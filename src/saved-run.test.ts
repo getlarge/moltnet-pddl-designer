@@ -124,4 +124,44 @@ describe('source evidence', () => {
     expect(sourceLines({ source: 'An arm' }, sentences)).toEqual([]);
     expect(sourceLines({ source: 'An arm lifts.' }, sentences)).toEqual([3]);
   });
+  it('retains historical classifier evidence but invalidates it after model edits', () => {
+    const original = savedFixture();
+    original.warningReviews = [
+      {
+        after: { stage: 'actions', attempt: 1 },
+        threshold: 0.9,
+        durationMs: 100,
+        decisions: [
+          {
+            issue: {
+              severity: 'warning',
+              code: 'permanent-fact',
+              path: 'predicates/done',
+              message: 'Never deleted',
+            },
+            question: {
+              instructions: 'Must this fact be consumed?',
+              criteria: { true: 'Required', false: 'Permanent' },
+            },
+            probability: 0.04,
+            verdict: 'dismissed',
+            taskId: 'synthetic-classification',
+            durationMs: 100,
+          },
+        ],
+      },
+    ];
+    const loaded = readRun(original);
+    expect(loaded.warningReviews).toEqual(original.warningReviews);
+    expect(
+      editRun(loaded, 'refine', { actions: blocksActions, changes: [] })
+        .warningReviews,
+    ).toBeUndefined();
+    expect(
+      editRun(loaded, 'problem', blocksProblemResult).warningReviews,
+    ).toEqual(original.warningReviews);
+    expect(() =>
+      readRun({ ...original, warningReviews: [{ decisions: 'invented' }] }),
+    ).toThrow('warning assessment evidence');
+  });
 });
