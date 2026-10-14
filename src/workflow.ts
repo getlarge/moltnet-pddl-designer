@@ -96,7 +96,7 @@ export interface DesignRun {
   /** Gates needing renewed approval after an offline edit. */
   needsReview?: StageName[];
   status: DesignStatus;
-  failure?: { stage: StageName; reason: string };
+  failure?: { stage: StageName; reason: string; code?: 'claim-timeout' };
   input: Pick<
     DesignInput,
     | 'description'
@@ -187,6 +187,7 @@ class StageStopped extends Error {
     readonly stage: StageName,
     readonly status: 'invalid' | 'failed',
     reason: string,
+    readonly code?: 'claim-timeout',
   ) {
     super(reason);
   }
@@ -218,6 +219,22 @@ export async function runPddlDesign(
         setTimeout(resolve, seconds * 1000);
       }),
   };
+  if (options.resume) {
+    const order: StageName[] = [
+      'types',
+      'predicates',
+      'actions',
+      'refine',
+      'problem',
+    ];
+    const pending = options.resume.run.needsReview?.find(
+      (stage) => order.indexOf(stage) < order.indexOf(options.resume!.stage),
+    );
+    if (pending)
+      throw new Error(
+        `Pass the saved ${pending} stage before requesting a correction to ${options.resume.stage}.`,
+      );
+  }
   const run: DesignRun = {
     version: 1,
     sourceSentences: sourceSentences(input.description),
@@ -245,6 +262,7 @@ export async function runPddlDesign(
           name,
           'failed',
           `no worker claimed task ${taskId} within ${claimTimeoutSec}s; check that a poller is running for this profile and correlation`,
+          'claim-timeout',
         );
       await ctx.sleepFor(`claim.${taskId}`, pollIntervalSec);
     }
@@ -621,7 +639,11 @@ export async function runPddlDesign(
   } catch (error) {
     if (!(error instanceof StageStopped)) throw error;
     run.status = error.status;
-    run.failure = { stage: error.stage, reason: error.message };
+    run.failure = {
+      stage: error.stage,
+      reason: error.message,
+      ...(error.code ? { code: error.code } : {}),
+    };
   }
   run.durationMs = Date.now() - started;
   emit({ type: 'finished', run });

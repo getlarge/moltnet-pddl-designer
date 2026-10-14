@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
 test.afterEach(async ({ page, request }) => {
@@ -100,6 +100,24 @@ test('proofing flow, source links, corrections, plan exploration and offline rev
     page.getByRole('complementary', { name: 'Construction' }),
   ).toBeVisible();
   await expect(page.locator('.syntax-key').first()).toBeVisible();
+  await page.keyboard.press('Tab');
+  for (const selector of [
+    '.construction-column',
+    '.syntax-code',
+    '.fact-list',
+  ]) {
+    await page.locator(selector).first().focus();
+    await expect(page.locator(selector).first()).toBeFocused();
+    await expect(page.locator(selector).first()).toHaveCSS(
+      'outline-style',
+      'solid',
+    );
+    await expect(page.locator(selector).first()).toHaveCSS(
+      'outline-width',
+      '2px',
+    );
+  }
+
   await page.screenshot({
     path: '.impeccable/review/plan-columns.png',
     fullPage: true,
@@ -290,4 +308,156 @@ test('feedback and withdrawal are real gate decisions', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText(
     'Synthetic test complete.',
   );
+});
+
+async function startReview(page: Page) {
+  await page.goto('/');
+  await expect(page.getByLabel('Team ID', { exact: true })).toHaveValue(
+    'test-team',
+  );
+  await page
+    .getByLabel('How does the process work?')
+    .fill('Synthetic test: An arm moves blocks. Blocks can stack.');
+  await page
+    .getByLabel('What situation should the plan solve?')
+    .fill('Stack a on b.');
+  await page.getByRole('button', { name: 'Begin proof' }).click();
+  await expect(page.getByText('Your reading is needed')).toBeVisible();
+}
+
+test('recovers a gate after its URL is lost', async ({ page }) => {
+  await startReview(page);
+  const runUrl = page.url();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Resume current run' }).click();
+  await expect(page).toHaveURL(runUrl);
+  await expect(page.getByText('Your reading is needed')).toBeVisible();
+  await page.getByRole('button', { name: 'Withdraw', exact: true }).click();
+  await page
+    .getByLabel('Why are you withdrawing this proof?')
+    .fill('Recovered run withdrawn.');
+  await page
+    .getByRole('button', { name: 'Withdraw proof', exact: true })
+    .click();
+  await expect(page.getByRole('alert')).toContainText(
+    'Recovered run withdrawn.',
+  );
+});
+
+test('removing an editor row keeps the next row bindings and submitted values', async ({
+  page,
+}) => {
+  await startReview(page);
+  await page.getByRole('button', { name: 'Correct', exact: true }).click();
+  const refs = page.getByRole('textbox', { name: /Source line numbers/ });
+  await refs.nth(1).fill('2');
+  await page
+    .getByRole('button', { name: 'Remove', exact: true })
+    .first()
+    .click();
+  await expect(
+    page.getByRole('textbox', { name: 'Name', exact: true }).first(),
+  ).toHaveValue('agent');
+  await expect(refs.first()).toHaveValue('2');
+  await page.getByRole('button', { name: 'Check corrections' }).click();
+  await expect(
+    page.getByRole('button', { name: 'agent L02', exact: true }),
+  ).toBeVisible();
+});
+
+test('applies the fetched snapshot when streaming fails', async ({
+  page,
+  request,
+}) => {
+  await startReview(page);
+  const id = new URL(page.url()).hash.split('/')[1];
+  await page.addInitScript(() => {
+    class InterruptedStream {
+      onmessage: ((event: { data: string }) => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor() {
+        (
+          window as unknown as { interruptedStream: InterruptedStream }
+        ).interruptedStream = this;
+      }
+      close() {}
+    }
+    Object.defineProperty(window, 'EventSource', { value: InterruptedStream });
+  });
+  await page.reload();
+  await expect(page.getByText('Your reading is needed')).toBeVisible();
+  const snapshot = await (await request.get(`/api/runs/${id}`)).json();
+  await request.post(`/api/runs/${id}/decisions`, {
+    data: { gateId: snapshot.gate.id, decision: { action: 'accept' } },
+  });
+  await expect
+    .poll(
+      async () =>
+        (await (await request.get(`/api/runs/${id}`)).json()).gate?.stage,
+    )
+    .toBe('predicates');
+  await page.evaluate(() =>
+    (
+      window as unknown as { interruptedStream: { onerror: () => void } }
+    ).interruptedStream.onerror(),
+  );
+  await expect(page.locator('.margin .column-heading h2')).toHaveText('Facts');
+  await expect(page.getByText('Your reading is needed')).toBeVisible();
+});
+
+test('explains a worker claim timeout and preserves the description for retry', async ({
+  page,
+  request,
+}) => {
+  await startReview(page);
+  const runUrl = page.url();
+  const id = new URL(runUrl).hash.split('/')[1];
+  const snapshot = await (await request.get(`/api/runs/${id}`)).json();
+  await request.post(`/api/runs/${id}/decisions`, {
+    data: {
+      gateId: snapshot.gate.id,
+      decision: {
+        action: 'abort',
+        reason: 'Timeout presentation fixture cleanup.',
+      },
+    },
+  });
+  const failed = {
+    ...snapshot,
+    gate: undefined,
+    state: 'finished',
+    events: [],
+    run: {
+      version: 1,
+      status: 'failed',
+      input: snapshot.input,
+      stages: [],
+      issues: [],
+      durationMs: 600000,
+      failure: {
+        stage: 'types',
+        code: 'claim-timeout',
+        reason: 'No worker claimed the synthetic task.',
+      },
+    },
+  };
+  await page.route(`**/api/runs/${id}`, (route) =>
+    route.fulfill({ json: failed }),
+  );
+  await page.route(`**/api/runs/${id}/events`, (route) =>
+    route.fulfill({
+      contentType: 'text/event-stream',
+      body: `data: ${JSON.stringify(failed)}\n\n`,
+    }),
+  );
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'No worker picked up this step' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Review setup and retry' }).click();
+  await expect(page.getByLabel('How does the process work?')).toHaveValue(
+    snapshot.input.description,
+  );
+  await page.getByRole('button', { name: 'Begin proof' }).click();
+  await expect(page.getByText('Your reading is needed')).toBeVisible();
 });

@@ -86,7 +86,8 @@ a:focus-visible,
 summary:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+[tabindex]:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 4px;
 }
@@ -1455,4 +1456,11 @@ td:first-child {
 }
 .changes-removed {
   color: var(--warning);
+}
+
+/* Scrollable references retain a visible ring inside clipping boundaries. */
+.construction-column:focus-visible,
+.syntax-code:focus-visible,
+.fact-list:focus-visible {
+  outline-offset: -2px;
 }

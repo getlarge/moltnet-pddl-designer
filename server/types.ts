@@ -6,7 +6,7 @@ export interface Gate extends StageGate {
 }
 export interface RunSnapshot {
   id: string;
-  input: DesignRun['input'];
+  input: DesignInput;
   startedAt: number;
   sequence: number;
   state: 'running' | 'awaiting' | 'finished' | 'failed' | 'offline';

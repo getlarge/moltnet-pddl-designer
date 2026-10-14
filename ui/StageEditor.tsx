@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { StageName } from '../src/stages.js';
 
+const editorRowId = Symbol('editor-row');
 type Row = Record<string, unknown>;
 const captions: Record<string, string> = {
   name: 'Name',
@@ -76,9 +77,12 @@ function normalize(value: unknown, key = ''): unknown {
     if (['types', 'predicates', 'actions'].includes(key))
       row.sourceLines ??= [];
     if (key === 'types') row.parent ??= '';
-    return Object.fromEntries(
-      Object.entries(row).map(([k, v]) => [k, normalize(v, k)]),
-    );
+    return {
+      ...Object.fromEntries(
+        Object.entries(row).map(([k, v]) => [k, normalize(v, k)]),
+      ),
+      [editorRowId]: crypto.randomUUID(),
+    };
   }
   return value;
 }
@@ -163,7 +167,14 @@ function Field({
       <fieldset className="row-group">
         <legend>{caption}</legend>
         {value.map((row, i) => (
-          <div className="edit-row" key={i}>
+          <div
+            className="edit-row"
+            key={
+              row && typeof row === 'object'
+                ? (row as Record<symbol, string>)[editorRowId]
+                : i
+            }
+          >
             <div className="row-heading">
               <span>
                 {caption} {i + 1}
