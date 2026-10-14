@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "cases": {
+    "case-01": {
+      "claim_1": {
+        "relation": "supported",
+        "reason": "The ownership prerequisite is explicitly required."
+      }
+    },
+    "case-02": {
+      "claim_1": {
+        "relation": "contradicted",
+        "reason": "The source requires the missing ownership prerequisite."
+      }
+    },
+    "case-03": {
+      "claim_1": {
+        "relation": "supported",
+        "reason": "The source explicitly consumes the inspection."
+      }
+    },
+    "case-04": {
+      "claim_1": {
+        "relation": "contradicted",
+        "reason": "Retaining the inspection contradicts its required consumption."
+      }
+    },
+    "case-05": {
+      "claim_1": {
+        "relation": "contradicted",
+        "reason": "Deleting certification contradicts permanence."
+      }
+    },
+    "case-06": {
+      "claim_1": {
+        "relation": "supported",
+        "reason": "Leaving certification intact preserves the source rule."
+      }
+    },
+    "case-07": {
+      "claim_1": {
+        "relation": "not_established",
+        "reason": "The source does not establish an ownership prerequisite."
+      }
+    },
+    "case-08": {
+      "claim_1": {
+        "relation": "not_established",
+        "reason": "The source does not establish that ownership is unnecessary either."
+      }
+    }
+  }
+}

@@ -1,0 +1,475 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "case-01",
+      "source": "Only the worker who claimed a ticket may finish it. Finishing requires the ticket to be claimed by that worker.",
+      "domain": {
+        "name": "pilot",
+        "types": [
+          {
+            "name": "ticket",
+            "description": "A ticket in the process."
+          },
+          {
+            "name": "worker",
+            "description": "A worker in the process."
+          }
+        ],
+        "predicates": [
+          {
+            "name": "claimed-by",
+            "parameters": [
+              {
+                "name": "?t",
+                "type": "ticket"
+              },
+              {
+                "name": "?w",
+                "type": "worker"
+              }
+            ],
+            "description": "Ticket ?t is claimed by worker ?w."
+          }
+        ],
+        "actions": [
+          {
+            "name": "finish-ticket",
+            "parameters": [
+              {
+                "name": "?t",
+                "type": "ticket"
+              },
+              {
+                "name": "?w",
+                "type": "worker"
+              }
+            ],
+            "preconditions": [
+              {
+                "predicate": "claimed-by",
+                "args": ["?t", "?w"],
+                "negated": false
+              }
+            ],
+            "addEffects": [],
+            "deleteEffects": [],
+            "source": "Only the worker who claimed a ticket may finish it. Finishing requires the ticket to be claimed by that worker."
+          }
+        ]
+      },
+      "targets": [
+        {
+          "action": "finish-ticket",
+          "field": "preconditions",
+          "atom": {
+            "predicate": "claimed-by",
+            "args": ["?t", "?w"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-02",
+      "source": "Only the worker who claimed a ticket may finish it. Finishing requires the ticket to be claimed by that worker.",
+      "domain": {
+        "name": "pilot",
+        "types": [
+          {
+            "name": "ticket",
+            "description": "A ticket in the process."
+          },
+          {
+            "name": "worker",
+            "description": "A worker in the process."
+          }
+        ],
+        "predicates": [
+          {
+            "name": "claimed-by",
+            "parameters": [
+              {
+                "name": "?t",
+                "type": "ticket"
+              },
+              {
+                "name": "?w",
+                "type": "worker"
+              }
+            ],
+            "description": "Ticket ?t is claimed by worker ?w."
+          }
+        ],
+        "actions": [
+          {
+            "name": "finish-ticket",
+            "parameters": [
+              {
+                "name": "?t",
+                "type": "ticket"
+              },
+              {
+                "name": "?w",
+                "type": "worker"
+              }
+            ],
+            "preconditions": [],
+            "addEffects": [],
+            "deleteEffects": [],
+            "source": "Only the worker who claimed a ticket may finish it. Finishing requires the ticket to be claimed by that worker."
+          }
+        ]
+      },
+      "targets": [
+        {
+          "action": "finish-ticket",
+          "field": "preconditions",
+          "atom": {
+            "predicate": "claimed-by",
+            "args": ["?t", "?w"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-03",
+      "source": "Process-parcel requires a freshly inspected station. Each processing operation consumes the station's fresh inspection; a new inspection is required before processing another parcel.",
+      "domain": {
+        "name": "pilot",
+        "types": [
+          {
+            "name": "station",
+            "description": "A station in the process."
+          }
+        ],
+        "predicates": [
+          {
+            "name": "freshly-inspected",
+            "parameters": [
+              {
+                "name": "?s",
+                "type": "station"
+              }
+            ],
+            "description": "Station ?s has a fresh inspection available."
+          }
+        ],
+        "actions": [
+          {
+            "name": "process-parcel",
+            "parameters": [
+              {
+                "name": "?s",
+                "type": "station"
+              }
+            ],
+            "preconditions": [],
+            "addEffects": [],
+            "deleteEffects": [
+              {
+                "predicate": "freshly-inspected",
+                "args": ["?s"]
+              }
+            ],
+            "source": "Process-parcel requires a freshly inspected station. Each processing operation consumes the station's fresh inspection; a new inspection is required before processing another parcel."
+          }
+        ]
+      },
+      "targets": [
+        {
+          "action": "process-parcel",
+          "field": "deleteEffects",
+          "atom": {
+            "predicate": "freshly-inspected",
+            "args": ["?s"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-04",
+      "source": "Process-parcel requires a freshly inspected station. Each processing operation consumes the station's fresh inspection; a new inspection is required before processing another parcel.",
+      "domain": {
+        "name": "pilot",
+        "types": [
+          {
+            "name": "station",
+            "description": "A station in the process."
+          }
+        ],
+        "predicates": [
+          {
+            "name": "freshly-inspected",
+            "parameters": [
+              {
+                "name": "?s",
+                "type": "station"
+              }
+            ],
+            "description": "Station ?s has a fresh inspection available."
+          }
+        ],
+        "actions": [
+          {
+            "name": "process-parcel",
+            "parameters": [
+              {
+                "name": "?s",
+                "type": "station"
+              }
+            ],
+            "preconditions": [],
+            "addEffects": [],
+            "deleteEffects": [],
+            "source": "Process-parcel requires a freshly inspected station. Each processing operation consumes the station's fresh inspection; a new inspection is required before processing another parcel."
+          }
+        ]
+      },
+      "targets": [
+        {
+          "action": "process-parcel",
+          "field": "deleteEffects",
+          "atom": {
+            "predicate": "freshly-inspected",
+            "args": ["?s"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-05",
+      "source": "Certification is permanent. Process-parcel never consumes, expires, resets, or invalidates the station's certification. The station remains certified after processing.",
+      "domain": {
+        "name": "pilot",
+        "types": [
+          {
+            "name": "station",
+            "description": "A station in the process."
+          }
+        ],
+        "predicates": [
+          {
+            "name": "certified",
+            "parameters": [
+              {
+                "name": "?s",
+                "type": "station"
+              }
+            ],
+            "description": "Station ?s is certified."
+          }
+        ],
+        "actions": [
+          {
+            "name": "process-parcel",
+            "parameters": [
+              {
+                "name": "?s",
+                "type": "station"
+              }
+            ],
+            "preconditions": [],
+            "addEffects": [],
+            "deleteEffects": [
+              {
+                "predicate": "certified",
+                "args": ["?s"]
+              }
+            ],
+            "source": "Certification is permanent. Process-parcel never consumes, expires, resets, or invalidates the station's certification. The station remains certified after processing."
+          }
+        ]
+      },
+      "targets": [
+        {
+          "action": "process-parcel",
+          "field": "deleteEffects",
+          "atom": {
+            "predicate": "certified",
+            "args": ["?s"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-06",
+      "source": "Certification is permanent. Process-parcel never consumes, expires, resets, or invalidates the station's certification. The station remains certified after processing.",
+      "domain": {
+        "name": "pilot",
+        "types": [
+          {
+            "name": "station",
+            "description": "A station in the process."
+          }
+        ],
+        "predicates": [
+          {
+            "name": "certified",
+            "parameters": [
+              {
+                "name": "?s",
+                "type": "station"
+              }
+            ],
+            "description": "Station ?s is certified."
+          }
+        ],
+        "actions": [
+          {
+            "name": "process-parcel",
+            "parameters": [
+              {
+                "name": "?s",
+                "type": "station"
+              }
+            ],
+            "preconditions": [],
+            "addEffects": [],
+            "deleteEffects": [],
+            "source": "Certification is permanent. Process-parcel never consumes, expires, resets, or invalidates the station's certification. The station remains certified after processing."
+          }
+        ]
+      },
+      "targets": [
+        {
+          "action": "process-parcel",
+          "field": "deleteEffects",
+          "atom": {
+            "predicate": "certified",
+            "args": ["?s"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-07",
+      "source": "Workers process tickets. Finish-ticket marks a ticket as done.",
+      "domain": {
+        "name": "pilot",
+        "types": [
+          {
+            "name": "ticket",
+            "description": "A ticket in the process."
+          },
+          {
+            "name": "worker",
+            "description": "A worker in the process."
+          }
+        ],
+        "predicates": [
+          {
+            "name": "claimed-by",
+            "parameters": [
+              {
+                "name": "?t",
+                "type": "ticket"
+              },
+              {
+                "name": "?w",
+                "type": "worker"
+              }
+            ],
+            "description": "Ticket ?t is claimed by worker ?w."
+          }
+        ],
+        "actions": [
+          {
+            "name": "finish-ticket",
+            "parameters": [
+              {
+                "name": "?t",
+                "type": "ticket"
+              },
+              {
+                "name": "?w",
+                "type": "worker"
+              }
+            ],
+            "preconditions": [
+              {
+                "predicate": "claimed-by",
+                "args": ["?t", "?w"],
+                "negated": false
+              }
+            ],
+            "addEffects": [],
+            "deleteEffects": [],
+            "source": "Workers process tickets. Finish-ticket marks a ticket as done."
+          }
+        ]
+      },
+      "targets": [
+        {
+          "action": "finish-ticket",
+          "field": "preconditions",
+          "atom": {
+            "predicate": "claimed-by",
+            "args": ["?t", "?w"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "case-08",
+      "source": "Workers process tickets. Finish-ticket marks a ticket as done.",
+      "domain": {
+        "name": "pilot",
+        "types": [
+          {
+            "name": "ticket",
+            "description": "A ticket in the process."
+          },
+          {
+            "name": "worker",
+            "description": "A worker in the process."
+          }
+        ],
+        "predicates": [
+          {
+            "name": "claimed-by",
+            "parameters": [
+              {
+                "name": "?t",
+                "type": "ticket"
+              },
+              {
+                "name": "?w",
+                "type": "worker"
+              }
+            ],
+            "description": "Ticket ?t is claimed by worker ?w."
+          }
+        ],
+        "actions": [
+          {
+            "name": "finish-ticket",
+            "parameters": [
+              {
+                "name": "?t",
+                "type": "ticket"
+              },
+              {
+                "name": "?w",
+                "type": "worker"
+              }
+            ],
+            "preconditions": [],
+            "addEffects": [],
+            "deleteEffects": [],
+            "source": "Workers process tickets. Finish-ticket marks a ticket as done."
+          }
+        ]
+      },
+      "targets": [
+        {
+          "action": "finish-ticket",
+          "field": "preconditions",
+          "atom": {
+            "predicate": "claimed-by",
+            "args": ["?t", "?w"]
+          }
+        }
+      ]
+    }
+  ]
+}
