@@ -388,14 +388,16 @@
       "Don't assign a different accent hue to every stage.",
       "Don't hide model omissions or silently fabricate source references.",
       "Don't use decorative imagery, paper texture or ornamental shadows.",
-      "Don't use color alone to communicate a correction, selection or completed state."
+      "Don't use color alone to communicate a correction, selection or completed state.",
+      "Don't require Qy symbols or invent strike-through corrections without an actual recorded edit."
     ],
     "dos": [
       "Do connect selected annotations to recorded source evidence, or label missing references.",
       "Do keep state labels, borders and disclosure controls alongside color.",
       "Do keep description and construction visibility controls as buttons with Show/Hide wording.",
       "Do present plain-language meaning before optional model notation.",
-      "Do distinguish a passed model check from a claim that the described process is correct."
+      "Do distinguish a passed model check from a claim that the described process is correct.",
+      "Do use plain-language collapsible findings inside the relevant action; errors start expanded."
     ],
     "keyCharacteristics": [
       "Flat sheets and fine rules, without decorative imagery.",
