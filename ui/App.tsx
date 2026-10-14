@@ -168,8 +168,11 @@ function ProfileGuidance({
         <p className="small">
           Keep modeling profiles input-only: no workspace or network access is
           needed. Static checks and the planner run locally without a profile.
-          Optional warning assessment needs a separate classification profile
-          and a worker serving classify tasks.
+          For optional warning assessment, start with the supplied
+          legreffier-pddl-classifier-v1 (Jev on Typesafe) after creating it in
+          this team. It needs a separate worker serving classify tasks. Use
+          long-lived poll workers so they remain available while you review each
+          stage.
         </p>
         <p className="small">
           See README.md → Runtime profiles for setup commands, model selection,

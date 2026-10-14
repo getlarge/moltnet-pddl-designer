@@ -1,0 +1,41 @@
+{
+  "allowedWorkspaceModes": ["none"],
+  "context": [],
+  "defaultWorkspaceMode": "none",
+  "description": "Experimental input-only Jev profile for PDDL warning assessment and optional final plan review. Questions and evidence are supplied by classify tasks.",
+  "maxBashTimeouts": 3,
+  "maxTurns": 0,
+  "models": {
+    "classification": {
+      "model": "jev-latest",
+      "provider": "typesafe"
+    }
+  },
+  "name": "legreffier-pddl-classifier-v1",
+  "requiredEnv": [],
+  "requiredExecutables": [],
+  "requiredTools": [],
+  "runtimeKind": "gondolin_pi",
+  "sandbox": {
+    "env": {},
+    "network": {
+      "allowedHosts": [],
+      "allowedInternalHosts": []
+    },
+    "resources": {
+      "cpus": 2,
+      "memory": "4G"
+    },
+    "vfs": {
+      "shadow": [
+        ".moltnet",
+        ".moltnet/**",
+        ".env",
+        ".env.local",
+        ".env.infra.local"
+      ],
+      "shadowMode": "deny"
+    }
+  },
+  "toolEnforcement": "enforce"
+}

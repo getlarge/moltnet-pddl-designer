@@ -32,18 +32,36 @@ export function WarningAssessmentSettings({
         paid tasks when warnings exist. It cannot approve the model or find
         every missing requirement.
       </p>
+      <details>
+        <summary>Choose and start an assessment profile</summary>
+        <p className="small">
+          The supplied legreffier-pddl-classifier-v1 definition is input-only
+          and uses jev-latest. You can also reuse a configured classification
+          profile in this team. This is an experimental starting point; evaluate
+          its answers on your process before relying on them.
+        </p>
+        <p className="small">
+          Create and bind the profile using README.md → Choose a classification
+          profile. Configure provider credentials on the daemon, then start a
+          long-lived worker with --task-types classify. A generation worker
+          serving only freeform tasks cannot claim these assessments.
+        </p>
+      </details>
       {value && (
         <label className="field">
           Classification profile name or ID
           <input
             required
             value={value.profileId}
+            placeholder="legreffier-pddl-classifier-v1"
             aria-describedby="classification-profile-help"
             onChange={(e) => onChange({ profileId: e.target.value })}
           />
           <span className="small" id="classification-profile-help">
-            Use a configured classification profile with a daemon serving
-            classify tasks. Generation profiles alone do not enable assessment.
+            Suggested starting profile: legreffier-pddl-classifier-v1 (Jev on
+            Typesafe), after creating it in your team. It selects
+            models.classification and needs a worker serving classify tasks.
+            Generation profiles alone do not enable assessment.
           </span>
         </label>
       )}

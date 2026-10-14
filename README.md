@@ -208,18 +208,65 @@ The library equivalent is `DesignInput.profileId` plus optional
 Library callers pass resolved profile IDs; the wizard and CLI also accept names.
 Corrections and retries use the profile selected for their modeling step.
 
-### Start matching workers
+### Choose a classification profile
 
-Creating a profile does not start a worker. Your daemon must serve `freeform`
-tasks for every selected generation profile in the same team. Run a worker for
-each profile using your configured daemon identity (separate terminals/processes
-when using `drain`):
+Warning assessment uses a separate decision model, not a generation-step override.
+The supplied [`legreffier-pddl-classifier-v1`](runtime/profiles/legreffier-pddl-classifier-v1.json)
+definition selects `models.classification: { provider: "typesafe", model: "jev-latest" }`.
+Use it as an experimental starting point, or reuse an existing classification
+profile in your team. Jev is the model used in the exploratory comparison; those
+benign-warning results do not establish defect-detection quality. `jev-latest`
+can change; record the resolved model version and evaluate your own cases before
+relying on a threshold.
+
+Create the definition and bind the existing empty tool policy:
 
 ```bash
-moltnet-agent drain --profile legreffier-pddl-designer-v1
-# In another terminal, when this profile is used by an override:
-moltnet-agent drain --profile pddl-reasoning
+moltnet profile create --from-file runtime/profiles/legreffier-pddl-classifier-v1.json --team-id "$TEAM"
+moltnet profile set-policies legreffier-pddl-classifier-v1 --policy legreffier-pddl-designer-input-only-v1 --team-id "$TEAM"
 ```
+
+Create that policy with the command above first if it does not exist. Keep the
+classification profile input-only: workspace mode `none`, no tools, and no model
+workspace/network permissions. Its context is empty because each classify task
+supplies its own state, question, and criteria. Do not copy the generation
+profile's `submit_freeform_output` instructions into it. Configure the Typesafe
+provider credentials (`TYPESAFE_API_KEY`) in the daemon environment, never in
+this JSON file or the browser.
+
+| Review                | Wizard selection                                                                                                                         | CLI selection                                                       | Worker task type |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------- |
+| Early action warnings | Enable **Assess action warnings against my description**; enter `legreffier-pddl-classifier-v1` in **Classification profile name or ID** | `--warning-review --classify-profile legreffier-pddl-classifier-v1` | `classify`       |
+| Final plan shortcuts  | CLI/library only                                                                                                                         | `--review --classify-profile legreffier-pddl-classifier-v1`         | `classify`       |
+
+These settings do not replace the default generation profile. Both profiles and
+both worker types are needed when generation and assessment are enabled.
+Selecting the classification profile alone does not start a worker or enable
+assessment. Static validation and planning remain local and need no profile.
+
+### Start matching workers
+
+Creating a profile does not start a worker. Use long-lived `poll` workers for the
+wizard: review gates can pause until the expert continues. `drain` exits when the
+queue is empty, which can happen between those stages. Run separate terminals
+for the selected generation and classification profiles:
+
+```bash
+# Replace AGENT with your configured daemon identity.
+moltnet-agent poll --team "$TEAM" --agent "$AGENT" \
+  --profile legreffier-pddl-designer-v1 --task-types freeform \
+  --general --workspace-strategy none
+
+# Optional assessment worker, in another terminal:
+moltnet-agent poll --team "$TEAM" --agent "$AGENT" \
+  --profile legreffier-pddl-classifier-v1 --task-types classify \
+  --general --workspace-strategy none
+```
+
+The commands above serve General runs (no project ID). For project-bound CLI
+runs, use your matching project binding/filter instead of `--general`. Ensure
+any diary/correlation filters admit the run. If using a generation override such
+as `pddl-reasoning`, start another `freeform` worker for that profile too.
 
 To prefill the wizard's default connection:
 
