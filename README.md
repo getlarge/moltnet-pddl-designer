@@ -29,6 +29,9 @@ by reusing the first issue's pull request and approval.
 
 ## Stages
 
+The [workflow diagram](./docs/workflow.md) maps MoltNet tasks, local checks,
+reviewer gates, and both classification points to Mermaid flow nodes.
+
 | Stage        | Returns                                                  | Checked by                                                                                                                                              |
 | ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `types`      | Types, each with an optional parent                      | Undefined parents, cycles, the reserved root `object`                                                                                                   |
@@ -161,6 +164,55 @@ passing the plan. A daemon must also be serving `classify` tasks for that
 profile. Review is off by default: in live runs its findings have not yet
 improved pass rates beyond run-to-run noise.
 
+### Early warning review (experimental, optional)
+
+`--warning-review --classify-profile <profile>` classifies two kinds of draft
+warnings **before refinement**: unlinked action parameters and facts that no
+action deletes. The question is whether the original process establishes a
+defect. Any actor may sometimes act on any item, and permanent milestones need
+no delete effect, so the static warning alone cannot answer that question.
+
+Each warning is one `classify` task. At the default threshold of 0.9, a
+probability of at least 0.9 confirms the concern, at most 0.1 dismisses it, and
+values between them are uncertain. Only confirmed concerns become targeted
+refinement instructions. All warnings and decisions remain in the run record;
+uncertainty is not a correctness verdict. `--review-threshold` applies to both
+reviews; early review requires a threshold strictly between 0.5 and 1.
+
+The classifier uses the accepted draft, including any `confirmStage` edits.
+If final review triggers another refinement, early review assesses the current
+model again. Identical questions about an unchanged model reuse their task
+idempotency keys. No classification tasks are created when there are no
+candidate warnings. A failed question produces a `failed` run with
+`failure.stage: "warning-review"` and retains earlier answers.
+
+This experiment is advisory. It does not change the meaning of `planned`,
+override deterministic checks, or expand the refinement stage's predicate
+list. A fix needing new predicates must be reported as unresolved in `changes`.
+It does not discover requirements absent from the generated model.
+
+```bash
+pnpm --silent cli \
+  --description examples/issue-workflow/description.md \
+  --problem examples/issue-workflow/situation.md \
+  --team "$TEAM" --diary "$DIARY" --profile "$PROFILE" \
+  --warning-review --classify-profile "$CLASSIFY_PROFILE" --out run.json
+```
+
+Serve `freeform` tasks with the generation profile and `classify` tasks with the
+classification profile. `scripts/eval/run-example.sh` starts both workers when
+`CLASSIFY_PROFILE` is set and stops them on exit. Both profiles must permit
+workspace mode `none`. The classification profile needs `models.classification`.
+
+For library callers, `DesignOptions.warningReview` accepts
+`{ questions: createClassifyQuestionClient(tasks, options), threshold?: number }`;
+set the client's `purpose: 'warning-review'`. `DesignRun.warningReviews` records
+the source stage/attempt, threshold, original issue, question, probability,
+verdict, task ID, duration, and accepted-attempt usage. Progress events are
+`warning-review-started` and `warning-review-result`; the existing reviewer
+hook remains responsible for accepting, editing, requesting feedback, or
+aborting generation stages.
+
 ## Evaluation
 
 `scripts/eval/lane.sh` runs examples repeatedly through `run-example.sh`, and
@@ -174,6 +226,34 @@ pnpm exec tsx scripts/score-runs.ts /tmp/runs e1 --json scores.json
 ```
 
 `--examples <dir>` scores examples kept outside the repository.
+
+The early-review comparison uses four new descriptions: exclusive ticket
+ownership, an unrestricted ticket queue, fresh station inspections, and
+permanent station certification. Their `required.json` files freeze plan rules
+and warning labels; neither the generator nor classifier receives those files.
+The scorer also supports `counts` bounds for repeated work, distinguishing one
+inspection per parcel from one permanent certification for all parcels.
+
+```bash
+TEAM=... DIARY=... CLASSIFY_PROFILE=... RUNS_DIR=/persistent/path PREFIX=warning-e1 \
+  sh scripts/eval/compare-warning-review.sh
+```
+
+The runner interleaves baseline, final-review-only, and early-review-only lanes
+three times per description (36 runs), holding generation and classification
+profiles fixed. It snapshots criteria, inputs, source, and runtime definitions
+before the first run, then writes `<PREFIX>-report.json`. Use a fresh prefix
+for each experiment. Keep runs in a persistent directory outside the repository.
+
+The report separates model/task failures and missing run artifacts, reports
+false positives, missed defects, uncertainty, plan scores, surviving warnings,
+latency, and accepted-attempt token counts. Unmatched warning labels remain
+unscored. Warnings that survive refinement are diagnostics, not automatically
+unresolved defects; token totals exclude retries and failed attempts. These are
+exploratory runs, not evidence for enabling the feature by default. The unit
+controls separately verify that ownership and stale-inspection loopholes accept
+a known-bad plan before correction and reject it afterwards while retaining a
+valid plan.
 
 ## Development
 
