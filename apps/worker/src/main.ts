@@ -12,7 +12,10 @@ try {
   registerWorkflows(runs, moltExecute, moltAssess);
   await runs.startWorker();
   console.log('Designer worker ready.');
+  let closing = false;
   const close = () => {
+    if (closing) return;
+    closing = true;
     void runs.close().catch((error) => {
       console.error(error);
       process.exitCode = 1;

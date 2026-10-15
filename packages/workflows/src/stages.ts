@@ -257,12 +257,3 @@ export function buildProblemTask(
     attempt,
   );
 }
-
-// ---- parsers ----------------------------------------------------------------
-
-/**
- * Naming rules (`pattern`) cannot travel in the output contract, so the daemon
- * accepts a result that breaks them. Treat those as correctable check errors
- * rather than a failed task: the parser accepts a result whose only problems
- * are patterns, and `namingIssues` reports them to the correction loop.
- */

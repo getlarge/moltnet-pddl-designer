@@ -13,6 +13,9 @@ export const dependencyPolicy = {
   worker: ['persistence', 'workflows'],
   cli: ['domain', 'contracts', 'workflows'],
 };
+// The plugin's default import selector does not inspect type-only specifiers.
+const inlineTypeImport =
+  'ImportDeclaration[importKind!=type][specifiers.length>0]:not(:has(ImportDefaultSpecifier)):not(:has(ImportNamespaceSpecifier)):not(:has(ImportSpecifier[importKind!=type]))';
 const applications = new Set(['web', 'server', 'worker', 'cli']);
 export const boundaryConfig = {
   files: ['apps/**/*.{js,mjs,cjs,ts,tsx}', 'packages/**/*.{js,mjs,cjs,ts,tsx}'],
@@ -24,13 +27,17 @@ export const boundaryConfig = {
       pattern: `${applications.has(type) ? 'apps' : 'packages'}/${type}`,
       mode: 'folder',
     })),
-    'boundaries/dependency-nodes': [
-      'import',
-      'export',
-      'require',
-      'dynamic-import',
-    ],
+    'boundaries/dependency-nodes': ['export', 'require', 'dynamic-import'],
     'boundaries/additional-dependency-nodes': [
+      {
+        selector: `ImportDeclaration:not([importKind=type]):not(${inlineTypeImport}) > Literal`,
+        kind: 'value',
+      },
+      {
+        selector: 'ImportDeclaration[importKind=type] > Literal',
+        kind: 'type',
+      },
+      { selector: `${inlineTypeImport} > Literal`, kind: 'type' },
       { selector: 'TSImportType > TSLiteralType > Literal', kind: 'type' },
       { selector: 'TSImportType > Literal', kind: 'type' },
     ],
@@ -80,9 +87,9 @@ export const boundaryConfig = {
 export const browserBoundaryConfig = {
   ignores: ['**/*.test.ts'],
   files: [
-    'apps/web/src/**/*.{ts,tsx}',
-    'packages/domain/src/**/*.ts',
-    'packages/contracts/src/**/*.ts',
+    'apps/web/src/**/*.{js,mjs,cjs,ts,tsx}',
+    'packages/domain/src/**/*.{js,mjs,cjs,ts,tsx}',
+    'packages/contracts/src/**/*.{js,mjs,cjs,ts,tsx}',
     'apps/server/src/**/*.{js,mjs,cjs,ts,tsx}',
     'packages/persistence/src/**/*.{js,mjs,cjs,ts,tsx}',
   ],

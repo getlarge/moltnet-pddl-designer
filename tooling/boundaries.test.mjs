@@ -141,3 +141,53 @@ test('contracts may refer to SDK types without importing execution code', async 
     [],
   );
 });
+
+for (const from of ['web', 'domain', 'contracts']) {
+  for (const extension of ['ts', 'tsx', 'js', 'mjs', 'cjs']) {
+    test(`${from} enforces external restrictions in ${extension}`, async () => {
+      for (const module of [
+        'node:fs',
+        '@themoltnet/sdk/node',
+        '@themoltnet/tasks-orchestrator',
+      ]) {
+        const code =
+          extension === 'cjs' ? `require('${module}');` : `import '${module}';`;
+        assert(
+          (await errors(locations[from].replace(/ts$/, extension), code)).some(
+            (m) => m.ruleId === 'boundaries/external',
+          ),
+          module,
+        );
+      }
+    });
+  }
+}
+test('contracts accepts inline type-only SDK imports', async () => {
+  assert.deepEqual(
+    await errors(
+      locations.contracts,
+      "import { type SdkTaskAttempt } from '@themoltnet/tasks-orchestrator'; export type Attempt = SdkTaskAttempt;",
+    ),
+    [],
+  );
+});
+test('contracts rejects mixed value and type SDK imports', async () => {
+  assert(
+    (
+      await errors(
+        locations.contracts,
+        "import { type SdkTaskAttempt, asWorkflowContext } from '@themoltnet/tasks-orchestrator'; export type Attempt = SdkTaskAttempt; export { asWorkflowContext };",
+      )
+    ).some((m) => m.ruleId === 'boundaries/external'),
+  );
+});
+test('inline type imports still obey workspace directions', async () => {
+  assert(
+    (
+      await errors(
+        locations.web,
+        "import { type DesignOptions } from '@pddl/workflows/workflow'; export type Options = DesignOptions;",
+      )
+    ).some((m) => m.ruleId === 'boundaries/element-types'),
+  );
+});

@@ -40,6 +40,7 @@ export interface Correction {
   issues: Issue[];
 }
 
+/** Pattern failures remain correctable naming issues rather than task failures. */
 function parseStage<T>(output: unknown, schema: TSchema, label: string): T {
   const value: unknown = (output as { result?: unknown } | null)?.result;
   const structural = [...Value.Errors(schema, value)].filter(
