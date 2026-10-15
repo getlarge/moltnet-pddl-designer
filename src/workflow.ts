@@ -23,6 +23,11 @@ import {
 
 import {
   createInlineContext,
+  createTaskStep,
+  beginWorkflowStep,
+  completeWorkflowStep,
+  type TaskOutcome,
+  type WorkflowContext,
   type TaskClient,
   waitForTaskOutcome,
 } from '@themoltnet/tasks-orchestrator';
@@ -156,8 +161,10 @@ export type StageDecision =
 export interface DesignOptions {
   /** Start a correction at a saved stage; preceding results are checked again. */
   resume?: { run: DesignRun; stage: StageName; feedback: string };
-  /** Receives progress events. It runs inline, so it must not block. */
-  onEvent?: (event: DesignEvent) => void;
+  /** Durable execution context; omitted for the single-process CLI. */
+  ctx?: WorkflowContext;
+  /** Progress persistence is awaited before execution advances. */
+  onEvent?: (event: DesignEvent) => void | Promise<void>;
   /**
    * Called when a stage result is ready: after it passes the checks, or once
    * the automatic corrections are used up. Without it, a passing result is
@@ -208,17 +215,15 @@ export async function runPddlDesign(
   input: DesignInput,
   options: DesignOptions = {},
 ): Promise<DesignRun> {
-  const started = Date.now();
+  const ctx: WorkflowContext = options.ctx ?? {
+    ...createInlineContext(input.correlationId),
+    sleepFor: (_name, seconds) =>
+      new Promise<void>((resolve) => setTimeout(resolve, seconds * 1000)),
+  };
+  const started = await ctx.step('run.started', async () => Date.now());
   const maxCorrections = options.maxCorrections ?? 1;
   const pollIntervalSec = options.pollIntervalSec ?? 2;
   const claimTimeoutSec = options.claimTimeoutSec ?? 600;
-  const ctx = {
-    ...createInlineContext(),
-    sleepFor: (_name: string, seconds: number) =>
-      new Promise<void>((resolve) => {
-        setTimeout(resolve, seconds * 1000);
-      }),
-  };
   if (options.resume) {
     const order: StageName[] = [
       'types',
@@ -253,11 +258,28 @@ export async function runPddlDesign(
 
   /** Wait until a worker claims the task, or fail with a pointed reason. */
   async function awaitClaim(name: StageName, taskId: string) {
-    const deadline = Date.now() + claimTimeoutSec * 1000;
+    const handle = await beginWorkflowStep<boolean>(
+      ctx,
+      `claim.${taskId}.done`,
+    );
+    if (handle.done) return;
+    const deadline = await ctx.step(
+      `claim.${taskId}.deadline`,
+      async () => Date.now() + claimTimeoutSec * 1000,
+    );
     for (;;) {
-      const task = await tasks.getTask(taskId);
-      if (task.status !== 'queued') return;
-      if (Date.now() >= deadline)
+      const { task, checkedAt } = await ctx.step(
+        `claim.${taskId}.poll`,
+        async () => ({
+          task: { status: (await tasks.getTask(taskId)).status },
+          checkedAt: Date.now(),
+        }),
+      );
+      if (task.status !== 'queued') {
+        await completeWorkflowStep(ctx, handle, true);
+        return;
+      }
+      if (checkedAt >= deadline)
         throw new StageStopped(
           name,
           'failed',
@@ -282,9 +304,9 @@ export async function runPddlDesign(
   )
     throw new Error('A correction must use the saved description.');
   const emit = (event: DesignEvent) => options.onEvent?.(event);
-  const record = (entry: StageRecord) => {
+  const record = async (entry: StageRecord) => {
     run.stages.push(entry);
-    emit({ type: 'stage-result', record: entry });
+    await emit({ type: 'stage-result', record: entry });
   };
   const decide = (gate: StageGate): Promise<StageDecision> =>
     options.confirmStage
@@ -330,8 +352,12 @@ export async function runPddlDesign(
             'invalid',
             'Correct the preceding saved stage before continuing.',
           );
-        record({ ...saved, issues });
-        emit({ type: 'stage-accepted', stage: name, attempt: saved.attempt });
+        await record({ ...saved, issues });
+        await emit({
+          type: 'stage-accepted',
+          stage: name,
+          attempt: saved.attempt,
+        });
         return { result, issues };
       }
       if (name === resume.stage)
@@ -349,29 +375,84 @@ export async function runPddlDesign(
     }
     let corrections = 0;
     for (;;) {
-      const stageStart = Date.now();
+      const stageStart = await ctx.step(
+        `stage.${name}.${attempt}.started`,
+        async () => Date.now(),
+      );
       const body = build(attempt, correction);
-      const task = await tasks.createTask(body, {
-        idempotencyKey: idempotencyKey(input, name, attempt),
-      });
-      emit({ type: 'task-created', stage: name, attempt, taskId: task.id });
-      await awaitClaim(name, task.id);
-      emit({ type: 'task-claimed', stage: name, attempt, taskId: task.id });
-      const outcome = await waitForTaskOutcome(task.id, {
-        tasks,
+      const task = await createTaskStep(
         ctx,
-        pollIntervalSec,
-        parse,
+        `stage.${name}.${attempt}.create`,
+        ({ idempotencyKey: durableKey }) =>
+          tasks.createTask(body, {
+            idempotencyKey: durableKey ?? idempotencyKey(input, name, attempt),
+          }),
+      );
+      await emit({
+        type: 'task-created',
+        stage: name,
+        attempt,
+        taskId: task.id,
       });
+      await awaitClaim(name, task.id);
+      await emit({
+        type: 'task-claimed',
+        stage: name,
+        attempt,
+        taskId: task.id,
+      });
+      const outcomeHandle = await beginWorkflowStep<TaskOutcome<T>>(
+        ctx,
+        `stage.${name}.${attempt}.outcome`,
+      );
+      const outcome = outcomeHandle.done
+        ? outcomeHandle.state
+        : await completeWorkflowStep(
+            ctx,
+            outcomeHandle,
+            await waitForTaskOutcome(task.id, {
+              tasks: {
+                ...tasks,
+                getTask: async (id) => {
+                  const observation = await ctx.step(
+                    `outcome.${id}.poll`,
+                    async () => {
+                      const current = await tasks.getTask(id);
+                      return [
+                        'completed',
+                        'failed',
+                        'cancelled',
+                        'expired',
+                      ].includes(current.status)
+                        ? current
+                        : {
+                            status: current.status,
+                            acceptedAttemptN: current.acceptedAttemptN,
+                          };
+                    },
+                  );
+                  // Pending polls need no copy of the input brief. The immutable
+                  // creation task supplies metadata; terminal observations stay complete.
+                  return { ...task, ...observation };
+                },
+                listAttempts: (id) => tasks.listAttempts(id),
+              },
+              // Each observation is checkpointed: replay reuses old observations,
+              // while the next iteration reads fresh state after its durable timer.
+              ctx: { ...ctx, awaitEvent: undefined },
+              pollIntervalSec,
+              parse,
+            }),
+          );
       if (outcome.kind !== 'accepted')
         throw new StageStopped(name, 'failed', outcome.reason);
       let result = outcome.result.state;
-      emit({ type: 'stage-checking', stage: name, attempt });
+      await emit({ type: 'stage-checking', stage: name, attempt });
       let issues = [
         ...check(result),
         ...checkSources(result, run.sourceSentences ?? []),
       ];
-      record({
+      await record({
         stage: name,
         attempt,
         source: 'task',
@@ -379,7 +460,10 @@ export async function runPddlDesign(
         brief: body.input.brief,
         result,
         issues,
-        durationMs: Date.now() - stageStart,
+        durationMs: await ctx.step(
+          `stage.${name}.${attempt}.duration`,
+          async () => Date.now() - stageStart,
+        ),
       });
       const errors = () => issues.filter((i) => i.severity === 'error');
       if (hasErrors(issues) && corrections < maxCorrections) {
@@ -400,7 +484,7 @@ export async function runPddlDesign(
           issues,
         });
         if (decision.action === 'accept' && !hasErrors(issues)) {
-          emit({ type: 'stage-accepted', stage: name, attempt });
+          await emit({ type: 'stage-accepted', stage: name, attempt });
           return { result, issues };
         }
         if (decision.action === 'accept' || decision.action === 'abort') {
@@ -424,9 +508,10 @@ export async function runPddlDesign(
         // An edit is checked like a model result, schema first.
         attempt++;
         shown = decision.result;
+        let parsed = false;
         try {
           result = parse({ result: decision.result });
-          emit({ type: 'stage-checking', stage: name, attempt });
+          parsed = true;
           issues = [
             ...check(result),
             ...checkSources(result, run.sourceSentences ?? []),
@@ -441,7 +526,10 @@ export async function runPddlDesign(
             },
           ];
         }
-        record({
+        // Persistence failures must retry the workflow, never become model findings.
+        if (parsed)
+          await emit({ type: 'stage-checking', stage: name, attempt });
+        await record({
           stage: name,
           attempt,
           source: 'edit',
@@ -591,7 +679,11 @@ export async function runPddlDesign(
           : check.plan.status === 'unsolvable'
             ? 'unsolvable'
             : 'search_limit';
-      emit({ type: 'plan-checked', status: run.status, plan: check.plan });
+      await emit({
+        type: 'plan-checked',
+        status: run.status,
+        plan: check.plan,
+      });
       if (!options.review || check.plan.status !== 'found') break;
 
       const review = await reviewPlan(
@@ -601,7 +693,11 @@ export async function runPddlDesign(
         { ...options.review, limits: options.limits ?? DEFAULT_LIMITS },
       );
       run.review = [...(run.review ?? []), { ...review, round: round + 1 }];
-      emit({ type: 'review', round: round + 1, findings: review.findings });
+      await emit({
+        type: 'review',
+        round: round + 1,
+        findings: review.findings,
+      });
       run.reviewPassed = review.findings.length === 0;
       if (run.reviewPassed || round >= rounds) break;
 
@@ -645,7 +741,10 @@ export async function runPddlDesign(
       ...(error.code ? { code: error.code } : {}),
     };
   }
-  run.durationMs = Date.now() - started;
-  emit({ type: 'finished', run });
+  run.durationMs = await ctx.step(
+    'run.duration',
+    async () => Date.now() - started,
+  );
+  await emit({ type: 'finished', run });
   return run;
 }

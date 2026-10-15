@@ -27,14 +27,22 @@
     "test:browser": "playwright test",
     "format:check": "prettier --check ui server src/provenance.ts src/saved-run.ts",
     "lint": "eslint . --max-warnings 0",
-    "secretlint": "secretlint --no-gitignore \"**/*\""
+    "secretlint": "secretlint --no-gitignore \"**/*\"",
+    "db:up": "docker compose up -d --wait",
+    "db:init": "bash scripts/init-db.sh",
+    "test:durable": "vitest run --config vitest.durable.config.ts"
   },
   "dependencies": {
+    "@fastify/middie": "^9.3.5",
+    "@fastify/static": "^10.1.6",
     "@fontsource/literata": "^5.3.0",
     "@fontsource/public-sans": "^5.3.0",
     "@themoltnet/os-keyring": "0.5.0",
     "@themoltnet/sdk": "^0.153.0",
     "@themoltnet/tasks-orchestrator": "^0.5.8",
+    "absurd-sdk": "^0.4.0",
+    "fastify": "^5.12.7",
+    "pg": "^8.23.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "typebox": "^1.2.8"
@@ -44,6 +52,7 @@
     "@playwright/test": "^1.64.0",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.7",
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

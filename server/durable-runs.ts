@@ -1,0 +1,272 @@
+import { randomUUID } from 'node:crypto';
+import { Absurd, type TaskContext, type JsonValue } from 'absurd-sdk';
+import { asWorkflowContext } from '@themoltnet/tasks-orchestrator';
+import { Pool, type PoolClient } from 'pg';
+import { hasErrors } from '../src/check.js';
+import type { DesignInput } from '../src/stages.js';
+import type { DesignEvent, StageGate, StageDecision } from '../src/workflow.js';
+import type { Execute } from './run-service.js';
+import type { RunSnapshot } from './types.js';
+import {
+  RunConflict,
+  type RunOptions,
+  type RunService,
+} from './run-service.js';
+
+export const DESIGN_QUEUE = 'pddl_designer_v1';
+const TASK_NAME = 'design.v1';
+const active = (s: RunSnapshot) =>
+  s.state === 'running' || s.state === 'awaiting';
+interface RunRow {
+  snapshot: RunSnapshot;
+  task_id: string;
+}
+interface Params {
+  id: string;
+  input: DesignInput;
+  options: RunOptions;
+}
+
+/** Postgres is the source of truth. A process restart needs no in-memory session. */
+export class DurableRuns implements RunService {
+  readonly pool: Pool;
+  readonly absurd: Absurd;
+  readonly queue: string;
+  constructor(options: {
+    databaseUrl: string;
+    execute: Execute;
+    queue?: string;
+  }) {
+    this.queue = options.queue ?? DESIGN_QUEUE;
+    this.pool = new Pool({ connectionString: options.databaseUrl });
+    this.pool.on('error', (error) => {
+      console.error(
+        'Idle database connection failed; the pool will reconnect.',
+        error,
+      );
+    });
+    this.absurd = new Absurd({ db: this.pool, queueName: this.queue });
+    this.absurd.registerTask<Params, null>(
+      { name: TASK_NAME, defaultMaxAttempts: 5 },
+      async ({ id, input, options: runOptions }, ctx) => {
+        let eventOrdinal = 0;
+        let gateOrdinal = 0;
+        await options.execute(input, {
+          ...runOptions,
+          ctx: asWorkflowContext(ctx),
+          onEvent: async (event) => {
+            const ordinal = ++eventOrdinal;
+            await ctx.step(`publish.${ordinal}`, async () => {
+              await this.publish(id, ordinal, event);
+              return null;
+            });
+          },
+          confirmStage: (gate) => this.confirm(id, ++gateOrdinal, gate, ctx),
+        });
+        return null;
+      },
+    );
+  }
+  async initialize() {
+    // Provisioning is explicit; never initialize/migrate an arbitrary database here.
+    await this.pool.query('SELECT id FROM pddl_runs LIMIT 0');
+    await this.absurd.createQueue(this.queue);
+  }
+  async startWorker(
+    options: { claimTimeout?: number; pollInterval?: number } = {},
+  ) {
+    return this.absurd.startWorker({ concurrency: 1, ...options });
+  }
+  async close() {
+    await this.absurd.close();
+    await this.pool.end();
+  }
+  private async transaction<T>(fn: (db: PoolClient) => Promise<T>): Promise<T> {
+    const db = await this.pool.connect();
+    try {
+      await db.query('BEGIN');
+      const result = await fn(db);
+      await db.query('COMMIT');
+      return result;
+    } catch (error) {
+      await db.query('ROLLBACK');
+      throw error;
+    } finally {
+      db.release();
+    }
+  }
+  private async lock(db: PoolClient, id: string) {
+    const { rows } = await db.query<RunRow>(
+      'SELECT snapshot, task_id FROM pddl_runs WHERE id = $1 AND queue = $2 FOR UPDATE',
+      [id, this.queue],
+    );
+    if (!rows[0]) throw new RunConflict('This run does not exist.');
+    return rows[0];
+  }
+  private async save(db: PoolClient, snapshot: RunSnapshot) {
+    snapshot.sequence++;
+    await db.query(
+      'UPDATE pddl_runs SET snapshot = $2 WHERE id = $1 AND queue = $3',
+      [snapshot.id, JSON.stringify(snapshot), this.queue],
+    );
+  }
+  async start(input: DesignInput, options: RunOptions) {
+    // Reconcile terminal engine failures before enforcing the active-run limit.
+    await this.list();
+    return this.transaction(async (db) => {
+      await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `pddl:${this.queue}`,
+      ]);
+      const { rowCount } = await db.query(
+        "SELECT id FROM pddl_runs WHERE queue = $1 AND snapshot->>'state' IN ('running','awaiting')",
+        [this.queue],
+      );
+      if (rowCount)
+        throw new RunConflict(
+          'Finish or withdraw the current run before starting another.',
+        );
+      const id = randomUUID();
+      const snapshot: RunSnapshot = {
+        id,
+        input,
+        startedAt: Date.now(),
+        sequence: 0,
+        state: 'running',
+        events: [],
+      };
+      // The queue insertion and visible run commit together, closing the spawn gap.
+      const task = await this.absurd.bindToConnection(db).spawn<Params>(
+        TASK_NAME,
+        { id, input, options },
+        {
+          queue: this.queue,
+          idempotencyKey: id,
+          maxAttempts: 5,
+          retryStrategy: {
+            kind: 'exponential',
+            baseSeconds: 1,
+            maxSeconds: 30,
+          },
+        },
+      );
+      await db.query(
+        'INSERT INTO pddl_runs(id, queue, task_id, snapshot) VALUES ($1,$2,$3,$4)',
+        [id, this.queue, task.taskID, JSON.stringify(snapshot)],
+      );
+      return snapshot;
+    });
+  }
+  async get(id: string): Promise<RunSnapshot | undefined> {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
+    const { rows } = await this.pool.query<RunRow>(
+      'SELECT snapshot, task_id FROM pddl_runs WHERE id = $1 AND queue = $2',
+      [id, this.queue],
+    );
+    if (!rows[0]) return undefined;
+    const { snapshot, task_id: taskId } = rows[0];
+    if (!active(snapshot)) return snapshot;
+    const result = await this.absurd.fetchTaskResult(taskId);
+    if (result?.state === 'failed' || result?.state === 'cancelled') {
+      return this.transaction(async (db) => {
+        const row = await this.lock(db, id);
+        if (active(row.snapshot)) {
+          row.snapshot.state = 'failed';
+          row.snapshot.error =
+            result.state === 'cancelled'
+              ? 'This run was withdrawn.'
+              : 'The durable workflow exhausted its retries. Inspect the worker logs, then start a new run.';
+          delete row.snapshot.gate;
+          await this.save(db, row.snapshot);
+        }
+        return row.snapshot;
+      });
+    }
+    return snapshot;
+  }
+  async list() {
+    const { rows } = await this.pool.query<{ id: string }>(
+      "SELECT id FROM pddl_runs WHERE queue = $1 AND snapshot->>'state' IN ('running','awaiting') ORDER BY snapshot->>'startedAt'",
+      [this.queue],
+    );
+    const snapshots = await Promise.all(rows.map(({ id }) => this.get(id)));
+    return snapshots.filter((s): s is RunSnapshot => !!s && active(s));
+  }
+  private async publish(id: string, ordinal: number, event: DesignEvent) {
+    await this.transaction(async (db) => {
+      const { snapshot } = await this.lock(db, id);
+      if (!active(snapshot)) return;
+      const inserted = await db.query(
+        'INSERT INTO pddl_run_events(run_id, ordinal) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING ordinal',
+        [id, ordinal],
+      );
+      if (!inserted.rowCount) return; // Replay must not duplicate history or rewind UI state.
+      snapshot.events.push({ at: Date.now(), event });
+      if (event.type === 'finished') {
+        snapshot.run = event.run;
+        snapshot.state = 'finished';
+        delete snapshot.gate;
+      }
+      await this.save(db, snapshot);
+    });
+  }
+  private async confirm(
+    id: string,
+    ordinal: number,
+    gate: StageGate,
+    ctx: TaskContext,
+  ): Promise<StageDecision> {
+    const gateId = `${id}:${ordinal}`;
+    await ctx.step(`gate.${ordinal}.publish`, async () => {
+      await this.transaction(async (db) => {
+        const { snapshot } = await this.lock(db, id);
+        const result = await db.query(
+          'INSERT INTO pddl_run_gates(run_id,gate_id) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING gate_id',
+          [id, gateId],
+        );
+        if (!result.rowCount || !active(snapshot)) return;
+        snapshot.gate = { ...gate, id: gateId };
+        snapshot.state = 'awaiting';
+        await this.save(db, snapshot);
+      });
+      return null;
+    });
+    // Gate names are unique per run and review generation. Accepted events survive
+    // both an HTTP-process crash and a worker crash before checkpoint persistence.
+    return (await ctx.awaitEvent(`decision:${gateId}`)) as StageDecision;
+  }
+  async decide(id: string, gateId: string, decision: StageDecision) {
+    return this.transaction(async (db) => {
+      const { snapshot } = await this.lock(db, id);
+      if (snapshot.state !== 'awaiting' || snapshot.gate?.id !== gateId)
+        throw new RunConflict(
+          'This review has already changed. Refresh it before deciding.',
+        );
+      if (decision.action === 'accept' && hasErrors(snapshot.gate.issues))
+        throw new RunConflict('Correct the errors before passing this stage.');
+      await db.query(
+        'UPDATE pddl_run_gates SET decision = $3 WHERE run_id = $1 AND gate_id = $2',
+        [id, gateId, JSON.stringify(decision)],
+      );
+      await this.absurd
+        .bindToConnection(db)
+        .emitEvent(`decision:${gateId}`, decision as JsonValue);
+      delete snapshot.gate;
+      snapshot.state = 'running';
+      await this.save(db, snapshot);
+      return snapshot;
+    });
+  }
+  async withdraw(id: string, reason: string) {
+    return this.transaction(async (db) => {
+      const { snapshot, task_id: taskId } = await this.lock(db, id);
+      if (!active(snapshot))
+        throw new RunConflict('This run has already ended.');
+      await this.absurd.bindToConnection(db).cancelTask(taskId);
+      delete snapshot.gate;
+      snapshot.state = 'failed';
+      snapshot.error = `Withdrawn: ${reason}`;
+      await this.save(db, snapshot);
+      return snapshot;
+    });
+  }
+}

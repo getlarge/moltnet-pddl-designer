@@ -6,6 +6,7 @@ import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import {
   type FakeTaskOutput,
   FakeTasks,
+  replayContext,
 } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -337,7 +338,9 @@ describe('runPddlDesign progress and review gates', () => {
 
     // Act
     await runPddlDesign(fakeTasks(), input, {
-      onEvent: (event) => events.push(event),
+      onEvent: (event) => {
+        events.push(event);
+      },
     });
 
     // Assert
@@ -537,5 +540,74 @@ describe('saved correction runs', () => {
     expect(run.stages[0].issues.some((i) => i.code === 'source-line')).toBe(
       true,
     );
+  });
+});
+
+describe('durable polling', () => {
+  it.each(['queued', 'running'] as const)(
+    'does not repeat historical %s reads on replay',
+    async (status) => {
+      const fake = fakeTasks();
+      let reads = 0;
+      let completed = false;
+      const tasks: TaskClient = {
+        createTask: fake.createTask.bind(fake),
+        listAttempts: fake.listAttempts.bind(fake),
+        getTask: async (id) => {
+          reads++;
+          const task = await fake.getTask(id);
+          return completed ? task : { ...task, status };
+        },
+      };
+      const ctx = replayContext('poll-recovery');
+      const suspended = new Error('durable sleep');
+      const elapsed = new Set<string>();
+      const names = new Map<string, number>();
+      ctx.sleepFor = async (name) => {
+        const n = names.get(name) ?? 0;
+        names.set(name, n + 1);
+        const key = `${name}:${n}`;
+        if (!elapsed.has(key)) {
+          elapsed.add(key);
+          throw suspended;
+        }
+      };
+      for (let replay = 0; replay < 6; replay++) {
+        ctx.resetForReplay();
+        names.clear();
+        const before = reads;
+        await expect(runPddlDesign(tasks, input, { ctx })).rejects.toBe(
+          suspended,
+        );
+        expect(reads - before).toBe(
+          status === 'running' && replay === 0 ? 2 : 1,
+        );
+      }
+      for (const [name, value] of ctx.checkpointEntries) {
+        if (name.includes('.poll'))
+          expect(JSON.stringify(value).length).toBeLessThan(120);
+      }
+      completed = true;
+      ctx.resetForReplay();
+      names.clear();
+      const run = await runPddlDesign(tasks, input, {
+        ctx,
+        confirmStage: async () => ({ action: 'abort' }),
+      });
+      expect(run.stages).toHaveLength(1);
+      expect(fake.created).toHaveLength(1);
+    },
+  );
+  it('propagates an edit event persistence error instead of inventing a schema finding', async () => {
+    const failure = new Error('database unavailable');
+    await expect(
+      runPddlDesign(fakeTasks(), input, {
+        confirmStage: async (gate) => ({ action: 'edit', result: gate.result }),
+        onEvent: async (event) => {
+          if (event.type === 'stage-checking' && event.attempt === 2)
+            throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
   });
 });

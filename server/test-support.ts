@@ -7,7 +7,15 @@ import {
   blocksTypes,
 } from '../src/test-fixtures.js';
 import { runPddlDesign } from '../src/workflow.js';
-import type { Execute } from './sessions.js';
+import { Session } from './test-session.js';
+import type { Execute } from './run-service.js';
+import {
+  RunConflict,
+  type RunService,
+  type RunOptions,
+} from './run-service.js';
+import type { DesignInput } from '../src/stages.js';
+import type { StageDecision } from '../src/workflow.js';
 export const syntheticInput = {
   description:
     'Synthetic test: A robotic arm moves blocks. Blocks can be stacked.',
@@ -19,33 +27,78 @@ export const syntheticInput = {
   profileId: 'test-profile',
   correlationId: 'test-correlation',
 };
+export const syntheticResults: Record<string, unknown> = {
+  types: {
+    types: blocksTypes.types.map((t) => ({ ...t, sourceLines: [1] })),
+  },
+  predicates: {
+    predicates: blocksPredicates.predicates.map((p) => ({
+      ...p,
+      sourceLines: [2],
+    })),
+  },
+  actions: {
+    actions: blocksActions.map((a) => ({ ...a, sourceLines: [2] })),
+  },
+  refine: {
+    actions: blocksActions.map((a) => ({ ...a, sourceLines: [2] })),
+    changes: [],
+  },
+  problem: blocksProblemResult,
+};
 export const syntheticExecute: Execute = (input, options) => {
-  const results: Record<string, unknown> = {
-    types: {
-      types: blocksTypes.types.map((t) => ({ ...t, sourceLines: [1] })),
-    },
-    predicates: {
-      predicates: blocksPredicates.predicates.map((p) => ({
-        ...p,
-        sourceLines: [2],
-      })),
-    },
-    actions: {
-      actions: blocksActions.map((a) => ({ ...a, sourceLines: [2] })),
-    },
-    refine: {
-      actions: blocksActions.map((a) => ({ ...a, sourceLines: [2] })),
-      changes: [],
-    },
-    problem: blocksProblemResult,
-  };
   return runPddlDesign(
     new FakeTasks((body) => ({
       summary: 'Synthetic browser test result',
       result:
-        results[body.tags?.find((t) => t.startsWith('stage:'))?.slice(6) ?? ''],
+        syntheticResults[
+          body.tags?.find((t) => t.startsWith('stage:'))?.slice(6) ?? ''
+        ],
     })),
     input,
     options,
   );
 };
+
+/** Explicitly non-durable service for isolated API/browser fixtures only. */
+export class MemoryRuns implements RunService {
+  private sessions = new Map<string, Session>();
+  constructor(private execute: Execute = syntheticExecute) {}
+  async start(input: DesignInput, options: RunOptions) {
+    if (
+      [...this.sessions.values()].some((s) =>
+        ['running', 'awaiting'].includes(s.snapshot.state),
+      )
+    )
+      throw new RunConflict(
+        'Finish or withdraw the current run before starting another.',
+      );
+    const session = new Session(input, this.execute, options);
+    this.sessions.set(session.snapshot.id, session);
+    void session.start(input);
+    return session.snapshot;
+  }
+  async get(id: string) {
+    return this.sessions.get(id)?.snapshot;
+  }
+  async list() {
+    return [...this.sessions.values()]
+      .map((s) => s.snapshot)
+      .filter((s) => ['running', 'awaiting'].includes(s.state));
+  }
+  async decide(id: string, gateId: string, decision: StageDecision) {
+    const session = this.sessions.get(id);
+    if (!session) throw new RunConflict('Run not found.');
+    try {
+      session.decide(gateId, decision);
+    } catch (e) {
+      throw new RunConflict((e as Error).message);
+    }
+    return session.snapshot;
+  }
+  async withdraw(id: string, reason: string) {
+    const snapshot = await this.get(id);
+    if (!snapshot?.gate) throw new RunConflict('No review is waiting.');
+    return this.decide(id, snapshot.gate.id, { action: 'abort', reason });
+  }
+}

@@ -127,10 +127,20 @@ Install the Node version in `.tool-versions`, then enable pnpm through Corepack:
 ```bash
 corepack enable pnpm
 pnpm install
+pnpm db:up
+export PDDL_DATABASE_URL=postgresql://designer@127.0.0.1:5440/designer
+pnpm db:init
 pnpm dev
 ```
 
-Open `http://127.0.0.1:4317`. The local server serves the UI and talks to
+Docker and `uv` (providing `uvx`) are required for the local database setup.
+`db:init` explicitly initializes Absurd 0.4.0 and applies designer migrations;
+normal server startup never migrates a database. Use a dedicated database.
+The Compose database accepts connections only on loopback and uses trust
+authentication for local development. Use authenticated connections for any
+non-local database.
+
+Open `http://127.0.0.1:4317`. The Fastify server serves the UI and talks to
 MoltNet; generation workers run separately (see [Runtime profiles](#runtime-profiles)).
 For a built UI, run `pnpm build` followed by `pnpm start`. Saved proofs default
 to `runs/`; override with `pnpm dev --runs-dir /path/to/proofs`.
@@ -149,10 +159,63 @@ conditions. The description starts collapsed here to give the walkthrough room.
 
 An unfinished live run can be recovered from **Resume current run** on a fresh
 page. At its review gate, continue reading or withdraw it before starting another
-run. Live sessions last only as long as the local server process; save completed
-proofs to reopen them after a restart. A worker-claim timeout explains which step
+run. Live runs and review decisions now survive server restarts in Postgres.
+A worker-claim timeout explains which step
 was not picked up and offers **Review setup and retry**. Generated corrections
 cannot skip earlier saved edits that still need your approval.
+
+### Durable runtime
+
+```mermaid
+flowchart LR
+    UI[React SPA] <-->|HTTP commands + SSE snapshots| API[Fastify]
+    API <--> DB[(Postgres: runs, gates, Absurd)]
+    Worker[Absurd worker] <--> DB
+    Worker --> SDK[MoltNet SDK]
+    SDK --> Tasks[MoltNet tasks and generation workers]
+```
+
+The browser remains client-rendered; there is no SSR. It reads server-owned
+snapshots and sends review decisions. Sharing state does not require rendering
+HTML on the server. Credentials and MoltNet SDK calls stay in the server process.
+Fastify hosts the API and an Absurd worker; the CLI remains a single-process,
+inline workflow and does not gain restart recovery from this change.
+
+Absurd checkpoints task creation, terminal outcomes, profile resolution and
+claim deadlines. Review decisions and their wake-up events commit in one database
+transaction. Each gate generation can be decided once. A replacement worker
+replays checkpoints after its predecessor's lease expires (up to about two
+minutes by default), keeping external task creation idempotent. A database outage
+pauses progress; reopening the browser does not reset the run. Exhausted engine
+retries are shown as a stopped run and release the one-active-run limit.
+
+**Withdraw running proof** stops orchestration even while waiting for a worker.
+It does not cancel a generation task already dispatched to MoltNet; that task
+may finish, but cannot advance the withdrawn proof. At a review gate, the existing
+Withdraw action records the reviewer's decision and produces a stopped proof.
+
+Keep the database volume (`moltnet-pddl-designer-data`) across restarts. Live
+history currently has no automatic retention cleanup. Keep exported proofs in a
+stable directory outside disposable worktrees, for example:
+
+```bash
+pnpm dev --runs-dir "$HOME/.local/share/moltnet-pddl-designer/runs"
+# Saved proof viewing/editing without Postgres or an agent:
+pnpm dev --offline --runs-dir "$HOME/.local/share/moltnet-pddl-designer/runs"
+```
+
+JSON import/export remains independent of the live database. Preserve both the
+Postgres volume and exported files when moving installations. A run URL can
+reopen its persisted result; saving it also adds it to the file-backed galley rack.
+Do not replace workflow code underneath active runs with incompatible stage or
+checkpoint changes: drain those runs first or introduce a versioned queue/handler.
+
+Recovery tests use a dedicated provisioned test database and real worker process
+kills, with persisted synthetic tasks instead of live MoltNet credentials:
+
+```bash
+PDDL_TEST_DATABASE_URL="$PDDL_DATABASE_URL" pnpm test:durable
+```
 
 ### Source evidence
 
