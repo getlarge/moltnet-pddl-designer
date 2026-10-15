@@ -68,4 +68,34 @@ describe('temporal detection benchmark', () => {
       'Each run needs one prediction per detection case',
     );
   });
+
+  it('groups family and phenomenon names that match object prototype keys', () => {
+    const items = [
+      { ...cases[0]!, family: 'constructor', phenomenon: '__proto__' },
+      { ...cases[2]!, family: 'toString', phenomenon: 'constructor' },
+    ];
+    const predictions = items.map((item) => ({
+      id: item.id,
+      runId: 'reserved-keys',
+      probability: item.gold.hasDurativeEvidence ? 0.9 : 0.1,
+      seconds: 1,
+    }));
+    const report = evaluateTemporalDetection(items, predictions);
+
+    expect(
+      Object.entries(report.byFamily).find(
+        ([key]) => key === 'constructor',
+      )?.[1].cases,
+    ).toBe(1);
+    expect(
+      Object.entries(report.byFamily).find(([key]) => key === 'toString')?.[1]
+        .cases,
+    ).toBe(1);
+    expect(report.byPhenomenon['__proto__'].cases).toBe(1);
+    expect(
+      Object.entries(report.byPhenomenon).find(
+        ([key]) => key === 'constructor',
+      )?.[1].cases,
+    ).toBe(1);
+  });
 });

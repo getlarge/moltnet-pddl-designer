@@ -18,6 +18,22 @@ const teamId = process.env.TEAM;
 const diaryId = process.env.DIARY;
 const profileName =
   process.env.CLASSIFY_PROFILE ?? 'legreffier-pddl-classifier-v1';
+// Identify this invocation before any network request; a failed rerun must not
+// leave an earlier complete report at the same path.
+writeFileSync(
+  outputFile,
+  JSON.stringify(
+    {
+      runId: correlationId,
+      requestedProfile: profileName,
+      status: 'started',
+      completed: 0,
+      predictions: [],
+    },
+    null,
+    2,
+  ) + '\n',
+);
 if (!teamId || !diaryId) throw new Error('TEAM and DIARY are required.');
 const agent = await connect();
 const { items } = await agent.runtimeProfiles.list({ teamId });
@@ -86,6 +102,7 @@ for (const item of cases) {
     model: profile.models.classification.model,
     questionRevision: 'temporal-detection-v2',
     threshold: 0.5,
+    status: 'partial',
     completed: predictions.length,
     totalCases: cases.length,
     predictions,
@@ -104,6 +121,7 @@ writeFileSync(
       profile: profile.name,
       model: profile.models.classification.model,
       questionRevision: 'temporal-detection-v2',
+      status: 'complete',
       ...score,
     },
     null,

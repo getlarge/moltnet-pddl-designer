@@ -60,4 +60,14 @@ describe('temporal gold evaluation', () => {
       evaluateTemporal(cases, [...predictions, predictions[0]]),
     ).toThrow('Duplicate prediction');
   });
+
+  it('rejects an effect with the wrong timing', () => {
+    const predictions = correct('effect-mismatch');
+    predictions[0].effects[0].timing = 'end';
+    const report = evaluateTemporal(cases, predictions);
+
+    expect(report.totals.effectsCorrect).toBe(3);
+    expect(report.totals.exact).toBe(3);
+    expect(report.scores[0].effectsCorrect).toBe(false);
+  });
 });

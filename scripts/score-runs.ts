@@ -1,24 +1,6 @@
-/**
- * Score design runs against pre-registered requirements
- * (examples/<example>/required.json). A run passes only if it planned and its
- * plan satisfies every rule:
- *
- * 1. coverage: each required step occurs for each goal item
- * 2. order:    an item's steps occur in the listed order (earliest occurrences)
- * 3. owner:    every actor acting on an item is the one that claimed it
- * 4. sharing:  no produced object serves two items, and the planner finds no
- *              shared work (forcedAnalysis)
- * plus: no step uses a forbidden branch.
- *
- * A step belongs to the first goal item among its arguments; a step that names
- * no item belongs to the item its objects were first seen with.
- *
- * Optional rules for problems with item-level exceptions and problem-wide
- * steps: `skip` (items that must not take a step), `global_steps` and their
- * orderings, and `agent_pattern`.
- *
- *   pnpm exec tsx scripts/score-runs.ts <runs-dir> <label-prefix>
- *     [--json out.json] [--examples <dir>]
+/** CLI: pnpm exec tsx scripts/score-runs.ts <runs-dir> <label-prefix>
+ *        [--json out.json] [--examples <dir>]
+ * Scoring rules live beside scoreRun in @pddl/evals/plan.
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

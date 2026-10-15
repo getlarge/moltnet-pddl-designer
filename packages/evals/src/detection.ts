@@ -76,9 +76,9 @@ export function evaluateTemporalDetection(
   const runIds = new Set<string>();
   const seen = new Set<string>();
   const totals = emptyCounts();
-  const bySplit: Record<string, Counts> = {};
-  const byFamily: Record<string, Counts> = {};
-  const byPhenomenon: Record<string, Counts> = {};
+  const bySplit = Object.create(null) as Record<string, Counts>;
+  const byFamily = Object.create(null) as Record<string, Counts>;
+  const byPhenomenon = Object.create(null) as Record<string, Counts>;
   const rows = [];
   let brierSum = 0;
   let totalSeconds = 0;

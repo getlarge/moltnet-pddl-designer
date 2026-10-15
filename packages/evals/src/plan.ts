@@ -34,6 +34,13 @@ export interface Run {
   plan?: { status: string; steps?: string[] };
 }
 
+/**
+ * Score planned runs against pre-registered requirements. Check per-item step
+ * coverage and order, ownership, forbidden branches, produced-object sharing,
+ * and shared work from forcedAnalysis. A step belongs to the first goal item
+ * among its arguments, or the item its objects were first seen with. Optional
+ * rules handle skipped steps, problem-wide steps, and agent type patterns.
+ */
 export function scoreRun(
   run: Run,
   req: Required,

@@ -15,6 +15,22 @@ if (!casesFile || !outputFile || !correlationId)
 const teamId = process.env.TEAM;
 const diaryId = process.env.DIARY;
 const profileName = process.env.PROFILE ?? 'legreffier-pddl-designer-v1';
+// Replace artifacts before any network request so a failed rerun cannot leave
+// a previous run's complete results at the requested paths.
+writeFileSync(outputFile, '');
+writeFileSync(
+  `${outputFile}.meta.json`,
+  JSON.stringify(
+    {
+      runId: correlationId,
+      requestedProfile: profileName,
+      status: 'started',
+      timings: [],
+    },
+    null,
+    2,
+  ) + '\n',
+);
 if (!teamId || !diaryId) throw new Error('TEAM and DIARY are required.');
 const agent = await connect();
 const { items: profiles } = await agent.runtimeProfiles.list({ teamId });
@@ -58,6 +74,18 @@ const ctx = {
 };
 const outputs = [];
 const timings: Array<{ id: string; taskId: string; seconds: number }> = [];
+async function awaitClaim(taskId: string) {
+  const deadline = Date.now() + 30_000;
+  for (;;) {
+    const task = await tasks.getTask(taskId);
+    if (task.status !== 'queued') return;
+    if (Date.now() >= deadline)
+      throw new Error(
+        `no worker claimed temporal task ${taskId} within 30s; check ${outputFile}.poller.log`,
+      );
+    await ctx.sleepFor(`claim.${taskId}`, 2);
+  }
+}
 for (const item of cases) {
   const started = Date.now();
   const task = await tasks.createTask(
@@ -85,6 +113,7 @@ for (const item of cases) {
     { idempotencyKey: `temporal-live:${correlationId}:${item.id}` },
   );
   console.log(`created ${item.id} ${task.id}`);
+  await awaitClaim(task.id);
   const outcome = await waitForTaskOutcome(task.id, {
     tasks,
     ctx,
@@ -128,6 +157,7 @@ for (const item of cases) {
         profile: profile.name,
         model: profile.models.generation.model,
         promptRevision: 'temporal-extract-v1',
+        status: outputs.length === cases.length ? 'complete' : 'partial',
         timings,
       },
       null,
