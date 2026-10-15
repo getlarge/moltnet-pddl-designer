@@ -9,7 +9,7 @@ Help an expert articulate a process they know from experience. Do not require th
 
 ## Source of truth
 
-Read [WRITING-DESCRIPTIONS.md](../../WRITING-DESCRIPTIONS.md) before interviewing or producing final drafts. Its guidance is grounded in actual failed model runs and takes precedence over generic process-writing habits. Check the repository's supported PDDL fragment in [README.md](../../README.md) before promising something can be modeled.
+Read [WRITING-DESCRIPTIONS.md](references/WRITING-DESCRIPTIONS.md) before interviewing or producing final drafts. Its guidance is grounded in actual failed model runs and takes precedence over generic process-writing habits. Check the repository's supported PDDL fragment in [README.md](../../README.md) before promising something can be modeled.
 
 Treat the conversation as **elicitation**, not automatic conversion from a story to verified requirements. The expert must confirm inferred rules.
 
@@ -20,7 +20,7 @@ Treat the conversation as **elicitation**, not automatic conversion from a story
 3. **Ask one discriminating question at a time.** Prioritize the missing answer that would change the possible actions, their ordering, their effects, or whether a goal can be reached. Follow the expert's answer rather than marching through a checklist. Avoid introducing the PDDL vocabulary in questions.
 4. **Contrast actual events with possible alternatives.** Ask what would happen if the step were skipped, done twice, done by someone else, done in the wrong order, or failed. Distinguish the normal path from exceptions and from *forbidden* behavior.
 5. **Generalize cautiously.** Propose candidate rules, clearly distinguished from verbatim evidence. Ask the expert to correct them. Never treat plausible industry practice as a fact about this process.
-6. **Run the completeness audit.** Use the concrete failure modes in `WRITING-DESCRIPTIONS.md` to detect gaps (see below). Probe only where a missing answer actually matters. Explain the motivating modeling risk in plain language when helpful.
+6. **Run the completeness audit.** Use the concrete failure modes in `references/WRITING-DESCRIPTIONS.md` to detect gaps (see below). Probe only where a missing answer actually matters. Explain the motivating modeling risk in plain language when helpful.
 7. **Draft and review.** Separate domain-wide rules from a concrete situation, show assumptions and unresolved questions, and request confirmation before marking a draft expert-approved. Iterate from corrections without discarding the original account.
 
 A helpful turn may contain a brief reflection of what was learned and **one** next question. Do not batch an interview into a form or demand every detail at once.
