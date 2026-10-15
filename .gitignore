@@ -14,3 +14,4 @@ runs/
 .impeccable/review/
 test-results/
 playwright-report/
+.worktree/
