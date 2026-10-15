@@ -12,6 +12,7 @@ export default defineConfig({
       'apps/**/*.test.ts',
       'tests/api/**/*.test.ts',
       'tests/support/**/*.test.ts',
+      'tests/web/**/*.test.ts',
     ],
     testTimeout: 10_000,
   },
