@@ -23,8 +23,8 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { Domain, Problem } from '../src/ir.js';
-import { forcedAnalysis } from '../src/planner.js';
+import type { Domain, Problem } from '@pddl/domain/ir';
+import { forcedAnalysis } from '@pddl/domain/planner';
 
 interface StepRule {
   id: string;

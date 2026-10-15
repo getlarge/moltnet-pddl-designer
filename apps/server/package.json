@@ -1,0 +1,23 @@
+{
+  "name": "@pddl/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/main.ts",
+    "dev": "tsx src/main.ts --dev"
+  },
+  "dependencies": {
+    "@fastify/middie": "^9.3.5",
+    "@fastify/static": "^10.1.6",
+    "@pddl/contracts": "workspace:*",
+    "@pddl/domain": "workspace:*",
+    "@pddl/persistence": "workspace:*",
+    "fastify": "^5.12.7",
+    "typebox": "^1.2.8"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  }
+}

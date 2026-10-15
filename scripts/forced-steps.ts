@@ -12,8 +12,8 @@
  */
 import { readFileSync } from 'node:fs';
 
-import type { Domain, Problem } from '../src/ir.js';
-import { ground, search } from '../src/planner.js';
+import type { Domain, Problem } from '@pddl/domain/ir';
+import { ground, search } from '@pddl/domain/planner';
 
 const [file, flag, objectName] = process.argv.slice(2);
 const run = JSON.parse(readFileSync(file, 'utf8')) as {

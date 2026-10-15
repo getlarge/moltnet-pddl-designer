@@ -1,0 +1,23 @@
+{
+  "name": "@pddl/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@fontsource/literata": "^5.3.0",
+    "@fontsource/public-sans": "^5.3.0",
+    "@pddl/contracts": "workspace:*",
+    "@pddl/domain": "workspace:*",
+    "@themoltnet/sdk": "^0.153.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.4"
+  }
+}

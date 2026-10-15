@@ -1,0 +1,20 @@
+{
+  "name": "@pddl/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@pddl/contracts": "workspace:*",
+    "@pddl/domain": "workspace:*",
+    "@pddl/workflows": "workspace:*",
+    "@themoltnet/os-keyring": "0.5.0",
+    "@themoltnet/sdk": "^0.153.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.6"
+  }
+}

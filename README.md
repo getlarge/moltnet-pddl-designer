@@ -138,9 +138,10 @@ The Compose database accepts connections only on loopback and uses trust
 authentication for local development. Use authenticated connections for any
 non-local database.
 
-Open `http://127.0.0.1:4317`. The Fastify server serves the UI and talks to
-MoltNet; generation workers run separately (see [Runtime profiles](#runtime-profiles)).
-For a built UI, run `pnpm build` followed by `pnpm start`. Saved proofs default
+Open `http://127.0.0.1:4317`. The Fastify server serves the UI. The local Absurd worker calls MoltNet;
+generation workers run separately (see [Runtime profiles](#runtime-profiles)).
+For a built UI, run `pnpm build`, then `pnpm start` and `pnpm worker` in
+separate terminals with the same `PDDL_DATABASE_URL`. Saved proofs default
 to `runs/`; override with `pnpm dev --runs-dir /path/to/proofs`.
 
 Review extracted meaning alongside numbered source sentences, then Pass,
@@ -175,8 +176,11 @@ flowchart LR
 
 The browser remains client-rendered; there is no SSR. It reads server-owned
 snapshots and sends review decisions. Sharing state does not require rendering
-HTML on the server. Credentials and MoltNet SDK calls stay in the server process.
-Fastify hosts the API and an Absurd worker; the CLI remains a single-process,
+HTML on the server. Credentials and MoltNet SDK calls stay in the worker process.
+Fastify hosts only the HTTP API and UI; a separate process runs Absurd.
+`pnpm dev` starts both and stops them together; `pnpm dev --offline` starts only
+the server. Use `pnpm dev:server` and `pnpm worker` to run them independently.
+The server does not need agent credentials. The CLI remains a single-process,
 inline workflow and does not gain restart recovery from this change.
 
 Absurd checkpoints task creation, terminal outcomes, profile resolution and
@@ -546,3 +550,38 @@ For a deliberate fake credential in a fixture, use a rule-scoped
 `secretlint-disable-next-line` comment with an explanation; do not disable the
 scanner for the whole test directory. Use Node 24.14.1 or newer, matching the
 minimum version in `package.json`.
+
+## Repository layout and boundaries
+
+This is a private pnpm workspace. Run commands from the repository root; each
+package declares its own dependencies and exports TypeScript source. There are
+no TypeScript path aliases or prerequisite library builds.
+
+| Location               | Responsibility                                                | Allowed workspace dependencies |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------ |
+| `apps/web`             | React interface and Vite build                                | domain, contracts              |
+| `apps/server`          | Fastify HTTP/SSE and web asset serving                        | domain, contracts, persistence |
+| `apps/worker`          | Durable worker process and credentials                        | persistence, workflows         |
+| `apps/cli`             | Inline command-line execution                                 | domain, contracts, workflows   |
+| `packages/domain`      | PDDL IR, validation, planning, rendering and provenance       | none                           |
+| `packages/contracts`   | Shared run/API types, schemas and saved-proof validation      | domain                         |
+| `packages/persistence` | Postgres/Absurd storage, gates, migrations, saved files       | domain, contracts              |
+| `packages/workflows`   | Task builders, orchestration, reviews and worker registration | domain, contracts, persistence |
+
+Import other packages through explicit exports such as `@pddl/domain/planner`.
+Applications never import each other; packages never import applications.
+`pnpm lint` enforces the table, declared dependencies, browser-safe imports,
+and package entry points. Type-only imports, re-exports, dynamic imports and
+`require` are checked too. Relative imports must stay within their package;
+use named type imports instead of relative inline `import()` types. Dynamic
+imports must use literal paths. A new package must be classified explicitly in
+`tooling/boundaries.mjs`.
+
+`pnpm test:boundaries` tests allowed and forbidden imports against the real ESLint
+configuration. CI runs it through `pnpm lint`. Node-based unit tests may read
+fixture files; this does not relax their workspace dependency rules.
+Cross-app integration fixtures live in `tests/support`; browser and recovery
+suites live in `tests/browser` and `tests/durable`. Root `scripts` are developer
+tools and may compose applications for tests. Production packages cannot import
+these harnesses. Database migrations live with persistence and `pnpm db:init`
+remains their entry point.

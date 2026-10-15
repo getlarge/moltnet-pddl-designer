@@ -1,0 +1,15 @@
+{
+  "name": "@pddl/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@pddl/persistence": "workspace:*",
+    "@pddl/workflows": "workspace:*",
+    "@themoltnet/os-keyring": "0.5.0"
+  }
+}

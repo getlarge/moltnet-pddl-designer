@@ -1,12 +1,13 @@
+import { registerWorkflows } from '@pddl/workflows/durable';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import type { ActionsResult } from '../../src/ir.js';
-import { DurableRuns } from '../../server/durable-runs.js';
-import { syntheticExecute, syntheticInput } from '../../server/test-support.js';
-import type { RunSnapshot } from '../../server/types.js';
+import type { ActionsResult } from '@pddl/domain/ir';
+import { DurableRuns } from '@pddl/persistence/durable-runs';
+import { syntheticExecute, syntheticInput } from '../support/test-support.js';
+import type { RunSnapshot } from '@pddl/contracts/api';
 
 const databaseUrl = process.env.PDDL_TEST_DATABASE_URL;
 if (!databaseUrl)
@@ -19,7 +20,7 @@ let queue: string;
 beforeEach(async () => {
   queue = 'test_' + randomUUID().replaceAll('-', '');
   children = [];
-  runs = new DurableRuns({
+  runs = createRuns({
     databaseUrl: databaseUrl!,
     queue,
     execute: syntheticExecute,
@@ -111,7 +112,7 @@ it('recovers a gate and a decision accepted with no worker, without duplicated e
   await kill(first);
   const sequence = gate.sequence;
   await runs.close();
-  runs = new DurableRuns({
+  runs = createRuns({
     databaseUrl: databaseUrl!,
     queue,
     execute: syntheticExecute,
@@ -202,7 +203,7 @@ it('retains the original claim deadline across process death', async () => {
   expect(await count()).toBe(1);
 });
 it('atomically enforces one active run across API processes', async () => {
-  const other = new DurableRuns({
+  const other = createRuns({
     databaseUrl: databaseUrl!,
     queue,
     execute: syntheticExecute,
@@ -268,7 +269,7 @@ it('reconnects after an idle pooled connection fails', async () => {
       runs.pool.once('error', () => resolve()),
     );
     // Kill only this test pool's idle connection, using an independent connection.
-    const control = new DurableRuns({
+    const control = createRuns({
       databaseUrl: databaseUrl!,
       queue,
       execute: syntheticExecute,
@@ -295,7 +296,7 @@ it('reconnects after an idle pooled connection fails', async () => {
 
 it('reuses published events and gates without replaying projection transactions', async () => {
   await runs.close();
-  runs = new DurableRuns({
+  runs = createRuns({
     databaseUrl: databaseUrl!,
     queue,
     execute: syntheticExecute,
@@ -366,7 +367,7 @@ it('recovers classification creation after worker death and retains its evidence
   expect(await count()).toBe(4);
   await kill(child);
   await runs.close();
-  runs = new DurableRuns({
+  runs = createRuns({
     databaseUrl: databaseUrl!,
     queue,
     execute: syntheticExecute,
@@ -466,3 +467,9 @@ it('recovers classification polling and discards answers after withdrawal', asyn
   await delay(300);
   expect((await runs.get(start.id))?.sourceCheck?.status).toBe('failed');
 });
+
+function createRuns(options: ConstructorParameters<typeof DurableRuns>[0] & { execute: import('@pddl/workflows/executor').Execute; assess?: import('@pddl/workflows/executor').SourceExecute }) {
+  const runs = new DurableRuns(options);
+  registerWorkflows(runs, options.execute, options.assess);
+  return runs;
+}

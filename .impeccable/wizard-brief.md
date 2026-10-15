@@ -1,6 +1,6 @@
 # Wizard surface
 
-Target: ui/App.tsx. Mode: Operate. Authority: issue #2 and the implementation plan approved for PR #3. The product interview and visual direction are complete; preserve their composition.
+Target: apps/web/src/App.tsx. Mode: Operate. Authority: issue #2 and the implementation plan approved for PR #3. The product interview and visual direction are complete; preserve their composition.
 
 Process experts turn their description and situation into a checked model through types, facts, actions, refinement, situation, and plan. Developers can reveal construction. Desktop-first, keyboard accessible, 5–40 sentences and plans of 3–60 steps. Storage defaults to configurable runs/. Login, setup, workflow compilation, and MoltNet branding are excluded.
 
