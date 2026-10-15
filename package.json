@@ -29,12 +29,15 @@
     "test:durable": "vitest run --config vitest.durable.config.ts",
     "worker": "tsx apps/worker/src/main.ts",
     "dev:server": "tsx apps/server/src/main.ts --dev",
-    "test:boundaries": "node --test tooling/boundaries.test.mjs"
+    "test:boundaries": "node --test tooling/boundaries.test.mjs",
+    "eval:temporal": "node --import tsx scripts/eval/score-temporal.ts",
+    "eval:temporal:inputs": "node --import tsx scripts/eval/temporal-inputs.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@pddl/contracts": "workspace:*",
     "@pddl/domain": "workspace:*",
+    "@pddl/evals": "workspace:*",
     "@pddl/persistence": "workspace:*",
     "@pddl/workflows": "workspace:*",
     "@playwright/test": "^1.64.0",
