@@ -1,3 +1,6 @@
+import { buildGroundingRequest, groundingTargets } from './source-grounding.js';
+import { readSourceChecks } from './source-check.js';
+import { blocksDomain } from './test-fixtures.js';
 import { describe, expect, it } from 'vitest';
 import { editRun, passSavedStage, readRun, recheckRun } from './saved-run.js';
 import { checkSources, sourceLines, sourceSentences } from './provenance.js';
@@ -39,6 +42,46 @@ export function savedFixture(): DesignRun {
   };
 }
 describe('saved proof revisions', () => {
+  it('preserves audit evidence through save/load and invalidates it after a draft edit', () => {
+    const input = () =>
+      buildGroundingRequest(
+        'Blocks can be stacked by a robotic arm.',
+        blocksDomain,
+        [groundingTargets(blocksDomain)[0]],
+      );
+    const output = () => ({
+      version: 1 as const,
+      answers: {
+        claim_1: {
+          type: 'choice' as const,
+          choice: 'supported',
+          probabilities: {
+            supported: 0.9,
+            contradicted: 0.05,
+            not_established: 0.05,
+          },
+          confidence: 0.8,
+        },
+      },
+    });
+    const record = {
+      attempt: 1,
+      input: input(),
+      status: 'complete' as const,
+      taskId: 'synthetic-task',
+      output: output(),
+      durationMs: 10,
+    };
+    const run = savedFixture();
+    run.sourceChecks = [record];
+    expect(readRun(run).sourceChecks).toEqual([record]);
+    expect(
+      editRun(run, 'actions', run.stages[2].result).sourceChecks,
+    ).toBeUndefined();
+    expect(() =>
+      readSourceChecks([{ ...record, output: { version: 1, answers: {} } }]),
+    ).toThrow();
+  });
   it('recomputes imported derived data and preserves legacy runs without provenance', () => {
     const original = savedFixture();
     original.plan = { status: 'found', steps: ['invented'], explored: 1 };

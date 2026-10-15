@@ -461,3 +461,107 @@ test('explains a worker claim timeout and preserves the description for retry', 
   await page.getByRole('button', { name: 'Begin proof' }).click();
   await expect(page.getByText('Your reading is needed')).toBeVisible();
 });
+
+test('source check previews requests and informs the Actions review decision', async ({
+  page,
+}) => {
+  await startReview(page);
+  for (const heading of ['Facts', 'Actions']) {
+    await page.getByRole('button', { name: 'Pass', exact: true }).click();
+    await expect(page.locator('.margin .column-heading h2')).toHaveText(
+      heading,
+    );
+  }
+  const panel = page.getByRole('region', {
+    name: 'Compare actions with your description',
+  });
+  await expect(panel).toBeVisible();
+  // Guidance belongs before optional classification, regardless of result length.
+  expect(
+    await page
+      .locator('.stage-reading-guide')
+      .evaluate(
+        (guide) =>
+          !!(
+            guide.compareDocumentPosition(
+              document.querySelector('.source-check')!,
+            ) & Node.DOCUMENT_POSITION_FOLLOWING
+          ),
+      ),
+  ).toBe(true);
+  const actionRules = page.locator('.action-facts').first();
+  await expect(actionRules.locator(':scope > div')).toHaveCount(3);
+  const columns = await actionRules
+    .locator(':scope > div')
+    .evaluateAll((nodes) => nodes.map((n) => n.getBoundingClientRect().x));
+  expect(columns[0]).toBeLessThan(columns[1]);
+  expect(columns[1]).toBeLessThan(columns[2]);
+  const choices = panel.getByRole('checkbox');
+  for (let n = 0; n < 3; n++) await choices.nth(n).check();
+  await panel.getByRole('button', { name: 'Preview source check' }).click();
+  await expect(
+    panel.getByRole('heading', { name: 'Ready to compare 3 rules' }),
+  ).toBeVisible();
+  await panel.getByLabel('Classification profile name or ID').fill('synthetic');
+  await panel.getByRole('button', { name: 'Run source check' }).click();
+  await expect(
+    panel.getByText('Supported by your description', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByText('Your description disagrees', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByText('Your description does not settle this', { exact: true }),
+  ).toBeVisible();
+  const shared = panel.getByRole('region', {
+    name: 'Shared evidence for all checked rules',
+  });
+  await expect(shared).toContainText('Shared evidence for all 3 checked rules');
+  await expect(
+    shared.getByText('Exact request and raw response — all checked rules', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    panel.getByText('Source used for all checked rules', { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    panel
+      .locator('.source-check-result')
+      .last()
+      .getByText('Source used for all checked rules', { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Pass', exact: true }),
+  ).toBeEnabled();
+  await panel
+    .getByRole('button', { name: 'Prepare correction note' })
+    .first()
+    .click();
+  await expect(page.getByLabel('What should be corrected?')).toContainText(
+    'source check found a contradiction',
+  );
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('button', { name: 'Correct', exact: true }).click();
+  await page.getByRole('button', { name: 'Check corrections' }).click();
+  await expect(
+    panel.getByText('Your description disagrees', { exact: true }),
+  ).toHaveCount(0);
+  await panel.getByRole('checkbox').first().check();
+  await panel.getByRole('button', { name: 'Preview source check' }).click();
+  await panel
+    .getByLabel('Classification profile name or ID')
+    .fill('synthetic-failure');
+  await panel
+    .getByRole('button', { name: 'Run source check', exact: true })
+    .click();
+  await expect(panel.getByRole('alert')).toContainText(
+    'Synthetic provider unavailable.',
+  );
+  await expect(panel.getByRole('alert')).toContainText(
+    'Task synthetic-source-check',
+  );
+  await expect(
+    page.getByRole('button', { name: 'Pass', exact: true }),
+  ).toBeEnabled();
+});

@@ -5,6 +5,7 @@
  * produced it. The runtime profile's `models.classification` picks the model
  * (for example a local Ollama `nimble`, or Typesafe `jev-latest`).
  */
+import { TASK_TAGS } from './task-tags.js';
 import { createHash } from 'node:crypto';
 
 import { type ClassifyInput, ClassifyOutput } from '@themoltnet/sdk';
@@ -93,7 +94,7 @@ export function createClassifyDecisionClient(
           dispatchTimeoutSec: 300,
           expiresInSec: 3600,
           maxAttempts: 2,
-          tags: ['pddl:designer', 'stage:review'],
+          tags: [TASK_TAGS.designer, TASK_TAGS.stage.review],
           input,
         },
         { idempotencyKey: 'pddl-review:' + digest },

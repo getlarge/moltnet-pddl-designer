@@ -1,3 +1,4 @@
+import type { SourceCheckRecord } from '../src/source-check.js';
 import type { DesignEvent, DesignRun, StageGate } from '../src/workflow.js';
 import type { DesignInput, StageName } from '../src/stages.js';
 export type RunInput = Omit<DesignInput, 'correlationId'>;
@@ -14,6 +15,7 @@ export interface RunSnapshot {
   gate?: Gate;
   run?: DesignRun;
   error?: string;
+  sourceCheck?: SourceCheckRecord;
 }
 export interface SavedItem {
   id: string;

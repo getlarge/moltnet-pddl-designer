@@ -1,4 +1,5 @@
 /** Saved runs are data, never authority for current checks or a cached plan. */
+import { readSourceChecks } from './source-check.js';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 import {
@@ -117,6 +118,9 @@ export function readRun(value: unknown): DesignRun {
     })),
     issues: [],
     durationMs: raw.durationMs,
+    ...(raw.sourceChecks
+      ? { sourceChecks: readSourceChecks(raw.sourceChecks) }
+      : {}),
   };
   if (raw.needsReview) {
     if (
@@ -237,6 +241,8 @@ export function editRun(
   result: unknown,
 ): DesignRun {
   const run = structuredClone(original);
+  if (['types', 'predicates', 'actions'].includes(stage))
+    delete run.sourceChecks;
   run.stages.push({
     stage,
     source: 'edit',

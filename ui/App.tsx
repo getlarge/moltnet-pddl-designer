@@ -21,6 +21,7 @@ import { emptyStage, StageEditor } from './StageEditor.js';
 import { PlanExplorer } from './PlanExplorer.js';
 import { FactDefinition } from './FactDefinition.js';
 import { CodeBlock } from './CodeBlock.js';
+import { SourceCheck } from './SourceCheck.js';
 import { useCurrentInView } from './useCurrentInView.js';
 
 type Example = {
@@ -229,6 +230,7 @@ export function App() {
           }),
       );
   const canPass = !!record && !findings.some((i) => i.severity === 'error');
+  const sourceChecking = snapshot?.sourceCheck?.status === 'checking';
   const editable = stage !== 'plan' && (!!saved || isGate);
   const active = !!snapshot && ['running', 'awaiting'].includes(snapshot.state);
   const allActionsValue =
@@ -1090,6 +1092,42 @@ export function App() {
                     )}
                   </details>
                 )}
+
+                {stage === 'actions' && canPass && !editor && (
+                  <SourceCheck
+                    key={gate?.id ?? `saved-${record?.attempt}`}
+                    domain={{
+                      name: input.domainName,
+                      types: (obj(latest(rows, 'types')?.result).types ??
+                        []) as import('../src/ir.js').TypeDef[],
+                      predicates: (obj(latest(rows, 'predicates')?.result)
+                        .predicates ??
+                        []) as import('../src/ir.js').PredicateDef[],
+                      actions: (result.actions ?? []) as ActionDef[],
+                    }}
+                    runId={snapshot?.id}
+                    gateId={isGate ? gate?.id : undefined}
+                    attempt={record!.attempt}
+                    record={
+                      snapshot?.sourceCheck ??
+                      run?.sourceChecks?.findLast(
+                        (r) => r.attempt === record?.attempt,
+                      )
+                    }
+                    onSnapshot={(next) =>
+                      setSnapshot((previous) =>
+                        previous && previous.sequence > next.sequence
+                          ? previous
+                          : next,
+                      )
+                    }
+                    onNote={(message) => {
+                      setGateMode('note');
+                      setNote(message);
+                    }}
+                  />
+                )}
+
                 {stage === 'plan' ? (
                   run?.domain && run?.problem ? (
                     <PlanExplorer
@@ -1234,25 +1272,45 @@ export function App() {
                                   </p>
                                 )}
                               {['actions', 'refine'].includes(stage) && (
-                                <dl className="action-facts">
-                                  <dt>Before</dt>
-                                  <dd>
-                                    {atoms(mark.preconditions)
-                                      .map(fact)
-                                      .join(' · ') || 'No facts required'}
-                                  </dd>
-                                  <dt>Add</dt>
-                                  <dd>
-                                    {atoms(mark.addEffects)
-                                      .map(fact)
-                                      .join(' · ') || 'No facts added'}
-                                  </dd>
-                                  <dt>Remove</dt>
-                                  <dd>
-                                    {atoms(mark.deleteEffects)
-                                      .map(fact)
-                                      .join(' · ') || 'No facts removed'}
-                                  </dd>
+                                <dl
+                                  className="action-facts"
+                                  tabIndex={0}
+                                  aria-label={`${name.replaceAll('-', ' ')} action rules`}
+                                >
+                                  {(
+                                    [
+                                      [
+                                        'preconditions',
+                                        'Before',
+                                        'No facts required',
+                                      ],
+                                      ['addEffects', 'Add', 'No facts added'],
+                                      [
+                                        'deleteEffects',
+                                        'Remove',
+                                        'No facts removed',
+                                      ],
+                                    ] as const
+                                  ).map(([field, label, empty]) => (
+                                    <div key={field}>
+                                      <dt>{label}</dt>
+                                      <dd>
+                                        {atoms(mark[field]).length ? (
+                                          <ul>
+                                            {atoms(mark[field]).map(
+                                              (atom, index) => (
+                                                <li key={index}>
+                                                  {fact(atom)}
+                                                </li>
+                                              ),
+                                            )}
+                                          </ul>
+                                        ) : (
+                                          empty
+                                        )}
+                                      </dd>
+                                    </div>
+                                  ))}
                                 </dl>
                               )}
                               {selected &&
@@ -1432,16 +1490,19 @@ export function App() {
                 <div className="button-row">
                   <button
                     className="primary"
-                    disabled={busy || !canPass}
+                    disabled={busy || sourceChecking || !canPass}
                     onClick={() => void decide({ action: 'accept' })}
                   >
                     Pass
                   </button>
-                  <button disabled={busy} onClick={() => setEditor(true)}>
+                  <button
+                    disabled={busy || sourceChecking}
+                    onClick={() => setEditor(true)}
+                  >
                     Correct
                   </button>
                   <button
-                    disabled={busy}
+                    disabled={busy || sourceChecking}
                     onClick={() => {
                       setGateMode('note');
                       setNote('');

@@ -14,6 +14,7 @@
  * The returned DesignRun holds everything a reviewer or a UI needs: each
  * stage's brief, result and findings, the rendered PDDL, and the plan check.
  */
+import type { SourceCheckRecord } from './source-check.js';
 import { createHash } from 'node:crypto';
 import {
   checkSources,
@@ -126,6 +127,7 @@ export interface DesignRun {
   review?: Array<PlanReview & { round: number }>;
   /** True when the last review found no shortcuts. */
   reviewPassed?: boolean;
+  sourceChecks?: SourceCheckRecord[];
   durationMs: number;
 }
 
@@ -303,6 +305,13 @@ export async function runPddlDesign(
     options.resume.run.input.description !== input.description
   )
     throw new Error('A correction must use the saved description.');
+  if (
+    options.resume &&
+    stageOrder.indexOf(options.resume.stage) > stageOrder.indexOf('actions') &&
+    options.resume.run.input.problemDescription === input.problemDescription &&
+    options.resume.run.sourceChecks
+  )
+    run.sourceChecks = structuredClone(options.resume.run.sourceChecks);
   const emit = (event: DesignEvent) => options.onEvent?.(event);
   const record = async (entry: StageRecord) => {
     run.stages.push(entry);
@@ -374,6 +383,8 @@ export async function runPddlDesign(
         };
     }
     let corrections = 0;
+    if (['types', 'predicates', 'actions'].includes(name))
+      delete run.sourceChecks;
     for (;;) {
       const stageStart = await ctx.step(
         `stage.${name}.${attempt}.started`,

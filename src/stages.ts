@@ -7,6 +7,7 @@
  * parsers re-check the full TypeBox schema (including the `pattern` rules the
  * contract transport drops) after the daemon has accepted the result.
  */
+import { TASK_TAGS } from './task-tags.js';
 import { createHash } from 'node:crypto';
 import { sourceSentences } from './provenance.js';
 
@@ -112,10 +113,10 @@ function stageTask(
     expiresInSec: 3600,
     maxAttempts: 1,
     tags: [
-      'pddl:designer',
-      'stage:' + stage,
-      'domain:' + input.domainName,
-      'stage-attempt:' + attempt,
+      TASK_TAGS.designer,
+      TASK_TAGS.stage[stage],
+      TASK_TAGS.domain(input.domainName),
+      TASK_TAGS.stageAttempt(attempt),
     ],
     input: {
       brief: [

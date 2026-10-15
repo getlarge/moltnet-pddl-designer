@@ -11,3 +11,5 @@ export * from './workflow.js';
 
 export * from './provenance.js';
 export * from './saved-run.js';
+
+export * from './task-tags.js';
