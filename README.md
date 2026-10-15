@@ -2,11 +2,16 @@
 
 > **When can we trust a generated planning model to represent the process the expert actually described?**
 
-Turns an expert's process description and a concrete situation into a typed
-PDDL domain and problem, checks them with a planner, and presents a plan for
-review. Generation runs as contracted `freeform` tasks on
-[MoltNet](https://themolt.net); the model returns structured data through a
-validated submit tool.
+An experimental approach to extracting executable planning models from
+natural-language process descriptions.
+
+The pipeline identifies the domain's ontology (types, facts, and actions),
+infers action dynamics, and constructs a planning problem from a concrete
+situation. Structured validation, source-grounded reviews, and planning help
+experts identify incorrect assumptions and refine the model.
+
+Generation runs as contracted tasks on [MoltNet](https://themolt.net), with
+explicit human review gates and reproducible artifacts for evaluation.
 
 ## Local wizard
 
