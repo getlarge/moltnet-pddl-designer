@@ -219,6 +219,34 @@ check compares that precise rule with your description. Permanent certification
 can legitimately remain true; when the description does not settle a rule, the
 third answer preserves that uncertainty.
 
+Readable claims are assembled by code from the actual draft rules. The Facts
+and Actions generation tasks supply neutral wording templates and readable
+participant names in their existing typed outputs. For example, a fact's true
+wording is `nothing is on top of {?b}`; its false wording is `a block is on top of
+{?b}`. Code binds the action's participants and selects the true or false wording
+according to its prerequisites and effects. An omitted deletion stays omitted
+in the claim: wording must not silently repair the draft.
+
+The same claim appears in rule selection, the preview and the classifier request.
+Expand **Formal rule and participants** to inspect its mapping. **Correct** lets
+you edit the readable wording and labels as well as the formal rules. Checks
+reject unknown or missing placeholders and repeated participant labels; they do
+not prove that a sentence faithfully describes a fact. Review that meaning before
+sending it. Older proofs without templates use explicitly identified formal
+wording. No separate rewriting task is created.
+
+Run the local wording prototype with:
+
+```bash
+pnpm exec tsx scripts/readable-demo.ts
+```
+
+It opens reference drafts for Blocks World on port 4430 and parcel inspection on
+4431, paused at Actions review. The drafts deliberately omit one deletion each,
+so their incorrect preserved facts remain visible in the claims. Generation is
+replayed locally and classifier submission is disabled; this demonstrates wording
+and review, not model performance. The command prints each proof URL.
+
 Results inform your decision. They do not pass the gate, change actions, or
 waive local errors. **Prepare correction note** fills a note for you to review;
 you decide whether to send it. Pass and corrections pause while a check runs;

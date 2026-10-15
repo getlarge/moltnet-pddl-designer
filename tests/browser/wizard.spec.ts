@@ -615,3 +615,62 @@ test('source check previews requests and informs the Actions review decision', a
     page.getByRole('button', { name: 'Pass', exact: true }),
   ).toBeEnabled();
 });
+
+test('editable readable meanings become the exact preview claims', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startReview(page);
+  await expect(page.locator('.margin .column-heading h2')).toHaveText('Types');
+  await page.getByRole('button', { name: 'Pass', exact: true }).click();
+  await expect(page.locator('.margin .column-heading h2')).toHaveText('Facts');
+  await page.getByRole('button', { name: 'Correct', exact: true }).click();
+  await page
+    .getByLabel('When this fact is true')
+    .first()
+    .fill('{?b} is on the table');
+  await page
+    .getByLabel('When this fact is false')
+    .first()
+    .fill('{?b} is not on the table');
+  await page
+    .getByRole('button', { name: 'Check corrections', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Pass', exact: true }).click();
+  await expect(page.locator('.margin .column-heading h2')).toHaveText(
+    'Actions',
+  );
+  await page.getByRole('button', { name: 'Correct', exact: true }).click();
+  await page.getByLabel('Readable wording').first().fill('{?a} picks up {?b}');
+  await page
+    .getByRole('button', { name: 'Check corrections', exact: true })
+    .click();
+  const panel = page.getByRole('region', {
+    name: 'Compare actions with your description',
+  });
+  const claim =
+    'The robotic arm picks up the block. Immediately afterward, the block is not on the table.';
+  await panel
+    .getByRole('checkbox', {
+      name: new RegExp(claim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    })
+    .check();
+  await panel.getByRole('button', { name: 'Preview source check' }).click();
+  const list = panel.getByRole('list', { name: 'Claims the model will check' });
+  await expect(list.getByText(claim, { exact: true })).toBeVisible();
+  await list.getByText('Formal rule and participants', { exact: true }).click();
+  await expect(list).toContainText('on-table(?b) is false');
+  await expect(list).toContainText('the robotic arm');
+  await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await panel.getByText('Choose rules to check', { exact: true }).click();
+  await page.screenshot({
+    path: '.impeccable/review/readable-claims-mobile.png',
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(list.getByText(claim, { exact: true })).toBeVisible();
+  await page.screenshot({
+    path: '.impeccable/review/readable-claims-desktop.png',
+    fullPage: true,
+  });
+});

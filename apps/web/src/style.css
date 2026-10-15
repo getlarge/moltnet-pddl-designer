@@ -1667,3 +1667,28 @@ td:first-child {
 .source-check-evidence h4 {
   margin-block: 0 10px;
 }
+
+.source-check-claims {
+  padding-left: 24px;
+}
+.source-check-claims > li {
+  padding-block: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.claim-reading {
+  max-width: 70ch;
+  overflow-wrap: anywhere;
+}
+.claim-reading > p {
+  margin-block: 0 12px;
+}
+.claim-reading dl > div {
+  display: flex;
+  gap: 16px;
+}
+.claim-reading dt {
+  min-width: 4ch;
+}
+.claim-reading dd {
+  margin: 0;
+}

@@ -3,6 +3,7 @@ import type { ClassifyInput } from '@themoltnet/sdk';
 import type { Domain } from '@pddl/domain/ir';
 import type { SourceCheckRecord } from '@pddl/contracts/source-check';
 import { groundingTargets } from '@pddl/domain/source-grounding-targets';
+import { describeGroundingTarget } from '@pddl/domain/source-claim';
 import type {
   GroundingTarget,
   GroundingAnswer,
@@ -15,19 +16,41 @@ const outcomeLabels = {
   contradicted: 'Your description disagrees',
   not_established: 'Your description does not settle this',
 };
-function targetLabel(target: GroundingTarget, domain: Domain) {
-  const action = domain.actions.find((a) => a.name === target.action);
-  if (!action) return 'Rule from an earlier model';
-  const fact = `${target.atom.predicate.replaceAll('-', ' ')} (${target.atom.args.join(', ')})`;
-  if (target.field === 'preconditions')
-    return `Requires ${fact}${target.negated ? ' to be false' : ''}`;
-  if (target.field === 'addEffects') return `Makes ${fact} true`;
-  const removes = action.deleteEffects.some(
-    (a) =>
-      a.predicate === target.atom.predicate &&
-      a.args.join() === target.atom.args.join(),
+type Claim = {
+  statement: string;
+  target: GroundingTarget;
+  formalStatement?: string;
+  wording?: 'readable' | 'formal';
+  participants?: Record<string, string>;
+};
+function ClaimReading({ claim }: { claim: Claim }) {
+  return (
+    <div className="claim-reading">
+      <p>{claim.statement}</p>
+      {claim.wording === 'formal' && (
+        <p className="small">
+          This draft has no readable meanings for this rule yet. Use Correct to
+          add them, or inspect the formal wording.
+        </p>
+      )}
+      {claim.formalStatement && (
+        <details>
+          <summary>Formal rule and participants</summary>
+          <p>{claim.formalStatement}</p>
+          {claim.participants && (
+            <dl>
+              {Object.entries(claim.participants).map(([parameter, label]) => (
+                <div key={parameter}>
+                  <dt>{parameter}</dt>
+                  <dd>{label}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </details>
+      )}
+    </div>
   );
-  return `${removes ? 'Removes' : 'Keeps'} ${fact}${removes ? '' : ' after the action'}`;
 }
 
 export function SourceCheck({
@@ -97,7 +120,7 @@ export function SourceCheck({
   const answers = active?.output?.answers as
     Record<string, GroundingAnswer> | undefined;
   const claims = active?.input.state.claims as
-    Record<string, { statement: string; target: GroundingTarget }> | undefined;
+    Record<string, Claim> | undefined;
   return (
     <section
       className="source-check"
@@ -155,14 +178,15 @@ export function SourceCheck({
                 <span>
                   <strong>{target.action.replaceAll('-', ' ')}</strong>
                   <br />
-                  {targetLabel(target, domain)}
+                  {describeGroundingTarget(domain, target).statement}
                 </span>
               </label>
             ))}
           </div>
           <p className="small">
-            {selected.length} of {targets.length} available rules selected.
-            Previewing runs locally and makes no model call.
+            {selected.length} of {targets.length} available rules selected. You
+            and the model will read the same sentences. Previewing runs locally
+            and makes no model call.
           </p>
           <button
             type="button"
@@ -182,6 +206,27 @@ export function SourceCheck({
             One paid classify task sends your original description and these
             model claims to the selected provider. It does not generate or
             change actions.
+          </p>
+          <p>
+            For each claim: does your description support it, contradict it, or
+            leave it unanswered?
+          </p>
+          <ol
+            className="source-check-claims"
+            aria-label="Claims the model will check"
+          >
+            {Object.entries(preview.state.claims as Record<string, Claim>).map(
+              ([id, claim]) => (
+                <li key={id}>
+                  <ClaimReading claim={claim} />
+                </li>
+              ),
+            )}
+          </ol>
+          <p className="small">
+            These sentences describe the draft, including possible mistakes.
+            Check that they mean what the formal rules say. Readable meanings
+            come from generation and remain part of your review.
           </p>
           <details>
             <summary>Exact source, claims and questions to be sent</summary>
@@ -237,10 +282,7 @@ export function SourceCheck({
                 key={id}
               >
                 <h4>{outcomeLabels[answer.choice]}</h4>
-                <p>
-                  {claims[id].target.action.replaceAll('-', ' ')}:{' '}
-                  {targetLabel(claims[id].target, domain)}
-                </p>
+                <ClaimReading claim={claims[id]} />
                 <p className="small">
                   {(answer.probabilities[answer.choice] * 100).toFixed(0)}%
                   model probability for this label. This is not a measured
@@ -275,7 +317,6 @@ export function SourceCheck({
                   <summary>
                     Question, criteria and returned distribution
                   </summary>
-                  <p>{claims[id].statement}</p>
                   <p>{active.input.questions[id].instructions}</p>
                   <CodeBlock
                     code={JSON.stringify(

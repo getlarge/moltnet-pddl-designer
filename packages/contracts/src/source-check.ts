@@ -40,6 +40,13 @@ const recordSchema = Type.Object({
     ]),
   ),
 });
+const readableClaimMetadata = Type.Object({
+  formalStatement: Type.Optional(Type.String({ minLength: 1 })),
+  wording: Type.Optional(
+    Type.Union([Type.Literal('readable'), Type.Literal('formal')]),
+  ),
+  participants: Type.Optional(Type.Record(Type.String(), Type.String())),
+});
 export function readSourceChecks(value: unknown): SourceCheckRecord[] {
   if (!Value.Check(Type.Array(recordSchema, { maxItems: 100 }), value))
     throw new Error('Invalid source-check evidence.');
@@ -67,6 +74,8 @@ export function readSourceChecks(value: unknown): SourceCheckRecord[] {
         )
       )
         throw new Error('Invalid source-check claim.');
+      if (!Value.Check(readableClaimMetadata, claim))
+        throw new Error('Invalid readable source-check metadata.');
       if (!Value.Check(AtomSchema, claim.target.atom))
         throw new Error('Invalid source-check atom.');
     }

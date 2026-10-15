@@ -1,5 +1,7 @@
 /** Source grounding checks a model claim, not the correctness of a whole plan. */
 import { type ClassifyInput, ClassifyOutput } from '@themoltnet/sdk';
+import { describeGroundingTarget } from './source-claim.js';
+export { describeGroundingTarget } from './source-claim.js';
 import { Value } from 'typebox/value';
 import {
   checkActions,
@@ -114,22 +116,16 @@ export function buildGroundingRequest(
       ...action.deleteEffects,
     ])
       selectedPredicates.add(atom.predicate);
-    const fact = `${target.atom.predicate}(${target.atom.args.join(', ')})`;
-    const statement =
-      target.field === 'preconditions'
-        ? `${action.name} ${present ? 'requires' : 'does not require'} ${fact} to be ${target.negated ? 'false' : 'true'} before it can execute.`
-        : target.field === 'deleteEffects'
-          ? present
-            ? `Immediately after ${action.name}, ${fact} is false: the action removes that fact.`
-            : `If ${fact} is true before ${action.name}, it remains true afterward: the action does not remove that fact.`
-          : present
-            ? `Immediately after ${action.name}, ${fact} is true: the action establishes that fact.`
-            : `${action.name} does not establish ${fact} as an effect.`;
+    const { statement, formalStatement, wording, participants } =
+      describeGroundingTarget(domain, target);
     const id = `claim_${i + 1}`;
     claims[id] = {
       target,
       present,
       statement,
+      formalStatement,
+      wording,
+      ...(participants ? { participants } : {}),
       predicate,
       parameters: action.parameters,
     };
