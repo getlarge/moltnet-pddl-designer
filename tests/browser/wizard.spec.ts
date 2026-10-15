@@ -262,7 +262,25 @@ test('proofing flow, source links, corrections, plan exploration and offline rev
     path: '.impeccable/review/plan-graph-mobile.png',
     fullPage: false,
   });
+  await mobileGraph.getByRole('button', { name: /^Step 4/ }).click();
   await mobile.getByRole('button', { name: 'Steps', exact: true }).click();
+  await expect
+    .poll(() =>
+      mobile.locator('.plan-timeline').evaluate((rail) => {
+        const current = rail
+          .querySelector('[aria-current]')!
+          .getBoundingClientRect();
+        const bounds = rail.getBoundingClientRect();
+        return (
+          current.left >= bounds.left - 1 && current.right <= bounds.right + 1
+        );
+      }),
+    )
+    .toBe(true);
+  await mobile
+    .getByRole('navigation', { name: 'Plan progression' })
+    .getByRole('button', { name: /Start/ })
+    .click();
   for (let i = 0; i < 4; i++)
     await mobile.getByRole('button', { name: 'Next plan step' }).click();
   await expect

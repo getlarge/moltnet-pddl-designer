@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { GroundAction } from '@pddl/domain/planner';
 import { buildPlanGraph } from './plan-graph.js';
 import { useCurrentInView } from './useCurrentInView.js';
@@ -25,6 +26,16 @@ export function PlanDependencyGraph({
   onSelect: (position: number) => void;
 }) {
   const rail = useCurrentInView<HTMLElement>(position);
+  useEffect(() => {
+    const container = rail.current;
+    const current = container?.querySelector<HTMLElement>('[aria-current]');
+    if (!container || !current) return;
+    const bounds = container.getBoundingClientRect();
+    const item = current.getBoundingClientRect();
+    if (item.top < bounds.top) container.scrollTop += item.top - bounds.top;
+    else if (item.bottom > bounds.bottom)
+      container.scrollTop += item.bottom - bounds.bottom;
+  }, [position, rail]);
   const graph = buildPlanGraph(actions);
   const columns = Array.from(
     { length: graph.layerCount },

@@ -1446,6 +1446,7 @@ td:first-child {
 }
 .plan-graph {
   max-width: 100%;
+  max-height: 420px;
   overflow: auto;
   margin: 12px 0;
   border: 1px solid var(--rule);

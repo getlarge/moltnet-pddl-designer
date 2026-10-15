@@ -20,11 +20,11 @@ export function PlanExplorer({
 }) {
   const [timeline, setTimeline] = useState<GroundAction[]>([]);
   const [position, setPosition] = useState(0);
-  const timelineRail = useCurrentInView<HTMLElement>(position);
+  const [planView, setPlanView] = useState<'graph' | 'steps'>('graph');
+  const timelineRail = useCurrentInView<HTMLElement>(`${position}:${planView}`);
   const history = timeline.slice(0, position);
   const [selected, setSelected] = useState('');
   const [filter, setFilter] = useState('');
-  const [planView, setPlanView] = useState<'graph' | 'steps'>('graph');
   const grounded = useMemo(() => {
     if (!run.domain || !run.problem)
       return {
@@ -191,8 +191,9 @@ export function PlanExplorer({
       {planView === 'graph' && graphActions.length ? (
         <>
           <p className="small plan-graph-note">
-            Lines show required ordering. Steps without a path between them can
-            be taken in either order; this plan does not assign times.
+            Lines preserve plan order where actions may interact. Steps without
+            a connecting path can be reordered; this graph does not assign
+            times. Selecting a step replays the numbered plan through it.
           </p>
           <PlanDependencyGraph
             actions={graphActions}
