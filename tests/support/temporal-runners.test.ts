@@ -184,10 +184,12 @@ describe('temporal runner artifacts', () => {
         kind: 'accepted',
         result: {
           state: {
-            hasDurativeEvidence: false,
-            durationSeconds: -1,
-            conditions: [],
-            effects: [],
+            hasDurativeEvidence: true,
+            durationSeconds: 300,
+            conditions: [
+              { atom: 'ready(?x)', timing: 'start', negated: false },
+            ],
+            effects: [{ atom: 'done(?x)', timing: 'end', negated: false }],
           },
         },
       }),
@@ -211,9 +213,18 @@ describe('temporal runner artifacts', () => {
       .mockResolvedValueOnce({ id: 'task-one' })
       .mockResolvedValueOnce({ id: 'task-two' });
     await import('../../scripts/eval/run-temporal.js');
-    expect(
-      readFileSync(predictionsFile, 'utf8').trim().split('\n'),
-    ).toHaveLength(2);
+    const predictions = readFileSync(predictionsFile, 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    expect(predictions).toHaveLength(2);
+    expect(predictions[0]).toMatchObject({
+      id: 'one',
+      hasDurativeEvidence: true,
+      durationSeconds: 300,
+      conditions: [{ atom: 'ready(?x)', timing: 'start', negated: false }],
+      effects: [{ atom: 'done(?x)', timing: 'end', negated: false }],
+    });
     expect(
       JSON.parse(readFileSync(`${predictionsFile}.meta.json`, 'utf8')),
     ).toMatchObject({

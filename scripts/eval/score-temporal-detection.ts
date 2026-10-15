@@ -10,6 +10,7 @@ if (!casesFile || !outputFile || reportFiles.length === 0)
   throw new Error(
     'Usage: score-temporal-detection.ts <cases.json> <output.json> <run-report.json>...',
   );
+writeFileSync(outputFile, '');
 
 const cases = JSON.parse(
   readFileSync(casesFile, 'utf8'),

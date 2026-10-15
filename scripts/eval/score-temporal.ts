@@ -8,6 +8,7 @@ import {
 } from '@pddl/evals/temporal';
 
 const [casesFile, predictionsFile, reportFile] = process.argv.slice(2);
+if (reportFile) writeFileSync(reportFile, '');
 if (!casesFile || !predictionsFile) {
   process.stderr.write(
     'Usage: pnpm eval:temporal <cases.json> <predictions.jsonl> [report.json]\n',
