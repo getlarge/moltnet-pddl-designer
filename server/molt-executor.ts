@@ -1,7 +1,8 @@
 import { connect } from '@themoltnet/sdk/node';
 import { createTeamTaskClient } from '../src/task-client.js';
 import { runPddlDesign } from '../src/workflow.js';
-import type { Execute } from './run-service.js';
+import type { Execute, SourceExecute } from './run-service.js';
+import { createSourceAssessor } from '../src/source-check.js';
 
 /** Credentials and profile lookup stay in the server/worker process. */
 export const moltExecute: Execute = async (input, options) => {
@@ -39,4 +40,35 @@ export const moltExecute: Execute = async (input, options) => {
     resolved,
     options,
   );
+};
+
+/** Classification uses the same durable context and team-scoped task transport. */
+export const moltAssess: SourceExecute = async (
+  input,
+  request,
+  reference,
+  onTask,
+  ctx,
+) => {
+  const agent = await connect();
+  const profileId = await ctx.step('source.profile.resolve', async () => {
+    const { items } = await agent.runtimeProfiles.list({
+      teamId: input.teamId,
+    });
+    const profile = items.find(
+      (p) => p.id === reference || p.name === reference,
+    );
+    if (!profile?.models.classification)
+      throw new Error(
+        'Choose a classification profile in this team and start its classify worker.',
+      );
+    return profile.id;
+  });
+  return createSourceAssessor(createTeamTaskClient(agent.tasks, input.teamId), {
+    teamId: input.teamId,
+    diaryId: input.diaryId,
+    correlationId: input.correlationId,
+    projectId: input.projectId,
+    ctx,
+  })(request, profileId, onTask);
 };

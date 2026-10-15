@@ -1,3 +1,5 @@
+import type { WorkflowContext } from '@themoltnet/tasks-orchestrator';
+import type { SourceAssessor } from '../src/source-check.js';
 import type { ClassifyInput } from '@themoltnet/sdk';
 import type { GroundingTarget } from '../src/source-grounding.js';
 import type { DesignInput } from '../src/stages.js';
@@ -13,12 +15,29 @@ export type Execute = (
   options: DesignOptions,
 ) => Promise<DesignRun>;
 
+export type SourceExecute = (
+  input: DesignInput,
+  request: ClassifyInput,
+  profile: string,
+  onTask: (id: string) => void | Promise<void>,
+  ctx: WorkflowContext,
+) => ReturnType<SourceAssessor>;
+
 export type RunOptions = Pick<DesignOptions, 'resume' | 'claimTimeoutSec'>;
 
 /** API state comes from this service, never from a browser or SSE connection. */
 export interface RunService {
-  previewSource(id: string, gateId: string, targets: GroundingTarget[]): Promise<ClassifyInput>;
-  checkSource(id: string, gateId: string, targets: GroundingTarget[], profile: string): Promise<RunSnapshot>;
+  previewSource(
+    id: string,
+    gateId: string,
+    targets: GroundingTarget[],
+  ): Promise<ClassifyInput>;
+  checkSource(
+    id: string,
+    gateId: string,
+    targets: GroundingTarget[],
+    profile: string,
+  ): Promise<RunSnapshot>;
   start(input: DesignInput, options: RunOptions): Promise<RunSnapshot>;
   get(id: string): Promise<RunSnapshot | undefined>;
   list(): Promise<RunSnapshot[]>;
@@ -44,8 +63,12 @@ export const offlineRuns: RunService = {
       'Live runs need Postgres. Start the server with PDDL_DATABASE_URL configured.',
     );
   },
-  async previewSource() { throw new RunConflict('Live runs are unavailable in offline mode.'); },
-  async checkSource() { throw new RunConflict('Live runs are unavailable in offline mode.'); },
+  async previewSource() {
+    throw new RunConflict('Live runs are unavailable in offline mode.');
+  },
+  async checkSource() {
+    throw new RunConflict('Live runs are unavailable in offline mode.');
+  },
   async decide() {
     throw new RunConflict('Live runs are unavailable in offline mode.');
   },

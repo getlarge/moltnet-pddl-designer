@@ -1,15 +1,9 @@
+import { previewSource } from './source-check.js';
 import { randomUUID } from 'node:crypto';
 import {
-  buildGroundingRequest,
   parseGroundingAnswers,
   type GroundingTarget,
 } from '../src/source-grounding.js';
-import type {
-  Domain,
-  TypesResult,
-  PredicatesResult,
-  ActionsResult,
-} from '../src/ir.js';
 import type { SourceAssessor, SourceCheckRecord } from '../src/source-check.js';
 import { hasErrors } from '../src/check.js';
 import type { DesignInput } from '../src/stages.js';
@@ -77,35 +71,7 @@ export class Session {
     }
   }
   previewSource(gateId: string, targets: GroundingTarget[]) {
-    const gate = this.snapshot.gate;
-    if (
-      !gate ||
-      gate.id !== gateId ||
-      gate.stage !== 'actions' ||
-      hasErrors(gate.issues)
-    )
-      throw new Error(
-        'Choose the current valid Actions draft before checking its source.',
-      );
-    const rows = this.snapshot.events.flatMap(({ event }) =>
-      event.type === 'stage-result' ? [event.record] : [],
-    );
-    const domain: Domain = {
-      name: this.snapshot.input.domainName,
-      types: (rows.findLast((r) => r.stage === 'types')!.result as TypesResult)
-        .types,
-      predicates: (
-        rows.findLast((r) => r.stage === 'predicates')!
-          .result as PredicatesResult
-      ).predicates,
-      actions: (gate.result as ActionsResult).actions,
-    };
-    return buildGroundingRequest(
-      this.snapshot.input.description,
-      domain,
-      targets,
-      this.snapshot.input.problemDescription,
-    );
+    return previewSource(this.snapshot, gateId, targets);
   }
   async checkSource(
     gateId: string,

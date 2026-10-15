@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import { createApp } from './app.js';
 import { RunStore } from './store.js';
 import { DurableRuns } from './durable-runs.js';
-import { moltExecute } from './molt-executor.js';
+import { moltExecute, moltAssess } from './molt-executor.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const { values } = parseArgs({
@@ -28,7 +28,11 @@ if (!values.offline && !databaseUrl)
   );
 const runs = values.offline
   ? undefined
-  : new DurableRuns({ databaseUrl: databaseUrl!, execute: moltExecute });
+  : new DurableRuns({
+      databaseUrl: databaseUrl!,
+      execute: moltExecute,
+      assess: moltAssess,
+    });
 try {
   await runs?.initialize();
   const app = await createApp({

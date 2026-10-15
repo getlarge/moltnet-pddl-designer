@@ -3,6 +3,7 @@ import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import type { ActionsResult } from '../../src/ir.js';
 import { DurableRuns } from '../../server/durable-runs.js';
 import { syntheticExecute, syntheticInput } from '../../server/test-support.js';
 import type { RunSnapshot } from '../../server/types.js';
@@ -328,4 +329,140 @@ it('reuses published events and gates without replaying projection transactions'
   } finally {
     await running.close();
   }
+});
+
+it('recovers classification creation after worker death and retains its evidence in the finished proof', async () => {
+  let child = await worker();
+  const start = await runs.start(syntheticInput, {});
+  let current = await until(start.id, (s) => s.state === 'awaiting');
+  while (current.gate?.stage !== 'actions') {
+    const gateId = current.gate!.id;
+    await runs.decide(start.id, gateId, { action: 'accept' });
+    current = await until(
+      start.id,
+      (s) => s.state === 'awaiting' && s.gate?.id !== gateId,
+    );
+  }
+  await kill(child);
+  const action = (current.gate!.result as ActionsResult).actions[0];
+  const targets = [
+    {
+      action: action.name,
+      field: 'addEffects' as const,
+      atom: action.addEffects[0],
+    },
+  ];
+  const check = await runs.checkSource(
+    start.id,
+    current.gate!.id,
+    targets,
+    'fixture-profile',
+  );
+  expect(check.sourceCheck?.status).toBe('checking');
+  await expect(
+    runs.decide(start.id, current.gate!.id, { action: 'accept' }),
+  ).rejects.toThrow('Wait');
+  child = await worker({ SOURCE_CRASH_GAP: '1' }, 'CREATED');
+  expect(await count()).toBe(4);
+  await kill(child);
+  await runs.close();
+  runs = new DurableRuns({
+    databaseUrl: databaseUrl!,
+    queue,
+    execute: syntheticExecute,
+  });
+  await runs.initialize();
+  expect((await runs.get(start.id))?.sourceCheck?.workflowId).toBe(
+    check.sourceCheck?.workflowId,
+  );
+  await worker();
+  current = await until(
+    start.id,
+    (s) =>
+      s.sourceCheck?.status === 'complete' ||
+      s.sourceCheck?.status === 'failed',
+  );
+  expect(current.sourceCheck?.status, current.sourceCheck?.failure).toBe(
+    'complete',
+  );
+  expect(current.sourceCheck?.taskId).toBeTruthy();
+  expect(await count()).toBe(4);
+  while (current.state !== 'finished') {
+    const gateId = current.gate!.id;
+    await runs.decide(start.id, gateId, { action: 'accept' });
+    current = await until(
+      start.id,
+      (s) =>
+        s.state === 'finished' ||
+        (s.state === 'awaiting' && s.gate?.id !== gateId),
+    );
+  }
+  expect(current.run?.sourceChecks).toEqual([current.sourceCheck]);
+});
+
+it('recovers classification polling and discards answers after withdrawal', async () => {
+  const child = await worker({ SOURCE_RUNNING: '1' });
+  const start = await runs.start(syntheticInput, {});
+  let current = await until(start.id, (s) => s.state === 'awaiting');
+  while (current.gate?.stage !== 'actions') {
+    const gateId = current.gate!.id;
+    await runs.decide(start.id, gateId, { action: 'accept' });
+    current = await until(
+      start.id,
+      (s) => s.state === 'awaiting' && s.gate?.id !== gateId,
+    );
+  }
+  const action = (current.gate!.result as ActionsResult).actions[0];
+  const targets = [
+    {
+      action: action.name,
+      field: 'addEffects' as const,
+      atom: action.addEffects[0],
+    },
+  ];
+  await runs.checkSource(
+    start.id,
+    current.gate!.id,
+    targets,
+    'fixture-profile',
+  );
+  current = await until(start.id, (s) => !!s.sourceCheck?.taskId);
+  const taskId = current.sourceCheck!.taskId;
+  await delay(400);
+  await kill(child);
+  await worker({ SOURCE_RUNNING: '1' });
+  await delay(400);
+  await runs.pool.query(
+    "UPDATE pddl_test_tasks SET task=jsonb_set(task, '{status}', '\"completed\"') WHERE queue=$1 AND task->>'id'=$2",
+    [queue, taskId],
+  );
+  current = await until(start.id, (s) => s.sourceCheck?.status === 'complete');
+  expect(current.sourceCheck?.taskId).toBe(taskId);
+  expect(await count()).toBe(4);
+  await runs.checkSource(
+    start.id,
+    current.gate!.id,
+    targets,
+    'fixture-profile',
+  );
+  current = await until(
+    start.id,
+    (s) => s.sourceCheck?.status === 'checking' && !!s.sourceCheck.taskId,
+  );
+  expect(current.sourceCheck?.taskId).not.toBe(taskId);
+  const withdrawn = await runs.withdraw(
+    start.id,
+    'classification withdrawal test',
+  );
+  expect(withdrawn.sourceCheck?.status).toBe('failed');
+  expect(
+    (await runs.absurd.fetchTaskResult(current.sourceCheck!.workflowId!))
+      ?.state,
+  ).toBe('cancelled');
+  await runs.pool.query(
+    "UPDATE pddl_test_tasks SET task=jsonb_set(task, '{status}', '\"completed\"') WHERE queue=$1",
+    [queue],
+  );
+  await delay(300);
+  expect((await runs.get(start.id))?.sourceCheck?.status).toBe('failed');
 });

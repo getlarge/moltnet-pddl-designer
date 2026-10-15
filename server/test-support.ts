@@ -65,7 +65,10 @@ export const syntheticExecute: Execute = (input, options) => {
 /** Explicitly non-durable service for isolated API/browser fixtures only. */
 export class MemoryRuns implements RunService {
   private sessions = new Map<string, Session>();
-  constructor(private execute: Execute = syntheticExecute, private assess: SourceAssessor = syntheticAssess) {}
+  constructor(
+    private execute: Execute = syntheticExecute,
+    private assess: SourceAssessor = syntheticAssess,
+  ) {}
   async start(input: DesignInput, options: RunOptions) {
     if (
       [...this.sessions.values()].some((s) =>
@@ -103,7 +106,12 @@ export class MemoryRuns implements RunService {
     if (!session) throw new RunConflict('Run not found.');
     return session.previewSource(gateId, targets);
   }
-  async checkSource(id: string, gateId: string, targets: GroundingTarget[], profile: string) {
+  async checkSource(
+    id: string,
+    gateId: string,
+    targets: GroundingTarget[],
+    profile: string,
+  ) {
     const session = this.sessions.get(id);
     if (!session) throw new RunConflict('Run not found.');
     return session.checkSource(gateId, targets, profile);

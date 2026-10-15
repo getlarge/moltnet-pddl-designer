@@ -1,11 +1,21 @@
 import { randomUUID } from 'node:crypto';
 import { Absurd, type TaskContext, type JsonValue } from 'absurd-sdk';
-import { asWorkflowContext } from '@themoltnet/tasks-orchestrator';
+import {
+  isWorkflowInterruption,
+  asWorkflowContext,
+} from '@themoltnet/tasks-orchestrator';
 import { Pool, type PoolClient } from 'pg';
+import type { ClassifyInput } from '@themoltnet/sdk';
+import {
+  parseGroundingAnswers,
+  type GroundingTarget,
+} from '../src/source-grounding.js';
+import type { SourceCheckRecord } from '../src/source-check.js';
+import { previewSource } from './source-check.js';
 import { hasErrors } from '../src/check.js';
 import type { DesignInput } from '../src/stages.js';
 import type { DesignEvent, StageGate, StageDecision } from '../src/workflow.js';
-import type { Execute } from './run-service.js';
+import type { Execute, SourceExecute } from './run-service.js';
 import type { RunSnapshot } from './types.js';
 import {
   RunConflict,
@@ -15,6 +25,14 @@ import {
 
 export const DESIGN_QUEUE = 'pddl_designer_v1';
 const TASK_NAME = 'design.v1';
+const SOURCE_TASK = 'source-check.v1';
+interface SourceParams {
+  id: string;
+  gateId: string;
+  request: ClassifyInput;
+  profile: string;
+  startedAt: number;
+}
 const active = (s: RunSnapshot) =>
   s.state === 'running' || s.state === 'awaiting';
 interface RunRow {
@@ -35,6 +53,7 @@ export class DurableRuns implements RunService {
   constructor(options: {
     databaseUrl: string;
     execute: Execute;
+    assess?: SourceExecute;
     queue?: string;
   }) {
     this.queue = options.queue ?? DESIGN_QUEUE;
@@ -66,6 +85,119 @@ export class DurableRuns implements RunService {
         return null;
       },
     );
+    this.absurd.registerTask<SourceParams, null>(
+      { name: SOURCE_TASK, defaultMaxAttempts: 5 },
+      async ({ id, gateId, request, profile, startedAt }, ctx) => {
+        const snapshot = await this.get(id);
+        if (
+          !snapshot ||
+          snapshot.state !== 'awaiting' ||
+          snapshot.gate?.id !== gateId ||
+          snapshot.sourceCheck?.workflowId !== ctx.taskID ||
+          snapshot.sourceCheck.status !== 'checking'
+        )
+          return null;
+        try {
+          if (!options.assess)
+            throw new Error('Source assessment is unavailable.');
+          const answer = await options.assess(
+            snapshot.input,
+            request,
+            profile,
+            async (taskId) => {
+              await ctx.step('source.publish-task', async () => {
+                await this.updateSource(id, gateId, ctx.taskID, { taskId });
+                return null;
+              });
+            },
+            asWorkflowContext(ctx),
+          );
+          parseGroundingAnswers(answer.output, request);
+          await ctx.step('source.publish-answer', async () => {
+            await this.updateSource(id, gateId, ctx.taskID, {
+              ...answer,
+              status: 'complete',
+              durationMs: Date.now() - startedAt,
+            });
+            return null;
+          });
+        } catch (error) {
+          if (isWorkflowInterruption(error)) throw error;
+          await ctx.step('source.publish-failure', async () => {
+            await this.updateSource(id, gateId, ctx.taskID, {
+              status: 'failed',
+              failure: error instanceof Error ? error.message : String(error),
+              durationMs: Date.now() - startedAt,
+            });
+            return null;
+          });
+        }
+        return null;
+      },
+    );
+  }
+  private async updateSource(
+    id: string,
+    gateId: string,
+    workflowId: string,
+    patch: Partial<SourceCheckRecord>,
+  ) {
+    return this.transaction(async (db) => {
+      const { snapshot } = await this.lock(db, id);
+      if (
+        snapshot.state === 'awaiting' &&
+        snapshot.gate?.id === gateId &&
+        snapshot.sourceCheck?.workflowId === workflowId &&
+        snapshot.sourceCheck.status === 'checking'
+      ) {
+        Object.assign(snapshot.sourceCheck, patch);
+        await this.save(db, snapshot);
+      }
+      return snapshot;
+    });
+  }
+  async previewSource(id: string, gateId: string, targets: GroundingTarget[]) {
+    const snapshot = await this.get(id);
+    if (!snapshot) throw new RunConflict('This run does not exist.');
+    return previewSource(snapshot, gateId, targets);
+  }
+  async checkSource(
+    id: string,
+    gateId: string,
+    targets: GroundingTarget[],
+    profile: string,
+  ) {
+    return this.transaction(async (db) => {
+      const { snapshot } = await this.lock(db, id);
+      if (snapshot.sourceCheck?.status === 'checking')
+        throw new RunConflict('A source check is already running.');
+      if (!profile.trim())
+        throw new RunConflict('Choose a classification profile.');
+      const request = previewSource(snapshot, gateId, targets);
+      const task = await this.absurd.bindToConnection(db).spawn<SourceParams>(
+        SOURCE_TASK,
+        { id, gateId, request, profile, startedAt: Date.now() },
+        {
+          queue: this.queue,
+          idempotencyKey: randomUUID(),
+          maxAttempts: 5,
+          retryStrategy: {
+            kind: 'exponential',
+            baseSeconds: 1,
+            maxSeconds: 30,
+          },
+        },
+      );
+      snapshot.sourceCheck = {
+        attempt: snapshot.gate!.attempt,
+        input: request,
+        status: 'checking',
+        workflowId: task.taskID,
+        durationMs: 0,
+      };
+      await this.save(db, snapshot);
+      return snapshot;
+    });
   }
   async initialize() {
     // Provisioning is explicit; never initialize/migrate an arbitrary database here.
@@ -165,6 +297,30 @@ export class DurableRuns implements RunService {
     if (!rows[0]) return undefined;
     const { snapshot, task_id: taskId } = rows[0];
     if (!active(snapshot)) return snapshot;
+    if (
+      snapshot.sourceCheck?.status === 'checking' &&
+      snapshot.sourceCheck.workflowId &&
+      snapshot.gate
+    ) {
+      const source = await this.absurd.fetchTaskResult(
+        snapshot.sourceCheck.workflowId,
+      );
+      if (
+        source?.state === 'failed' ||
+        source?.state === 'cancelled' ||
+        source?.state === 'completed'
+      )
+        return this.updateSource(
+          id,
+          snapshot.gate.id,
+          snapshot.sourceCheck.workflowId,
+          {
+            status: 'failed',
+            failure:
+              'The source-check workflow ended without an answer. You can retry the check or review the draft.',
+          },
+        );
+    }
     const result = await this.absurd.fetchTaskResult(taskId);
     if (result?.state === 'failed' || result?.state === 'cancelled') {
       return this.transaction(async (db) => {
@@ -200,6 +356,14 @@ export class DurableRuns implements RunService {
         [id, ordinal],
       );
       if (!inserted.rowCount) return; // Replay must not duplicate history or rewind UI state.
+      if (event.type === 'finished' && snapshot.sourceCheck)
+        event = {
+          ...event,
+          run: {
+            ...event.run,
+            sourceChecks: [structuredClone(snapshot.sourceCheck)],
+          },
+        };
       snapshot.events.push({ at: Date.now(), event });
       if (event.type === 'finished') {
         snapshot.run = event.run;
@@ -224,6 +388,11 @@ export class DurableRuns implements RunService {
           [id, gateId],
         );
         if (!result.rowCount || !active(snapshot)) return;
+        if (
+          gate.stage === 'actions' &&
+          snapshot.sourceCheck?.attempt !== gate.attempt
+        )
+          delete snapshot.sourceCheck;
         snapshot.gate = { ...gate, id: gateId };
         snapshot.state = 'awaiting';
         await this.save(db, snapshot);
@@ -243,6 +412,15 @@ export class DurableRuns implements RunService {
         );
       if (decision.action === 'accept' && hasErrors(snapshot.gate.issues))
         throw new RunConflict('Correct the errors before passing this stage.');
+      if (snapshot.sourceCheck?.status === 'checking') {
+        if (decision.action !== 'abort')
+          throw new RunConflict(
+            'Wait for the source check, or withdraw this proof.',
+          );
+        await this.cancelSource(db, snapshot);
+      }
+      if (decision.action === 'edit' || decision.action === 'feedback')
+        delete snapshot.sourceCheck;
       await db.query(
         'UPDATE pddl_run_gates SET decision = $3 WHERE run_id = $1 AND gate_id = $2',
         [id, gateId, JSON.stringify(decision)],
@@ -256,11 +434,22 @@ export class DurableRuns implements RunService {
       return snapshot;
     });
   }
+  private async cancelSource(db: PoolClient, snapshot: RunSnapshot) {
+    if (snapshot.sourceCheck?.status !== 'checking') return;
+    if (snapshot.sourceCheck.workflowId)
+      await this.absurd
+        .bindToConnection(db)
+        .cancelTask(snapshot.sourceCheck.workflowId);
+    snapshot.sourceCheck.status = 'failed';
+    snapshot.sourceCheck.failure =
+      'Proof withdrawn. The pending result will not be applied.';
+  }
   async withdraw(id: string, reason: string) {
     return this.transaction(async (db) => {
       const { snapshot, task_id: taskId } = await this.lock(db, id);
       if (!active(snapshot))
         throw new RunConflict('This run has already ended.');
+      await this.cancelSource(db, snapshot);
       await this.absurd.bindToConnection(db).cancelTask(taskId);
       delete snapshot.gate;
       snapshot.state = 'failed';
