@@ -8,7 +8,11 @@ if [ "$#" -ne 2 ]; then
 fi
 CORRELATION=$(node -e 'console.log(crypto.randomUUID())')
 printf '{"runId":"%s","status":"started","completed":0,"predictions":[]}\n' "$CORRELATION" > "$2"
-: "${TEAM:?TEAM is required}" "${DIARY:?DIARY is required}"
+if [ -z "${TEAM:-}" ] || [ -z "${DIARY:-}" ]; then
+  printf '{"runId":"%s","status":"failed","completed":0,"predictions":[],"error":"TEAM and DIARY are required"}\n' "$CORRELATION" > "$2"
+  echo 'TEAM and DIARY are required' >&2
+  exit 2
+fi
 CLASSIFY_PROFILE="${CLASSIFY_PROFILE:-legreffier-pddl-classifier-v1}"
 AGENT="${AGENT:-legreffier}"
 export TEAM DIARY CLASSIFY_PROFILE
