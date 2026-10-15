@@ -181,6 +181,13 @@ test('proofing flow, source links, corrections, plan exploration and offline rev
   await page
     .getByRole('button', { name: 'Hide construction', exact: true })
     .click();
+  const graph = page.getByRole('navigation', { name: 'Plan dependencies' });
+  await expect(graph).toBeVisible();
+  await graph.getByRole('button', { name: /^Step 2/ }).click();
+  await expect(page.locator('.simulation-bar strong')).toHaveText(
+    'After step 2',
+  );
+  await page.getByRole('button', { name: 'Steps', exact: true }).click();
   await page
     .getByRole('navigation', { name: 'Plan progression' })
     .getByRole('button', { name: /^Step 2/ })
@@ -234,6 +241,28 @@ test('proofing flow, source links, corrections, plan exploration and offline rev
   await expect(mobile.locator('.routing-slip [aria-current]')).toBeInViewport({
     ratio: 1,
   });
+  await expect(
+    mobile.getByRole('navigation', { name: 'Plan dependencies' }),
+  ).toBeVisible();
+  const mobileGraph = mobile.getByRole('navigation', {
+    name: 'Plan dependencies',
+  });
+  expect(
+    await mobileGraph.evaluate(
+      (graph) => graph.scrollWidth > graph.clientWidth,
+    ),
+  ).toBe(true);
+  expect(
+    await mobile.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await mobileGraph.scrollIntoViewIfNeeded();
+  await mobile.screenshot({
+    path: '.impeccable/review/plan-graph-mobile.png',
+    fullPage: false,
+  });
+  await mobile.getByRole('button', { name: 'Steps', exact: true }).click();
   for (let i = 0; i < 4; i++)
     await mobile.getByRole('button', { name: 'Next plan step' }).click();
   await expect
