@@ -1,34 +1,10 @@
 # MoltNet PDDL designer (experimental)
 
-Turns an expert's process description into a planning domain, so the process
-can be checked and, next, mapped onto an agent workflow. It runs on
-[MoltNet](https://themolt.net) task primitives and depends only on published
-packages (`@themoltnet/sdk`, `@themoltnet/tasks-orchestrator`).
-
-Turns a natural-language process description into a typed planning domain,
-renders it as PDDL, and checks it with a planner. Each extraction stage is a
-contracted `freeform` MoltNet task, so the model returns structured data through
-the validated submit tool instead of free text.
-
-The design follows Acitelli et al., "Generating Domain Models for Automated
-Planning from Natural Language Descriptions" (CAI 2026,
-[code](https://github.com/giacomo1096/NL2PDDL)), with three changes found by
-reproducing that pipeline:
-
-See [related research](docs/RELATED-RESEARCH.md) for the source papers and
-related work on temporal PDDL and domain generation.
-
-| Paper                                                         | This library                                                                                                      |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| BAML classes; preconditions and effects as free-text strings  | TypeBox schemas sent as `outputContract`; preconditions and effects are typed atoms                               |
-| An LLM stage writes the PDDL text                             | `render.ts` renders PDDL from the typed result, deterministically                                                 |
-| Evaluation by an LLM judge and experts; syntax check with VAL | `check.ts` runs cross-stage checks after every stage, and `planner.ts` searches for a plan on the combined result |
-
-The planner check matters because every stage can return a schema-valid result
-while the domain is still wrong. In the reproduction, the generated problem
-declared no objects of the types the actions produce, so the goal was
-unreachable. With those objects added, the planner's plan merged a second issue
-by reusing the first issue's pull request and approval.
+Turns an expert's process description and a concrete situation into a typed
+PDDL domain and problem, checks them with a planner, and presents a plan for
+review. Generation runs as contracted `freeform` tasks on
+[MoltNet](https://themolt.net); the model returns structured data through a
+validated submit tool.
 
 ## Local wizard
 
@@ -64,17 +40,65 @@ proofs to reopen them after a restart. A worker-claim timeout explains which ste
 was not picked up and offers **Review setup and retry**. Generated corrections
 cannot skip earlier saved edits that still need your approval.
 
-### Source evidence
+## Writing the inputs
 
-Code numbers description sentences; generation tasks receive that numbered
-copy and request citations. Citations are model output: local checks reject
-nonexistent sentence numbers, while you verify whether the cited text supports
-the result. Missing citations remain visible and are not silently invented.
-These checks also apply to CLI runs: invalid numbers can trigger the normal
-automatic correction attempt. Numbering currently uses Node's `Intl.Segmenter`;
-keep the Node/ICU version consistent when moving saved proofs between machines.
+The inputs are a process description and a situation. Follow
+[WRITING-DESCRIPTIONS.md](./WRITING-DESCRIPTIONS.md): it lists what to state
+explicitly, with the live-run failure each rule prevents.
+`examples/docs-review-guided` follows it; `examples/docs-review` is the same
+process written without it.
 
-## Stages
+## CLI
+
+Inspect the first stage's task without creating anything:
+
+```bash
+pnpm --silent cli \
+  --description examples/issue-workflow/description.md \
+  --problem examples/issue-workflow/situation.md --dry-run
+```
+
+Run all stages. An agent daemon must be draining `freeform` tasks for the same
+team and profile, for example `moltnet-agent drain --profile legreffier-pddl-designer-v1`:
+
+```bash
+pnpm --silent cli \
+  --description examples/issue-workflow/description.md \
+  --problem examples/issue-workflow/situation.md \
+  --domain-name issue-workflow --problem-name two-issues \
+  --team "$TEAM" --diary "$DIARY" --profile legreffier-pddl-designer-v1 \
+  --out run.json
+```
+
+The run prints a one-line status on stderr and writes the `DesignRun` to
+`--out`.
+
+### Plan review (optional)
+
+`--review --classify-profile <profile>` re-plans without each step and asks
+whether the description requires every step the planner can skip. Each question
+is a `classify` task with one `bool` question, served by a profile whose
+`models.classification` names a decision model; the task attempt's usage
+records the provider and model that answered. A failed question fails the run rather than
+passing the plan. A daemon must also be serving `classify` tasks for that
+profile. Review is off by default: in live runs its findings have not yet
+improved pass rates beyond run-to-run noise.
+
+## Workflow at a glance
+
+The description defines reusable rules; the situation supplies objects, initial
+facts, and a goal. Both feed the plan check. The wizard offers review at each
+extraction stage, and invalid results can trigger correction tasks.
+
+```mermaid
+flowchart LR
+  D["Process description"] --> T["Types"] --> P["Predicates"] --> A["Actions"] --> R["Refinement"]
+  S["Situation"] --> I["Problem"]
+  D --> I
+  R --> I --> C["Checks and planner"] --> O["Plan or findings"]
+```
+
+### Stages
 
 | Stage        | Returns                                                  | Checked by                                                                                                                                              |
 | ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -103,48 +127,15 @@ objects and runs two checks:
 `validatePlan` replays a given plan step by step. Use it to assert that an
 intended plan works and that a known-bad plan is rejected.
 
-## Output
+### Source evidence
 
-`runPddlDesign` returns a `DesignRun` record:
-
-- `status`: `planned`, `unsolvable`, `search_limit`, `invalid` (a stage still failed its checks after corrections), or `failed` (a task failed)
-- `stages[]`: per attempt, the task id, the brief sent, the typed result, the findings, and the duration
-- `domain`, `problem`: the typed IR
-- `domainPddl`, `problemPddl`: the rendered PDDL
-- `refinements`: what the refine stage reports changing
-- `grounding[]`: concrete action count per action, and the parameter types with no objects
-- `plan`: the steps, or why no plan was found
-- `issues`: warnings left on the final domain and problem
-
-A UI can render this record directly. Each stage record says whether a model
-produced it (`source: 'task'`, with its `taskId`) or the reviewer edited it
-(`source: 'edit'`).
-
-## Progress and review gates
-
-`runPddlDesign` takes two optional hooks:
-
-- `onEvent` receives progress as it happens: `task-created`, `task-claimed`,
-  `stage-result`, `stage-accepted`, `plan-checked`, `review`, `finished`. The
-  CLI prints them on stderr.
-- `confirmStage` is called when a stage result is ready: after it passes the
-  checks, or once the automatic corrections are used up. It answers with one
-  of these decisions:
-  - `accept`: continue. Refused while the checks still report errors.
-  - `edit`: replace the result. It is checked like a model result, schema
-    first, and the gate asks again.
-  - `feedback`: send another task for the stage, with the message as a
-    correction.
-  - `abort`: stop the run as `failed`, with the reason.
-
-Without `confirmStage`, a passing result is accepted and a failing one stops
-the run as `invalid`, as before.
-
-## Limits
-
-- The supported fragment is STRIPS with typing and negative preconditions. There are no quantifiers, conditional effects, or numeric fluents.
-- The built-in planner is a checker for small models. Its default limits are 20,000 concrete actions and 100,000 states. For larger models, or for optimal plans, give the rendered PDDL to Fast Downward.
-- The output contract cannot carry `pattern`, so naming rules are checked by the stage parsers after the daemon accepts a result. A naming error fails that stage's task outcome; it does not trigger a correction.
+Code numbers description sentences; generation tasks receive that numbered
+copy and request citations. Citations are model output: local checks reject
+nonexistent sentence numbers, while you verify whether the cited text supports
+the result. Missing citations remain visible and are not silently invented.
+These checks also apply to CLI runs: invalid numbers can trigger the normal
+automatic correction attempt. Numbering currently uses Node's `Intl.Segmenter`;
+keep the Node/ICU version consistent when moving saved proofs between machines.
 
 ## Runtime profiles
 
@@ -247,49 +238,48 @@ configured for `models.classification` and a worker serving `classify` tasks.
 This is separate from generation overrides and is currently CLI-only. See
 [Plan review](#plan-review-optional); static validation remains authoritative.
 
-## Writing the inputs
+## Output
 
-The inputs are a process description and a situation. Follow
-[WRITING-DESCRIPTIONS.md](./WRITING-DESCRIPTIONS.md): it lists what to state
-explicitly, with the live-run failure each rule prevents.
-`examples/docs-review-guided` follows it; `examples/docs-review` is the same
-process written without it.
+`runPddlDesign` returns a `DesignRun` record:
 
-## Run
+- `status`: `planned`, `unsolvable`, `search_limit`, `invalid` (a stage still failed its checks after corrections), or `failed` (a task failed)
+- `stages[]`: per attempt, the task id, the brief sent, the typed result, the findings, and the duration
+- `domain`, `problem`: the typed IR
+- `domainPddl`, `problemPddl`: the rendered PDDL
+- `refinements`: what the refine stage reports changing
+- `grounding[]`: concrete action count per action, and the parameter types with no objects
+- `plan`: the steps, or why no plan was found
+- `issues`: warnings left on the final domain and problem
 
-Inspect the first stage's task without creating anything:
+A UI can render this record directly. Each stage record says whether a model
+produced it (`source: 'task'`, with its `taskId`) or the reviewer edited it
+(`source: 'edit'`).
 
-```bash
-pnpm --silent cli \
-  --description examples/issue-workflow/description.md \
-  --problem examples/issue-workflow/situation.md --dry-run
-```
+## Progress and review gates
 
-Run all stages. An agent daemon must be draining `freeform` tasks for the same
-team and profile, for example `moltnet-agent drain --profile legreffier-pddl-designer-v1`:
+`runPddlDesign` takes two optional hooks:
 
-```bash
-pnpm --silent cli \
-  --description examples/issue-workflow/description.md \
-  --problem examples/issue-workflow/situation.md \
-  --domain-name issue-workflow --problem-name two-issues \
-  --team "$TEAM" --diary "$DIARY" --profile legreffier-pddl-designer-v1 \
-  --out run.json
-```
+- `onEvent` receives progress as it happens: `task-created`, `task-claimed`,
+  `stage-result`, `stage-accepted`, `plan-checked`, `review`, `finished`. The
+  CLI prints them on stderr.
+- `confirmStage` is called when a stage result is ready: after it passes the
+  checks, or once the automatic corrections are used up. It answers with one
+  of these decisions:
+  - `accept`: continue. Refused while the checks still report errors.
+  - `edit`: replace the result. It is checked like a model result, schema
+    first, and the gate asks again.
+  - `feedback`: send another task for the stage, with the message as a
+    correction.
+  - `abort`: stop the run as `failed`, with the reason.
 
-The run prints a one-line status on stderr and writes the `DesignRun` to
-`--out`.
+Without `confirmStage`, a passing result is accepted and a failing one stops
+the run as `invalid`, as before.
 
-### Plan review (optional)
+## Limits
 
-`--review --classify-profile <profile>` re-plans without each step and asks
-whether the description requires every step the planner can skip. Each question
-is a `classify` task with one `bool` question, served by a profile whose
-`models.classification` names a decision model; the task attempt's usage
-records the provider and model that answered. A failed question fails the run rather than
-passing the plan. A daemon must also be serving `classify` tasks for that
-profile. Review is off by default: in live runs its findings have not yet
-improved pass rates beyond run-to-run noise.
+- The supported fragment is STRIPS with typing and negative preconditions. There are no quantifiers, conditional effects, or numeric fluents.
+- The built-in planner is a checker for small models. Its default limits are 20,000 concrete actions and 100,000 states. For larger models, or for optimal plans, give the rendered PDDL to Fast Downward.
+- The output contract cannot carry `pattern`, so naming rules are checked by the stage parsers after the daemon accepts a result. A naming error fails that stage's task outcome; it does not trigger a correction.
 
 ## Evaluation
 
@@ -305,68 +295,33 @@ pnpm exec tsx scripts/score-runs.ts /tmp/runs e1 --json scores.json
 
 `--examples <dir>` scores examples kept outside the repository.
 
-## Development
+## Research basis
 
-```bash
-pnpm install
-pnpm test
-pnpm typecheck
-```
+The pipeline builds on Acitelli et al., [*Generating Domain Models for
+Automated Planning from Natural Language Descriptions*](https://eprints.cs.univie.ac.at/8721/)
+(CAI 2026; [code](https://github.com/giacomo1096/NL2PDDL)). This implementation
+changes how stage results are represented, rendered, and checked:
 
-`pnpm-workspace.yaml` exempts `@themoltnet/*` from pnpm's release-age gate, so
-a freshly published SDK installs immediately; every other dependency still
-waits out the gate.
+| Paper | This project |
+| --- | --- |
+| BAML classes with preconditions and effects as free-text strings | TypeBox output contracts with typed atoms |
+| An LLM stage writes PDDL text | `render.ts` renders PDDL deterministically from the typed result |
+| LLM and expert evaluation with a VAL syntax check | `check.ts` checks cross-stage consistency and `planner.ts` searches for a plan |
+
+A schema-valid result can still produce an incorrect domain. In reproducing the
+pipeline, a generated problem omitted objects needed by its actions; after
+those objects were added, a plan reused one issue's pull request and approval
+for another issue. These failures motivated the planner and semantic checks.
+The paper includes numeric fluents; this project currently supports a smaller
+fragment (see [Limits](#limits)). See [related research](docs/RELATED-RESEARCH.md)
+for other work on planning-domain generation and temporal PDDL.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, local checks,
+continuous integration, and branch protection.
 
 ## License
 
 AGPL-3.0-only. This code started in
 [getlarge/themoltnet](https://github.com/getlarge/themoltnet) (`libs/pddl-designer`, PR #2726).
-
-## Continuous integration and branch protection
-
-Ready pull requests and pushes to `main` run ESLint, Secretlint, formatting checks, TypeScript
-checks, unit/API tests, the production build, and browser tests using the Node version pinned in `.tool-versions`.
-Draft PRs skip CI until marked ready. Browser tests use Playwright Chromium in
-CI and installed Chrome locally; synthetic workers require no MoltNet secrets.
-Failures upload traces, screenshots, and browser reports for seven days.
-
-The proposed `Protect main` ruleset requires a pull request with one approval, resolved
-review conversations, and the GitHub Actions `CI passed` check against an
-up-to-date branch. New commits dismiss stale approvals. Force-pushes and branch
-deletion are blocked, with no bypass actors. This ruleset is intended to replace
-legacy branch protection; its configuration is tracked in
-[.github/rulesets/main.json](.github/rulesets/main.json). Also enable automatic
-deletion of merged PR branches in repository settings. Editing the JSON alone does not change
-the live ruleset. Once CI is available, a repository administrator can create it
-from a checkout containing this file:
-
-```bash
-gh api --method POST repos/getlarge/moltnet-pddl-designer/rulesets \
-  --input .github/rulesets/main.json
-gh repo edit getlarge/moltnet-pddl-designer --delete-branch-on-merge
-```
-
-Run the creation command once; use the existing ruleset ID to update it later.
-The CI setup PR does not activate repository administration settings.
-
-Before removing a development worktree, preserve ignored local proofs and
-exports. Use `--runs-dir` with a persistent directory outside the worktree to
-keep saved proofs independent of branch cleanup.
-
-### Local lint checks
-
-```bash
-pnpm lint
-pnpm secretlint
-pnpm format:check
-```
-
-ESLint checks JavaScript and TypeScript with recommended rules, plus React hook
-rules in the UI. Warnings fail the check. Secretlint uses its recommended preset
-and scans text files, including dotfiles and workflow configuration. It uses the
-repository's explicit `.secretlintignore` instead of inherited Git ignore rules;
-dependencies, generated output, screenshots, and local runtime state are excluded.
-For a deliberate fake credential in a fixture, use a rule-scoped
-`secretlint-disable-next-line` comment with an explanation; do not disable the
-scanner for the whole test directory. Use Node 24.14.1 or newer, matching the
-minimum version in `package.json`.
