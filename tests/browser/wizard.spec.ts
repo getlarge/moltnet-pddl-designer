@@ -187,6 +187,9 @@ test('proofing flow, source links, corrections, plan exploration and offline rev
   await expect(page.locator('.simulation-bar strong')).toHaveText(
     'After step 2',
   );
+  await expect(page.locator('.fact-list')).toContainText(
+    'on block · block 1: b · block 2: c',
+  );
   await page.getByRole('button', { name: 'Steps', exact: true }).click();
   await page
     .getByRole('navigation', { name: 'Plan progression' })
