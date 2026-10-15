@@ -13,6 +13,10 @@
     "vitest": "^3.2.6"
   },
   "exports": {
+    "./detection": {
+      "types": "./src/detection.ts",
+      "import": "./src/detection.ts"
+    },
     "./plan": {
       "types": "./src/plan.ts",
       "import": "./src/plan.ts"

@@ -33,6 +33,7 @@
     "eval:temporal": "node --import tsx scripts/eval/score-temporal.ts",
     "eval:temporal:live": "sh scripts/eval/run-temporal.sh",
     "eval:temporal:detect": "sh scripts/eval/run-temporal-detection.sh",
+    "eval:temporal:detect:score": "node --import tsx scripts/eval/score-temporal-detection.ts",
     "eval:temporal:inputs": "node --import tsx scripts/eval/temporal-inputs.ts"
   },
   "devDependencies": {

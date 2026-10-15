@@ -1,0 +1,758 @@
+[
+  {
+    "id": "driverlogshift-load-truck-source-1",
+    "split": "dev",
+    "family": "driverlogshift",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to load a truck, given an object, truck, and location. The duration of the action is 2 minutes. The truck must be at the location the entire time, the object must be at the location at the start. At the end, the object will be in the truck and no longer at the location.",
+      "action": "load-truck",
+      "vocabulary": [
+        "truck-at(?truck,?location)",
+        "object-at(?object,?location)",
+        "in(?object,?truck)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/driverlogshift.txt",
+      "sourceId": "driverlogshift.txt paragraph 2",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "driverlogshift-load-truck-source-3",
+    "split": "dev",
+    "family": "driverlogshift",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to load an object into a truck that is bound at a location. The amount of time to load the truck is 2 minutes. The truck must be at the location to start loading, and remain at the location the entire time loading takes place. After loading, the object will no longer be at the location, but it will be in the truck.",
+      "action": "load-truck",
+      "vocabulary": [
+        "truck-at(?truck,?location)",
+        "object-at(?object,?location)",
+        "in(?object,?truck)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/driverlogshift.txt",
+      "sourceId": "driverlogshift.txt paragraph 4",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "driverlogshift-load-truck-control-1",
+    "split": "dev",
+    "family": "driverlogshift",
+    "phenomenon": "untimed-state",
+    "origin": "project-control",
+    "input": {
+      "description": "The truck and object are at the loading location. Loading the object puts it in the truck.",
+      "action": "load-truck",
+      "vocabulary": [
+        "truck-at(?truck,?location)",
+        "object-at(?object,?location)",
+        "in(?object,?truck)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created driverlogshift contrastive control 1",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "driverlogshift-load-truck-control-2",
+    "split": "dev",
+    "family": "driverlogshift",
+    "phenomenon": "other-action-deadline",
+    "origin": "project-control",
+    "input": {
+      "description": "The dispatcher must submit the manifest by 17:00. Loading places the object in the truck when the truck and object share a location.",
+      "action": "load-truck",
+      "vocabulary": [
+        "truck-at(?truck,?location)",
+        "object-at(?object,?location)",
+        "in(?object,?truck)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created driverlogshift contrastive control 2",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "floor-tile-change-color-source-0",
+    "split": "dev",
+    "family": "floor-tile",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "This action changes the color that a robot is using from color 1 to color 2. Color 2 must be available to the robot for the entire duration of the action. It takes 5 minutes to change colors. At the end the robot does not have color 1, but it has color 2.",
+      "action": "change-color",
+      "vocabulary": ["robot-has-color(?robot,?color)", "available(?color)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/floor-tile.txt",
+      "sourceId": "floor-tile.txt paragraph 1",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "floor-tile-change-color-source-1",
+    "split": "dev",
+    "family": "floor-tile",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to change color, given a robot and the first and second color. The duration of the action is 5 minutes. At the start, the robot has the first color, and the second color must be available throughout the action. At the end, the robot will no longer have the first color, bur will have the second color.",
+      "action": "change-color",
+      "vocabulary": ["robot-has-color(?robot,?color)", "available(?color)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/floor-tile.txt",
+      "sourceId": "floor-tile.txt paragraph 2",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "floor-tile-change-color-control-1",
+    "split": "dev",
+    "family": "floor-tile",
+    "phenomenon": "qualitative-duration",
+    "origin": "project-control",
+    "input": {
+      "description": "The robot can change colors quickly when the new color is available. The change replaces its current color.",
+      "action": "change-color",
+      "vocabulary": ["robot-has-color(?robot,?color)", "available(?color)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created floor-tile contrastive control 1",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "floor-tile-change-color-control-2",
+    "split": "dev",
+    "family": "floor-tile",
+    "phenomenon": "other-action-schedule",
+    "origin": "project-control",
+    "input": {
+      "description": "The paint inventory is checked every Monday. The robot changes from its current color to an available new color.",
+      "action": "change-color",
+      "vocabulary": ["robot-has-color(?robot,?color)", "available(?color)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created floor-tile contrastive control 2",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "matchcellar-light-match-source-1",
+    "split": "dev",
+    "family": "matchcellar",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to light a match. The duration of the action is 5 minutes. The match must be initially unused. At the start of the action the match will no longer be unused and the match will be lit. At the end of the action the match will not be lit.",
+      "action": "light-match",
+      "vocabulary": ["unused(?match)", "lit(?match)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/matchcellar.txt",
+      "sourceId": "matchcellar.txt paragraph 2",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "matchcellar-light-match-source-4",
+    "split": "dev",
+    "family": "matchcellar",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to light a match given the match to light. The action requires that the match to light is currently unused. At the start of the action, the match is designated as used and is lit. When the action is completed, the match is no longer lit. The action takes 5 minutes to complete.",
+      "action": "light-match",
+      "vocabulary": ["unused(?match)", "lit(?match)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/matchcellar.txt",
+      "sourceId": "matchcellar.txt paragraph 5",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "matchcellar-light-match-control-1",
+    "split": "dev",
+    "family": "matchcellar",
+    "phenomenon": "untimed-state",
+    "origin": "project-control",
+    "input": {
+      "description": "Lighting a match requires an unused match and makes the match lit.",
+      "action": "light-match",
+      "vocabulary": ["unused(?match)", "lit(?match)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created matchcellar contrastive control 1",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "matchcellar-light-match-control-2",
+    "split": "dev",
+    "family": "matchcellar",
+    "phenomenon": "other-action-duration",
+    "origin": "project-control",
+    "input": {
+      "description": "The cellar alarm has a five-minute timer. An unused match can be lit to provide light.",
+      "action": "light-match",
+      "vocabulary": ["unused(?match)", "lit(?match)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created matchcellar contrastive control 2",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "parking-move-car-source-0",
+    "split": "dev",
+    "family": "parking",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "It takes one minute to move the car from the source to the destination. At the start the car is at the source. At the end the car is at the destination.",
+      "action": "move-car",
+      "vocabulary": ["at(?car,?curb)", "clear(?curb)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/parking.txt",
+      "sourceId": "parking.txt paragraph 1",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "parking-move-car-source-1",
+    "split": "dev",
+    "family": "parking",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to move from curb to curb. The duration of the action is 1 minute. At the start the car and destination curb must be clear, and the car must be at the source curb. At the end the destination curb will no longer be clear, the car will not be at the source curb, the car will be at the destination curb, and the source curb will be clear.",
+      "action": "move-car",
+      "vocabulary": ["at(?car,?curb)", "clear(?curb)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/parking.txt",
+      "sourceId": "parking.txt paragraph 2",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "parking-move-car-control-1",
+    "split": "dev",
+    "family": "parking",
+    "phenomenon": "ordering",
+    "origin": "project-control",
+    "input": {
+      "description": "Pay the parking fee before moving the car from the source curb to the destination curb.",
+      "action": "move-car",
+      "vocabulary": ["at(?car,?curb)", "clear(?curb)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created parking contrastive control 1",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "parking-move-car-control-2",
+    "split": "dev",
+    "family": "parking",
+    "phenomenon": "unrelated-clock",
+    "origin": "project-control",
+    "input": {
+      "description": "The parking office opens at 08:00. A clear car can move from one curb to another.",
+      "action": "move-car",
+      "vocabulary": ["at(?car,?curb)", "clear(?curb)"]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created parking contrastive control 2",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "storage-time-lift-crate-source-0",
+    "split": "holdout",
+    "family": "Storage-Time",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to lift a crate from a storage area to another area. The duration of the action is 2 minutes. The hoist must initially be available and the crate must be in the storage area. The storage area must be connected to the destination area throughout, and the hoist must be at the destination area throughout. The storage area must be in a place. At the start of the action the crate will no longer be in a place, and the hoist will no longer be available. At the start of the action the hoist will be lifting the crate, and the crate will no longer be in the storage area. At the end of the action the storage area will be clear.",
+      "action": "lift-crate",
+      "vocabulary": [
+        "available(?hoist)",
+        "at(?crate,?area)",
+        "connected(?source,?destination)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/Storage-Time.txt",
+      "sourceId": "Storage-Time.txt paragraph 1",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "storage-time-lift-crate-source-4",
+    "split": "holdout",
+    "family": "Storage-Time",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action that lifts a crate from one area to another given the hoist to perform the lift, the source area, the destination area, and the place the areas are in. The action requires that the crate is in the source area, the destination area and source area are connected, the hoist to use is available, the source area is in the correct place, and the hoist to use is in the destination area. At the start of the action, the hoist is marked as unavailable, the crate is no longer in the place of the source area nor on the source area, and the hoist is marked as lifting the crate. At the end of the action, the source area is marked as cleared. The duration of the action is 2 minutes.",
+      "action": "lift-crate",
+      "vocabulary": [
+        "available(?hoist)",
+        "at(?crate,?area)",
+        "connected(?source,?destination)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/Storage-Time.txt",
+      "sourceId": "Storage-Time.txt paragraph 5",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "storage-time-lift-crate-control-1",
+    "split": "holdout",
+    "family": "Storage-Time",
+    "phenomenon": "ordering",
+    "origin": "project-control",
+    "input": {
+      "description": "Inspect the storage area before lifting the crate to the destination. The hoist is available, and lifting relocates the crate.",
+      "action": "lift-crate",
+      "vocabulary": [
+        "available(?hoist)",
+        "at(?crate,?area)",
+        "connected(?source,?destination)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created Storage-Time contrastive control 1",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "storage-time-lift-crate-control-2",
+    "split": "holdout",
+    "family": "Storage-Time",
+    "phenomenon": "unrelated-clock",
+    "origin": "project-control",
+    "input": {
+      "description": "The warehouse closes at 18:00. A hoist lifts a crate from the storage area to the destination area when the route is connected.",
+      "action": "lift-crate",
+      "vocabulary": [
+        "available(?hoist)",
+        "at(?crate,?area)",
+        "connected(?source,?destination)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created Storage-Time contrastive control 2",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "mapanalyzer-move-vehicle-source-0",
+    "split": "holdout",
+    "family": "mapanalyzer",
+    "phenomenon": "symbolic-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to move a vehicle on the road. The duration of the action is the distance between the initial and final junction, divided by the speed of the vehicle. The vehicle must be at the initial junction, and the initial and final junctions must be connected. The road must be put in place and the final junction must be clear. At the start of the action the vehicle is no longer at the initial junction, and the initial junction is clear. At the end, the vehicle is at the final junction.",
+      "action": "move-vehicle",
+      "vocabulary": [
+        "at(?vehicle,?junction)",
+        "connected(?from,?to)",
+        "clear(?junction)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/mapanalyzer.txt",
+      "sourceId": "mapanalyzer.txt paragraph 1",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "mapanalyzer-move-vehicle-source-4",
+    "split": "holdout",
+    "family": "mapanalyzer",
+    "phenomenon": "symbolic-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action that moves a vehicle down a road given an initial junction, a final junction, the vehicle to move, and the road to move along. The action requires that the vehicle is at the start junction, the start and end junctions are connected, the road is in place, and the end junction is clear. At the start of the action, the start junction is marked as clear and the car is marked as no longer at the start junction. At the end of the action the vehicle is placed at the end junction. The action lasts as long as the dividend of the distance between the two junctions and the speed of the vehicle.",
+      "action": "move-vehicle",
+      "vocabulary": [
+        "at(?vehicle,?junction)",
+        "connected(?from,?to)",
+        "clear(?junction)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/mapanalyzer.txt",
+      "sourceId": "mapanalyzer.txt paragraph 5",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "mapanalyzer-move-vehicle-control-1",
+    "split": "holdout",
+    "family": "mapanalyzer",
+    "phenomenon": "ordering",
+    "origin": "project-control",
+    "input": {
+      "description": "After the vehicle moves from the first junction to the second, a sensor records its arrival. The road connects the junctions.",
+      "action": "move-vehicle",
+      "vocabulary": [
+        "at(?vehicle,?junction)",
+        "connected(?from,?to)",
+        "clear(?junction)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created mapanalyzer contrastive control 1",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "mapanalyzer-move-vehicle-control-2",
+    "split": "holdout",
+    "family": "mapanalyzer",
+    "phenomenon": "other-action-schedule",
+    "origin": "project-control",
+    "input": {
+      "description": "The traffic signal changes every 60 seconds. A vehicle moves along a connected road from one junction to another.",
+      "action": "move-vehicle",
+      "vocabulary": [
+        "at(?vehicle,?junction)",
+        "connected(?from,?to)",
+        "clear(?junction)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created mapanalyzer contrastive control 2",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "rtam-untrap-victim-source-0",
+    "split": "holdout",
+    "family": "rtam",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to untrap a victim. The duration of the action is 25 minutes. At the start the fire brigade and victim must be at the accident location. The victim must be certified, waiting, and trapped. The fire brigade must be available. At the beginning of the action the fire brigade will not be available. At the end of the action, the victim will be not trapped and the fire brigade will be available again.",
+      "action": "untrap-victim",
+      "vocabulary": [
+        "at(?victim,?location)",
+        "at(?brigade,?location)",
+        "trapped(?victim)",
+        "available(?brigade)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/rtam.txt",
+      "sourceId": "rtam.txt paragraph 1",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "rtam-untrap-victim-source-4",
+    "split": "holdout",
+    "family": "rtam",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action that takes a fire brigade to perform a rescue, an accident victim who is currently trapped, and an accident location to rescue them from. The action requires that both the fire brigade and the victim are at the accident location and that the victim is certified for rescues. The action also requires that the fire brigade is not currently rescuing somebody else and that the victim is currently waiting for rescue. At the start of the action, the fire brigade is designated as unavailable. At the end of the action, the victim is no longer trapped and the fire brigade is once again available for rescue operations. The action takes 25 minutes.",
+      "action": "untrap-victim",
+      "vocabulary": [
+        "at(?victim,?location)",
+        "at(?brigade,?location)",
+        "trapped(?victim)",
+        "available(?brigade)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/rtam.txt",
+      "sourceId": "rtam.txt paragraph 5",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "rtam-untrap-victim-control-1",
+    "split": "holdout",
+    "family": "rtam",
+    "phenomenon": "qualitative-duration",
+    "origin": "project-control",
+    "input": {
+      "description": "Untrapping the victim is time-consuming. The brigade must be available and at the accident location, and the rescue frees the victim.",
+      "action": "untrap-victim",
+      "vocabulary": [
+        "at(?victim,?location)",
+        "at(?brigade,?location)",
+        "trapped(?victim)",
+        "available(?brigade)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created rtam contrastive control 1",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "rtam-untrap-victim-control-2",
+    "split": "holdout",
+    "family": "rtam",
+    "phenomenon": "other-action-deadline",
+    "origin": "project-control",
+    "input": {
+      "description": "A paramedic must file the accident report by 20:00. The brigade untraps a waiting victim at the accident location.",
+      "action": "untrap-victim",
+      "vocabulary": [
+        "at(?victim,?location)",
+        "at(?brigade,?location)",
+        "trapped(?victim)",
+        "available(?brigade)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created rtam contrastive control 2",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "satellite-switch-on-instrument-source-1",
+    "split": "holdout",
+    "family": "satellite",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action to switch an instrument on a satellite on. The duration of the action is 2 minutes. The instrument must be onboard the satellite throughout, there must be power available on the satellite to start. At the start of the action the instrument is not calibrated and there is no power available at the satellite any more. At the end of the action the instrument is turned on.",
+      "action": "switch-on-instrument",
+      "vocabulary": [
+        "onboard(?instrument,?satellite)",
+        "power-available(?satellite)",
+        "on(?instrument)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/satellite.txt",
+      "sourceId": "satellite.txt paragraph 2",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "satellite-switch-on-instrument-source-3",
+    "split": "holdout",
+    "family": "satellite",
+    "phenomenon": "numeric-duration",
+    "origin": "source-paragraph",
+    "input": {
+      "description": "An action that switches a given instrument on a given satellite on. The action requires that the instrument to activate is on the satellite and that the satellite has power for the instrument. After the action the instrument is on. At the start, the satellite does not have power available, and the instrument is designated as uncalibrated. The action takes 2 minutes to complete.",
+      "action": "switch-on-instrument",
+      "vocabulary": [
+        "onboard(?instrument,?satellite)",
+        "power-available(?satellite)",
+        "on(?instrument)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": true
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/AnnotationsDataset/satellite.txt",
+      "sourceId": "satellite.txt paragraph 4",
+      "annotation": "project-curated",
+      "notes": "Description copied from the public MIT-licensed annotations. Binary label curated by this project from the paragraph text, not claimed as author-supplied gold."
+    }
+  },
+  {
+    "id": "satellite-switch-on-instrument-control-1",
+    "split": "holdout",
+    "family": "satellite",
+    "phenomenon": "other-action-schedule",
+    "origin": "project-control",
+    "input": {
+      "description": "The satellite transmits telemetry every ten minutes. Switching on an onboard instrument requires satellite power and leaves the instrument on.",
+      "action": "switch-on-instrument",
+      "vocabulary": [
+        "onboard(?instrument,?satellite)",
+        "power-available(?satellite)",
+        "on(?instrument)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created satellite contrastive control 1",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  },
+  {
+    "id": "satellite-switch-on-instrument-control-2",
+    "split": "holdout",
+    "family": "satellite",
+    "phenomenon": "untimed-state",
+    "origin": "project-control",
+    "input": {
+      "description": "The instrument is onboard the satellite and power is available. Switching it on makes the instrument operational.",
+      "action": "switch-on-instrument",
+      "vocabulary": [
+        "onboard(?instrument,?satellite)",
+        "power-available(?satellite)",
+        "on(?instrument)"
+      ]
+    },
+    "gold": {
+      "hasDurativeEvidence": false
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/getlarge/moltnet-pddl-designer/blob/main/evals/temporal/SOURCES.md",
+      "sourceId": "project-created satellite contrastive control 2",
+      "annotation": "project-curated",
+      "notes": "Project-authored control. Timing, where present, does not specify an extractable duration or timed clause for the named action."
+    }
+  }
+]

@@ -3,6 +3,11 @@ import { connect } from '@themoltnet/sdk/node';
 import { createTeamTaskClient } from '@pddl/workflows/task-client';
 import { createClassifyDecisionClient } from '@pddl/workflows/decision';
 import { hasDurativeEvidence, type TemporalCase } from '@pddl/evals/temporal';
+import {
+  evaluateTemporalDetection,
+  type TemporalDetectionCase,
+  type TemporalDetectionPrediction,
+} from '@pddl/evals/detection';
 
 const [casesFile, outputFile, correlationId] = process.argv.slice(2);
 if (!casesFile || !outputFile || !correlationId)
@@ -32,53 +37,79 @@ const client = createClassifyDecisionClient(
     claimTimeoutSec: 30,
   },
 );
-const cases = JSON.parse(readFileSync(casesFile, 'utf8')) as TemporalCase[];
-const rows: Array<{
-  id: string;
-  probability: number;
-  predicted: boolean;
-  expected: boolean;
-  correct: boolean;
-  seconds: number;
-}> = [];
+const rawCases = JSON.parse(readFileSync(casesFile, 'utf8')) as Array<
+  TemporalCase | TemporalDetectionCase
+>;
+const cases: TemporalDetectionCase[] = rawCases.map((item) =>
+  'origin' in item
+    ? item
+    : {
+        id: item.id,
+        split: item.split,
+        family: item.id,
+        phenomenon: 'legacy',
+        origin: 'project-control',
+        input: item.input,
+        gold: { hasDurativeEvidence: hasDurativeEvidence(item.gold) },
+        provenance: {
+          sourceUrl: item.provenance.sourceUrl,
+          sourceId: item.provenance.sourceId,
+          annotation: 'project-curated',
+          notes: 'Adapted from the v1 extraction fixture.',
+        },
+      },
+);
+const predictions: TemporalDetectionPrediction[] = [];
 for (const item of cases) {
   const start = Date.now();
   const probability = await client.yesNo(item.input, {
     instructions:
-      'Does the description explicitly provide a quantitative duration for the named action, or a PDDL 2.1 timing qualifier for one of its conditions or effects (at start, throughout, or at end)? Ordering between distinct actions by itself is not durative evidence.',
+      'Does the description explicitly provide a quantitative duration (number or formula) for the named action, or a PDDL 2.1 timing qualifier for one of its conditions or effects (at start, throughout, or at end)? Ignore timing of other actions, background clocks, ordering alone, and qualitative words such as quickly.',
     criteria: {
-      true: 'A numeric duration or a timed start, invariant, or end condition/effect of the named action is stated.',
+      true: 'A numeric or symbolic duration, or a timed start, invariant, or end condition/effect of the named action is stated.',
       false:
-        'Only ordering between actions or an untimed action is described; no durative evidence for the named action is stated.',
+        'No extractable duration or timed clause for the named action is stated.',
     },
   });
-  const predicted = probability >= 0.5;
-  const expected = hasDurativeEvidence(item.gold);
-  const row = {
+  const prediction = {
     id: item.id,
+    runId: correlationId,
     probability,
-    predicted,
-    expected,
-    correct: predicted === expected,
     seconds: (Date.now() - start) / 1000,
   };
-  rows.push(row);
+  predictions.push(prediction);
+  const expected = item.gold.hasDurativeEvidence;
+  const predicted = probability >= 0.5;
   const report = {
     runId: correlationId,
     profile: profile.name,
     model: profile.models.classification.model,
-    questionRevision: 'temporal-detection-v1',
+    questionRevision: 'temporal-detection-v2',
     threshold: 0.5,
-    completed: rows.length,
-    correct: rows.filter((result) => result.correct).length,
-    totalSeconds: rows.reduce((sum, result) => sum + result.seconds, 0),
-    rows,
+    completed: predictions.length,
+    totalCases: cases.length,
+    predictions,
   };
   writeFileSync(outputFile, JSON.stringify(report, null, 2) + '\n');
   console.log(
-    `${item.id}: p=${probability.toFixed(3)} predicted=${predicted} expected=${expected} ${row.seconds.toFixed(2)}s`,
+    `${item.id}: p=${probability.toFixed(3)} predicted=${predicted} expected=${expected} ${prediction.seconds.toFixed(2)}s`,
   );
 }
+const score = evaluateTemporalDetection(cases, predictions);
+writeFileSync(
+  outputFile,
+  JSON.stringify(
+    {
+      runId: correlationId,
+      profile: profile.name,
+      model: profile.models.classification.model,
+      questionRevision: 'temporal-detection-v2',
+      ...score,
+    },
+    null,
+    2,
+  ) + '\n',
+);
 console.log(
-  `Detection: ${rows.filter((row) => row.correct).length}/${rows.length} correct; report: ${outputFile}`,
+  `Detection: ${score.totals.correct}/${score.totals.cases} correct; report: ${outputFile}`,
 );
