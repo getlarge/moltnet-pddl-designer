@@ -4,6 +4,8 @@ import { createApp } from '../apps/server/src/app.js';
 import { RunStore } from '@pddl/persistence/store';
 import { MemoryRuns } from '../tests/support/test-support.js';
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
+import { createInlineContext } from '@themoltnet/tasks-orchestrator';
+import { moltAssess } from '@pddl/workflows/molt-executor';
 import { runPddlDesign } from '@pddl/workflows/workflow';
 import { taskStageFromTags } from '@pddl/workflows/task-tags';
 import { blocksProblemResult } from '@pddl/domain/test-fixtures';
@@ -28,6 +30,18 @@ for (const [domain, port, description, situation] of [
     'Parcel P has not yet been inspected. Worker W must process parcel P.',
   ],
 ] as const) {
+  const input = {
+    description,
+    problemDescription: situation,
+    domainName: domain.name,
+    problemName: 'example',
+    teamId:
+      process.env.MOLTNET_TEAM_ID ?? '6743b4b1-6b93-46e2-a048-19490f04f91a',
+    diaryId:
+      process.env.MOLTNET_DIARY_ID ?? '8a4d7ecd-b7ec-49d1-8e50-0da328159ed0',
+    correlationId: crypto.randomUUID(),
+    profileId: 'local-reference',
+  };
   const results: Record<string, unknown> = {
     types: { types: domain.types },
     predicates: { predicates: domain.predicates },
@@ -47,15 +61,22 @@ for (const [domain, port, description, situation] of [
           }
         : blocksProblemResult,
   };
-  const runs = new MemoryRuns((input, options) =>
-    runPddlDesign(
-      new FakeTasks((body) => ({
-        summary: 'Local reference draft, not generated output.',
-        result: results[taskStageFromTags(body.tags) ?? ''],
-      })),
-      input,
-      options,
-    ),
+  const runs = new MemoryRuns(
+    (input, options) =>
+      runPddlDesign(
+        new FakeTasks((body) => ({
+          summary: 'Local reference draft, not generated output.',
+          result: results[taskStageFromTags(body.tags) ?? ''],
+        })),
+        input,
+        options,
+      ),
+    (request, profile, onTask) =>
+      moltAssess(input, request, profile, onTask, {
+        ...createInlineContext(),
+        sleepFor: (_name, seconds) =>
+          new Promise<void>((resolve) => setTimeout(resolve, seconds * 1000)),
+      }),
   );
   const app = await createApp({
     root: resolve('.'),
@@ -63,29 +84,8 @@ for (const [domain, port, description, situation] of [
     runs,
     store: new RunStore(resolve('runs/readable-prototype/proofs')),
   });
-  app.addHook('preHandler', async (req, reply) => {
-    if (
-      req.url.startsWith('/api/') &&
-      req.method !== 'GET' &&
-      (req.body as { profile?: string } | undefined)?.profile
-    )
-      return reply.code(409).send({
-        error:
-          'This preview uses reference drafts. Classification is disabled; no model call will be made.',
-      });
-  });
   await app.listen({ host: '127.0.0.1', port });
   apps.push(app);
-  const input = {
-    description,
-    problemDescription: situation,
-    domainName: domain.name,
-    problemName: 'example',
-    teamId: 'test-team',
-    diaryId: 'test-diary',
-    correlationId: crypto.randomUUID(),
-    profileId: 'local-reference',
-  };
   const first = await runs.start(input, {});
   let s = await runs.get(first.id);
   while (s?.gate?.stage !== 'actions') {
@@ -101,6 +101,7 @@ for (const [domain, port, description, situation] of [
     runId: first.id,
     url: `http://127.0.0.1:${port}/#run/${first.id}`,
     gateId: s.gate.id,
+    correlationId: input.correlationId,
   });
   console.log(
     `PROTOTYPE ${domain.name} http://127.0.0.1:${port}/#run/${first.id}`,

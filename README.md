@@ -186,13 +186,21 @@ keep the Node/ICU version consistent when moving saved proofs between machines.
 
 ### Source checks during Actions review
 
-At the **Actions review gate**, expand **Compare actions with your description**
-and select the rules you want checked. **Preview source check** constructs the
+At the **Actions review gate**, read the draft actions first, then expand
+**Check rules against your description (optional)** and select the rules you
+want checked. **Preview source check** constructs the
 exact request locally: your original process description and situation, the
 selected prerequisites or effects, the complete selected actions, related
 predicate definitions and typed participants, and a question per rule. It
 creates no task. Enter a **Classification profile name or ID** and choose
 **Run source check** to submit one `classify` task for up to 20 rules.
+
+Results replace the selection form, with conflicting rules first. **Check other
+rules** returns to selection. Each action has a tinted header; local checks,
+classifier probabilities and request evidence have separate expandable details.
+Finally, **Pass** continues to Refinement, **Correct** edits the draft, and
+**Return with note** requests a revision. Classification never passes the gate
+for you.
 
 ```mermaid
 flowchart TD
@@ -214,7 +222,8 @@ flowchart TD
 ```
 
 For example, if processing consumes a fresh inspection but the draft preserves
-it, select **process parcel: Keeps freshly inspected after the action**. The
+it, select the rule claiming that the fresh inspection remains available after
+processing. The
 check compares that precise rule with your description. Permanent certification
 can legitimately remain true; when the description does not settle a rule, the
 third answer preserves that uncertainty.
@@ -244,8 +253,13 @@ pnpm exec tsx scripts/readable-demo.ts
 It opens reference drafts for Blocks World on port 4430 and parcel inspection on
 4431, paused at Actions review. The drafts deliberately omit one deletion each,
 so their incorrect preserved facts remain visible in the claims. Generation is
-replayed locally and classifier submission is disabled; this demonstrates wording
-and review, not model performance. The command prints each proof URL.
+replayed locally. Previewing is local; **Run source check** submits a real paid
+classification task using the profile you enter, for example
+`legreffier-pddl-classifier-v1`. Run a classify worker for that profile as
+described in [setup](docs/SETUP.md#classification-profiles). The demo uses the
+configured `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID`, falling back to the development
+team and designer diary. The command prints each proof URL. Runs live in memory;
+save a proof before restarting the demo.
 
 Results inform your decision. They do not pass the gate, change actions, or
 waive local errors. **Prepare correction note** fills a note for you to review;

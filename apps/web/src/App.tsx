@@ -1074,6 +1074,11 @@ export function App() {
                   </span>
                 </div>
                 <p className="stage-explanation">{explain[stage]}</p>
+                {stage === 'actions' && !editor && record && (
+                  <h3 className="actions-review-heading">
+                    1. Read the draft actions
+                  </h3>
+                )}
                 {!editor && (
                   <details
                     key={stage}
@@ -1091,41 +1096,6 @@ export function App() {
                       </p>
                     )}
                   </details>
-                )}
-
-                {stage === 'actions' && canPass && !editor && (
-                  <SourceCheck
-                    key={gate?.id ?? `saved-${record?.attempt}`}
-                    domain={{
-                      name: input.domainName,
-                      types: (obj(latest(rows, 'types')?.result).types ??
-                        []) as import('@pddl/domain/ir').TypeDef[],
-                      predicates: (obj(latest(rows, 'predicates')?.result)
-                        .predicates ??
-                        []) as import('@pddl/domain/ir').PredicateDef[],
-                      actions: (result.actions ?? []) as ActionDef[],
-                    }}
-                    runId={snapshot?.id}
-                    gateId={isGate ? gate?.id : undefined}
-                    attempt={record!.attempt}
-                    record={
-                      snapshot?.sourceCheck ??
-                      run?.sourceChecks?.findLast(
-                        (r) => r.attempt === record?.attempt,
-                      )
-                    }
-                    onSnapshot={(next) =>
-                      setSnapshot((previous) =>
-                        previous && previous.sequence > next.sequence
-                          ? previous
-                          : next,
-                      )
-                    }
-                    onNote={(message) => {
-                      setGateMode('note');
-                      setNote(message);
-                    }}
-                  />
                 )}
 
                 {stage === 'plan' ? (
@@ -1147,6 +1117,7 @@ export function App() {
                   <>
                     {stageFindings.length > 0 && (
                       <section className="findings" aria-label="Check findings">
+                        <h4>Local model checks</h4>
                         {stageFindings.map((finding, i) => (
                           <CheckFinding key={i} finding={finding} />
                         ))}
@@ -1195,7 +1166,7 @@ export function App() {
                           return (
                             <article
                               key={i}
-                              className={`proof-mark ${selected ? 'selected' : ''}`}
+                              className={`proof-mark ${['actions', 'refine'].includes(stage) ? 'action-proof-mark' : ''} ${selected ? 'selected' : ''}`}
                             >
                               <button
                                 className="mark-heading"
@@ -1214,34 +1185,6 @@ export function App() {
                                     : 'Unlinked'}
                                 </span>
                               </button>
-                              {findings
-                                .filter((finding) => ownsFinding(name, finding))
-                                .map((finding, i) => (
-                                  <CheckFinding key={i} finding={finding} />
-                                ))}
-                              {['actions', 'refine'].includes(stage) &&
-                                !Array.isArray(mark.sourceLines) && (
-                                  <details className="finding warning">
-                                    <summary>Source references missing</summary>
-                                    <p>
-                                      This result omitted the requested source
-                                      line references. Check the quote against
-                                      your description, then use Correct to add
-                                      verified references or Return with note to
-                                      request them.
-                                    </p>
-                                    {text(mark.source) && (
-                                      <>
-                                        <p className="small">
-                                          Quote supplied in the result
-                                        </p>
-                                        <blockquote>
-                                          {text(mark.source)}
-                                        </blockquote>
-                                      </>
-                                    )}
-                                  </details>
-                                )}
                               {stage === 'predicates' && (
                                 <FactDefinition
                                   name={name}
@@ -1370,6 +1313,56 @@ export function App() {
                                     })}
                                   </div>
                                 )}
+                              {(findings.some((finding) =>
+                                ownsFinding(name, finding),
+                              ) ||
+                                (['actions', 'refine'].includes(stage) &&
+                                  !Array.isArray(mark.sourceLines))) && (
+                                <details
+                                  className="action-local-checks"
+                                  open={findings.some(
+                                    (finding) =>
+                                      ownsFinding(name, finding) &&
+                                      finding.severity === 'error',
+                                  )}
+                                >
+                                  <summary>
+                                    Local checks for {name.replaceAll('-', ' ')}
+                                  </summary>
+                                  {findings
+                                    .filter((finding) =>
+                                      ownsFinding(name, finding),
+                                    )
+                                    .map((finding, i) => (
+                                      <CheckFinding key={i} finding={finding} />
+                                    ))}
+                                  {['actions', 'refine'].includes(stage) &&
+                                    !Array.isArray(mark.sourceLines) && (
+                                      <details className="finding warning">
+                                        <summary>
+                                          Source references missing
+                                        </summary>
+                                        <p>
+                                          This result omitted the requested
+                                          source line references. Check the
+                                          quote against your description, then
+                                          use Correct to add verified references
+                                          or Return with note to request them.
+                                        </p>
+                                        {text(mark.source) && (
+                                          <>
+                                            <p className="small">
+                                              Quote supplied in the result
+                                            </p>
+                                            <blockquote>
+                                              {text(mark.source)}
+                                            </blockquote>
+                                          </>
+                                        )}
+                                      </details>
+                                    )}
+                                </details>
+                              )}
                             </article>
                           );
                         })}
@@ -1417,6 +1410,40 @@ export function App() {
                       </>
                     )}
                   </>
+                )}
+                {stage === 'actions' && canPass && !editor && (
+                  <SourceCheck
+                    key={gate?.id ?? `saved-${record?.attempt}`}
+                    domain={{
+                      name: input.domainName,
+                      types: (obj(latest(rows, 'types')?.result).types ??
+                        []) as import('@pddl/domain/ir').TypeDef[],
+                      predicates: (obj(latest(rows, 'predicates')?.result)
+                        .predicates ??
+                        []) as import('@pddl/domain/ir').PredicateDef[],
+                      actions: (result.actions ?? []) as ActionDef[],
+                    }}
+                    runId={snapshot?.id}
+                    gateId={isGate ? gate?.id : undefined}
+                    attempt={record!.attempt}
+                    record={
+                      snapshot?.sourceCheck ??
+                      run?.sourceChecks?.findLast(
+                        (r) => r.attempt === record?.attempt,
+                      )
+                    }
+                    onSnapshot={(next) =>
+                      setSnapshot((previous) =>
+                        previous && previous.sequence > next.sequence
+                          ? previous
+                          : next,
+                      )
+                    }
+                    onNote={(message) => {
+                      setGateMode('note');
+                      setNote(message);
+                    }}
+                  />
                 )}
               </section>
               {construction && (
@@ -1474,14 +1501,18 @@ export function App() {
                 <div className="gate-summary" tabIndex={-1}>
                   <strong>
                     {isGate
-                      ? 'Your reading is needed'
+                      ? stage === 'actions'
+                        ? '3. Pass or correct Actions'
+                        : 'Your reading is needed'
                       : run?.needsReview?.includes(stage as StageName)
                         ? 'Review this revision'
                         : 'Saved proof · local editing'}
                   </strong>
                   <span>
                     {canPass
-                      ? 'Read the marks against your description.'
+                      ? stage === 'actions'
+                        ? 'Pass continues to Refinement. Correct edits the draft; Return with note requests a revision.'
+                        : 'Read the marks against your description.'
                       : record
                         ? 'Correct the errors before passing.'
                         : 'Add a result to continue.'}
