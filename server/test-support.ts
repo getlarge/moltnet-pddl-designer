@@ -1,3 +1,4 @@
+import { taskStageFromTags } from '../src/task-tags.js';
 import type { SourceAssessor } from '../src/source-check.js';
 import type { GroundingTarget } from '../src/source-grounding.js';
 /** Synthetic task executor for tests only; never imported by the app server. */
@@ -52,10 +53,7 @@ export const syntheticExecute: Execute = (input, options) => {
   return runPddlDesign(
     new FakeTasks((body) => ({
       summary: 'Synthetic browser test result',
-      result:
-        syntheticResults[
-          body.tags?.find((t) => t.startsWith('stage:'))?.slice(6) ?? ''
-        ],
+      result: syntheticResults[taskStageFromTags(body.tags) ?? ''],
     })),
     input,
     options,

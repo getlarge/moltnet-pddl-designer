@@ -1,3 +1,4 @@
+import { taskStageFromTags } from '../../src/task-tags.js';
 import { createSourceAssessor } from '../../src/source-check.js';
 import type { ClassifyInput } from '@themoltnet/sdk';
 import { randomUUID } from 'node:crypto';
@@ -58,9 +59,7 @@ const tasks: TaskClient = {
                 ),
               ),
             }
-          : syntheticResults[
-              body.tags!.find((t) => t.startsWith('stage:'))!.slice(6)
-            ],
+          : syntheticResults[taskStageFromTags(body.tags) ?? ''],
     };
     const fake = new FakeTasks([
       body.taskType === 'classify'

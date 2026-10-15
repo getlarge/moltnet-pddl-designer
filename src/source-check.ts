@@ -1,3 +1,4 @@
+import { TASK_TAGS } from './task-tags.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { ClassifyInput, ClassifyOutput } from '@themoltnet/sdk';
 import {
@@ -79,7 +80,7 @@ export function createSourceAssessor(
             correlationId: options.correlationId,
             allowedProfiles: [{ profileId }],
             input,
-            tags: ['pddl:designer', 'stage:source-check'],
+            tags: [TASK_TAGS.designer, TASK_TAGS.stage['source-check']],
             maxAttempts: 1,
             dispatchTimeoutSec: 60,
             runningTimeoutSec: 120,

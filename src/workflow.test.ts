@@ -1,3 +1,4 @@
+import { taskStageFromTags } from './task-tags.js';
 import { buildGroundingRequest, groundingTargets } from './source-grounding.js';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -48,8 +49,7 @@ const HAPPY: Record<string, FakeTaskOutput> = {
   problem: ok(blocksProblemResult),
 };
 
-const stageOf = (tags: string[] | undefined) =>
-  tags?.find((t) => t.startsWith('stage:'))?.slice(6) ?? '';
+const stageOf = (tags: string[] | undefined) => taskStageFromTags(tags) ?? '';
 
 /** Serve outputs per stage; a list is consumed one attempt at a time. */
 function fakeTasks(overrides: Record<string, FakeTaskOutput[]> = {}) {
