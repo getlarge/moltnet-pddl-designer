@@ -291,7 +291,9 @@ user has not requested reduced motion. There is no ornamental motion.
 ## Runtime state and recovery
 
 The React SPA reads persisted run snapshots from Fastify over HTTP and SSE.
-Rendering stays client-side. Postgres and Absurd own workflow progress, gate
+The HTTP server and durable worker are separate applications; `pnpm dev` runs
+both. Shared contracts contain no execution code, and ESLint enforces the
+workspace dependencies documented in README. Rendering stays client-side. Postgres and Absurd own workflow progress, gate
 identity and accepted decisions; component state owns panel visibility, selection
 and unsubmitted editor text. Restarting the server must preserve accepted work,
 not silently turn it into a new proof. Unsubmitted browser edits are not durable.

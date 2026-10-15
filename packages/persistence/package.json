@@ -1,0 +1,34 @@
+{
+  "name": "@pddl/persistence",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pddl/contracts": "workspace:*",
+    "@pddl/domain": "workspace:*",
+    "@themoltnet/sdk": "^0.153.0",
+    "absurd-sdk": "^0.4.0",
+    "pg": "^8.23.1"
+  },
+  "exports": {
+    "./durable-runs": {
+      "types": "./src/durable-runs.ts",
+      "import": "./src/durable-runs.ts"
+    },
+    "./run-service": {
+      "types": "./src/run-service.ts",
+      "import": "./src/run-service.ts"
+    },
+    "./source-check": {
+      "types": "./src/source-check.ts",
+      "import": "./src/source-check.ts"
+    },
+    "./store": {
+      "types": "./src/store.ts",
+      "import": "./src/store.ts"
+    }
+  }
+}

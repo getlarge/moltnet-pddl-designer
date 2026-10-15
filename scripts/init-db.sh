@@ -8,4 +8,4 @@ case "$version" in
   0.4.0) ;;
   *) echo "Expected Absurd 0.4.0; found $version. Migrate this database explicitly before continuing." >&2; exit 1 ;;
 esac
-pnpm exec tsx scripts/migrate.ts
+pnpm exec tsx packages/persistence/scripts/migrate.ts

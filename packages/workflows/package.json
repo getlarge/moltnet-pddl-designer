@@ -1,0 +1,62 @@
+{
+  "name": "@pddl/workflows",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pddl/contracts": "workspace:*",
+    "@pddl/domain": "workspace:*",
+    "@pddl/persistence": "workspace:*",
+    "@themoltnet/sdk": "^0.153.0",
+    "@themoltnet/tasks-orchestrator": "^0.5.8",
+    "typebox": "^1.2.8"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.6"
+  },
+  "exports": {
+    "./decision": {
+      "types": "./src/decision.ts",
+      "import": "./src/decision.ts"
+    },
+    "./durable": {
+      "types": "./src/durable.ts",
+      "import": "./src/durable.ts"
+    },
+    "./executor": {
+      "types": "./src/executor.ts",
+      "import": "./src/executor.ts"
+    },
+    "./molt-executor": {
+      "types": "./src/molt-executor.ts",
+      "import": "./src/molt-executor.ts"
+    },
+    "./review": {
+      "types": "./src/review.ts",
+      "import": "./src/review.ts"
+    },
+    "./source-check": {
+      "types": "./src/source-check.ts",
+      "import": "./src/source-check.ts"
+    },
+    "./stages": {
+      "types": "./src/stages.ts",
+      "import": "./src/stages.ts"
+    },
+    "./task-client": {
+      "types": "./src/task-client.ts",
+      "import": "./src/task-client.ts"
+    },
+    "./task-tags": {
+      "types": "./src/task-tags.ts",
+      "import": "./src/task-tags.ts"
+    },
+    "./workflow": {
+      "types": "./src/workflow.ts",
+      "import": "./src/workflow.ts"
+    }
+  }
+}

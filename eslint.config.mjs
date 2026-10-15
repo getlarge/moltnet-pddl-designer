@@ -1,3 +1,7 @@
+import {
+  boundaryConfig,
+  browserBoundaryConfig,
+} from './tooling/boundaries.mjs';
 import js from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
@@ -5,9 +9,11 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default defineConfig([
+  boundaryConfig,
+  browserBoundaryConfig,
   globalIgnores([
-    'node_modules/',
-    'dist/',
+    '**/node_modules/**',
+    '**/dist/**',
     'out-tsc/',
     'runs/',
     '.moltnet/',
@@ -31,7 +37,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['ui/**/*.{ts,tsx}'],
+    files: ['apps/web/src/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
     plugins: { 'react-hooks': reactHooks },
     rules: {

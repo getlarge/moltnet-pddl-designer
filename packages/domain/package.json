@@ -1,0 +1,54 @@
+{
+  "name": "@pddl/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@themoltnet/sdk": "^0.153.0",
+    "typebox": "^1.2.8"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.6"
+  },
+  "exports": {
+    "./check": {
+      "types": "./src/check.ts",
+      "import": "./src/check.ts"
+    },
+    "./ir": {
+      "types": "./src/ir.ts",
+      "import": "./src/ir.ts"
+    },
+    "./planner": {
+      "types": "./src/planner.ts",
+      "import": "./src/planner.ts"
+    },
+    "./problem-check": {
+      "types": "./src/problem-check.ts",
+      "import": "./src/problem-check.ts"
+    },
+    "./provenance": {
+      "types": "./src/provenance.ts",
+      "import": "./src/provenance.ts"
+    },
+    "./render": {
+      "types": "./src/render.ts",
+      "import": "./src/render.ts"
+    },
+    "./source-grounding-targets": {
+      "types": "./src/source-grounding-targets.ts",
+      "import": "./src/source-grounding-targets.ts"
+    },
+    "./source-grounding": {
+      "types": "./src/source-grounding.ts",
+      "import": "./src/source-grounding.ts"
+    },
+    "./test-fixtures": {
+      "types": "./src/test-fixtures.ts",
+      "import": "./src/test-fixtures.ts"
+    }
+  }
+}

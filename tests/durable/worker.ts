@@ -1,5 +1,6 @@
-import { taskStageFromTags } from '../../src/task-tags.js';
-import { createSourceAssessor } from '../../src/source-check.js';
+import { registerWorkflows } from '@pddl/workflows/durable';
+import { taskStageFromTags } from '@pddl/workflows/task-tags';
+import { createSourceAssessor } from '@pddl/workflows/source-check';
 import type { ClassifyInput } from '@themoltnet/sdk';
 import { randomUUID } from 'node:crypto';
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
@@ -8,12 +9,12 @@ import type {
   SdkTask,
   SdkTaskAttempt,
 } from '@themoltnet/tasks-orchestrator';
-import { DurableRuns } from '../../server/durable-runs.js';
-import { syntheticResults } from '../../server/test-support.js';
-import { runPddlDesign } from '../../src/workflow.js';
+import { DurableRuns } from '@pddl/persistence/durable-runs';
+import { syntheticResults } from '../support/test-support.js';
+import { runPddlDesign } from '@pddl/workflows/workflow';
 
 const queue = process.env.TEST_QUEUE!;
-const runs = new DurableRuns({
+const runs = createRuns({
   databaseUrl: process.env.PDDL_TEST_DATABASE_URL!,
   queue,
   assess: (input, request, profile, onTask, ctx) =>
@@ -112,3 +113,9 @@ const tasks: TaskClient = {
 await runs.initialize();
 await runs.startWorker({ claimTimeout: 2, pollInterval: 0.05 });
 process.stdout.write('READY\n');
+
+function createRuns(options: ConstructorParameters<typeof DurableRuns>[0] & { execute: import('@pddl/workflows/executor').Execute; assess?: import('@pddl/workflows/executor').SourceExecute }) {
+  const runs = new DurableRuns(options);
+  registerWorkflows(runs, options.execute, options.assess);
+  return runs;
+}
