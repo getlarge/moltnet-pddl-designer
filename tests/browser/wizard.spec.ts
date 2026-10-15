@@ -572,6 +572,9 @@ test('source check previews requests and informs the Actions review decision', a
     panel.getByText(/model probability for this label/).first(),
   ).not.toBeVisible();
   const firstResult = panel.locator('.source-check-result').first();
+  await expect(
+    firstResult.getByLabel('Classifier state, question and answer'),
+  ).toHaveCount(0);
   await firstResult.getByText('Check details', { exact: true }).click();
   const evidence = JSON.parse(
     (await firstResult
@@ -583,6 +586,9 @@ test('source check previews requests and informs the Actions review decision', a
   expect(evidence.question.criteria).toHaveProperty('contradicted');
   expect(evidence.answer.choice).toBe('contradicted');
   await firstResult.getByText('Check details', { exact: true }).click();
+  await expect(
+    firstResult.getByLabel('Classifier state, question and answer'),
+  ).toHaveCount(0);
   const shared = panel.locator('.source-check-evidence');
   await expect(shared.locator(':scope > summary')).toContainText('all 3 rules');
   await shared.locator(':scope > summary').click();

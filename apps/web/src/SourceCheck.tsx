@@ -83,6 +83,9 @@ export function SourceCheck({
   const [preview, setPreview] = useState<ClassifyInput>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [expandedEvidence, setExpandedEvidence] = useState<
+    Record<string, boolean>
+  >({});
   const checking = record?.status === 'checking';
   const active = record?.attempt === attempt ? record : undefined;
   async function previewCheck() {
@@ -340,7 +343,16 @@ export function SourceCheck({
                           : 'Prepare clarification note'}
                       </button>
                     )}
-                    <details>
+                    <details
+                      onToggle={(event) => {
+                        const open = event.currentTarget.open;
+                        setExpandedEvidence((previous) =>
+                          previous[id] === open
+                            ? previous
+                            : { ...previous, [id]: open },
+                        );
+                      }}
+                    >
                       <summary>Check details</summary>
                       <p className="small">
                         {(answer.probabilities[answer.choice] * 100).toFixed(0)}
@@ -370,19 +382,21 @@ export function SourceCheck({
                         State is shared by all checked rules. The question and
                         answer below belong to this rule.
                       </p>
-                      <CodeBlock
-                        code={JSON.stringify(
-                          {
-                            state: active.input.state,
-                            question: active.input.questions[id],
-                            answer,
-                          },
-                          null,
-                          2,
-                        )}
-                        language="json"
-                        label="Classifier state, question and answer"
-                      />
+                      {expandedEvidence[id] && (
+                        <CodeBlock
+                          code={JSON.stringify(
+                            {
+                              state: active.input.state,
+                              question: active.input.questions[id],
+                              answer,
+                            },
+                            null,
+                            2,
+                          )}
+                          language="json"
+                          label="Classifier state, question and answer"
+                        />
+                      )}
                     </details>
                   </div>
                 </article>
