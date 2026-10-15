@@ -7,6 +7,7 @@ import {
   type GroundAction,
 } from '@pddl/domain/planner';
 import type { DesignRun } from '@pddl/contracts/design';
+import { PlanDependencyGraph } from './PlanDependencyGraph.js';
 import { actionLabel, factLabel } from './model.js';
 import { useCurrentInView } from './useCurrentInView.js';
 
@@ -23,6 +24,7 @@ export function PlanExplorer({
   const history = timeline.slice(0, position);
   const [selected, setSelected] = useState('');
   const [filter, setFilter] = useState('');
+  const [planView, setPlanView] = useState<'graph' | 'steps'>('graph');
   const grounded = useMemo(() => {
     if (!run.domain || !run.problem)
       return {
@@ -64,6 +66,9 @@ export function PlanExplorer({
       : undefined);
   const followingPlan = timeline.every((a, i) => a.label === plan[i]);
   const displayedSteps = followingPlan ? plan : timeline.map((a) => a.label);
+  const graphActions = displayedSteps
+    .map((label) => grounded.actions.find((action) => action.label === label))
+    .filter((action): action is GroundAction => !!action);
   function goToState(index: number) {
     const sequence = displayedSteps.map((label) =>
       grounded.actions.find((a) => a.label === label),
@@ -167,38 +172,69 @@ export function PlanExplorer({
           steps.
         </p>
       )}
-      <nav
-        ref={timelineRail}
-        className="plan-timeline"
-        aria-label="Plan progression"
-      >
-        <ol>
-          <li>
-            <button
-              aria-current={position === 0 ? 'step' : undefined}
-              onClick={() => goToState(0)}
-            >
-              <span>Start</span>
-              <strong>Initial facts</strong>
-            </button>
-          </li>
-          {displayedSteps.map((label, i) => (
-            <li key={`${label}-${i}`}>
+      {displayedSteps.length > 0 && (
+        <div className="plan-view-switch" role="group" aria-label="Plan view">
+          <button
+            aria-pressed={planView === 'graph'}
+            onClick={() => setPlanView('graph')}
+          >
+            Graph
+          </button>
+          <button
+            aria-pressed={planView === 'steps'}
+            onClick={() => setPlanView('steps')}
+          >
+            Steps
+          </button>
+        </div>
+      )}
+      {planView === 'graph' && graphActions.length ? (
+        <>
+          <p className="small plan-graph-note">
+            Lines show required ordering. Steps without a path between them can
+            be taken in either order; this plan does not assign times.
+          </p>
+          <PlanDependencyGraph
+            actions={graphActions}
+            position={position}
+            describeAction={describeAction}
+            onSelect={goToState}
+          />
+        </>
+      ) : (
+        <nav
+          ref={timelineRail}
+          className="plan-timeline"
+          aria-label="Plan progression"
+        >
+          <ol>
+            <li>
               <button
-                aria-current={position === i + 1 ? 'step' : undefined}
-                className={i + 1 < position ? 'visited' : ''}
-                onClick={() => goToState(i + 1)}
+                aria-current={position === 0 ? 'step' : undefined}
+                onClick={() => goToState(0)}
               >
-                <span>
-                  Step {i + 1}
-                  {position === i + 1 ? ' · viewing' : ''}
-                </span>
-                <strong>{describeAction(label)}</strong>
+                <span>Start</span>
+                <strong>Initial facts</strong>
               </button>
             </li>
-          ))}
-        </ol>
-      </nav>
+            {displayedSteps.map((label, i) => (
+              <li key={`${label}-${i}`}>
+                <button
+                  aria-current={position === i + 1 ? 'step' : undefined}
+                  className={i + 1 < position ? 'visited' : ''}
+                  onClick={() => goToState(i + 1)}
+                >
+                  <span>
+                    Step {i + 1}
+                    {position === i + 1 ? ' · viewing' : ''}
+                  </span>
+                  <strong>{describeAction(label)}</strong>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
       <p className="small">
         Select Start or a step to inspect its resulting state. Participants are
         labeled type: object in both actions and facts; numbered types follow
