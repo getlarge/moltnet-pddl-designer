@@ -1421,6 +1421,92 @@ td:first-child {
 .plan-timeline button.visited {
   background: var(--wash);
 }
+.plan-view-switch {
+  display: inline-flex;
+  margin-top: 24px;
+  border: 1px solid var(--rule);
+}
+.plan-view-switch button {
+  min-width: 74px;
+  border: 0;
+  border-radius: 0;
+  font-size: 12px;
+}
+.plan-view-switch button + button {
+  border-left: 1px solid var(--rule);
+}
+.plan-view-switch button[aria-pressed='true'] {
+  background: var(--selected);
+  color: var(--focus);
+  font-weight: 600;
+  box-shadow: inset 0 -2px var(--focus);
+}
+.plan-explorer > .plan-graph-note {
+  margin: 12px 0 0;
+}
+.plan-graph {
+  max-width: 100%;
+  max-height: 420px;
+  overflow: auto;
+  margin: 12px 0;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+}
+.plan-graph-canvas {
+  position: relative;
+}
+.plan-graph svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.plan-graph svg > path {
+  fill: none;
+  stroke: var(--focus);
+  stroke-width: 1.5px;
+}
+.plan-graph marker path {
+  fill: var(--focus);
+}
+.plan-graph-node {
+  position: absolute;
+  width: 184px;
+  height: 80px;
+  padding: 11px 13px;
+  text-align: left;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.plan-graph-node span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.plan-graph-node strong {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.plan-graph-node.boundary {
+  background: var(--wash);
+  border-color: var(--rule);
+}
+.plan-graph-node.visited {
+  background: var(--wash);
+}
+.plan-graph-node[aria-current='step'] {
+  border: 2px solid var(--focus);
+  background: var(--selected);
+}
 .plan-workspace .simulation-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 28px;
