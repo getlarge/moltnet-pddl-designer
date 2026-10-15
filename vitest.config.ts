@@ -7,7 +7,12 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     root: resolve(import.meta.dirname),
-    include: ['src/**/*.test.ts', 'server/**/*.test.ts'],
+    include: [
+      'packages/**/*.test.ts',
+      'apps/**/*.test.ts',
+      'tests/api/**/*.test.ts',
+      'tests/support/**/*.test.ts',
+    ],
     testTimeout: 10_000,
   },
 });

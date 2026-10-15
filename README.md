@@ -13,12 +13,17 @@ Install the Node version in `.tool-versions`, then enable pnpm through Corepack:
 ```bash
 corepack enable pnpm
 pnpm install
+pnpm db:up
+export PDDL_DATABASE_URL=postgresql://designer@127.0.0.1:5440/designer
+pnpm db:init
 pnpm dev
 ```
 
-Open `http://127.0.0.1:4317`. The local server serves the UI and talks to
-MoltNet; generation workers run separately (see the [setup guide](docs/SETUP.md)).
-For a built UI, run `pnpm build` followed by `pnpm start`. Saved proofs default
+Open `http://127.0.0.1:4317`. The local server serves the UI; a local worker
+calls MoltNet. Generation workers run separately (see the
+[setup guide](docs/SETUP.md)).
+For a built UI, run `pnpm build`, then `pnpm start` and `pnpm worker` in
+separate terminals with the same `PDDL_DATABASE_URL`. Saved proofs default
 to `runs/`; override with `pnpm dev --runs-dir /path/to/proofs`.
 
 Review extracted meaning alongside numbered source sentences, then Pass,
@@ -35,10 +40,14 @@ conditions. The description starts collapsed here to give the walkthrough room.
 
 An unfinished live run can be recovered from **Resume current run** on a fresh
 page. At its review gate, continue reading or withdraw it before starting another
-run. Live sessions last only as long as the local server process; save completed
-proofs to reopen them after a restart. A worker-claim timeout explains which step
-was not picked up and offers **Review setup and retry**. Generated corrections
-cannot skip earlier saved edits that still need your approval.
+run. Live runs and review decisions survive server restarts in Postgres. A
+worker-claim timeout explains which step was not picked up and offers **Review
+setup and retry**. Generated corrections cannot skip earlier saved edits that
+still need your approval.
+
+At the Actions review gate, select rules to compare with the description,
+preview the request, and run an optional [source check](#source-checks-during-actions-review)
+using a classification profile.
 
 ## Writing the inputs
 
@@ -87,17 +96,54 @@ improved pass rates beyond run-to-run noise.
 
 ## Workflow at a glance
 
-The description defines reusable rules; the situation supplies objects, initial
-facts, and a goal. Both feed the plan check. The wizard offers review at each
-extraction stage, and invalid results can trigger correction tasks.
+The **Actions review gate** is where you inspect the draft action definitions,
+compare them with your description, and choose **Pass**, **Correct**, **Return
+with note**, or **Withdraw**. It sits **after action generation and local checks,
+before Refinement**. The blue node below marks that location.
+
+`freeform` nodes are generation tasks; `classify` nodes are decision-model tasks.
+`Local` nodes run in code. Review gates pause for the expert in the wizard;
+library callers opt into them with `confirmStage`. The overview includes the
+optional final plan review.
 
 ```mermaid
-flowchart LR
-  D["Process description"] --> T["Types"] --> P["Predicates"] --> A["Actions"] --> R["Refinement"]
-  S["Situation"] --> I["Problem"]
-  D --> I
-  R --> I --> C["Checks and planner"] --> O["Plan or findings"]
+flowchart TD
+    Input["Expert's process description + concrete situation"]
+    Input --> Types["freeform: extract types"]
+    Types --> TypesGate{"Local checks + Types review gate"}
+    TypesGate -->|Pass| Facts["freeform: extract facts / predicates"]
+    Facts --> FactsGate{"Local checks + Facts review gate"}
+    FactsGate -->|Pass| Actions["freeform: draft actions<br/>Parameters, prerequisites, added / removed facts"]
+    Actions --> ActionsGate{"Local checks + ACTIONS REVIEW GATE<br/>Expert reviews the draft"}
+    ActionsGate -->|Optional: select rules and preview| SourceCheck["classify: compare selected action rules<br/>with the original description"]
+    SourceCheck -->|Judgments + probabilities| ActionsGate
+    ActionsGate -->|Pass| Refine["freeform: refine actions"]
+    Refine --> RefineGate{"Local checks + Refinement review gate"}
+    RefineGate -->|Pass| Domain["Local: render domain PDDL"]
+    Domain --> Problem["freeform: build problem<br/>Objects, starting facts, goal"]
+    Problem --> ProblemGate{"Local checks + reachability<br/>Situation review gate"}
+    ProblemGate -->|Pass| Render["Local: render problem PDDL"]
+    Render --> Plan["Local: ground actions + search for a plan"]
+    Plan --> Review{"Plan found and final review enabled?<br/>CLI / library option"}
+    Review -->|No| Result["Model, plan or search result, and task evidence"]
+    Review -->|Yes| Analysis["Local: analyze skippable actions + shared work"]
+    Analysis -->|Skippable actions and classifier configured| Classify["classify: must this step happen<br/>according to the process?"]
+    Analysis -->|No classification needed| Repair
+    Classify --> Repair{"Local: findings and repair budget?"}
+    Repair -->|No findings or budget exhausted| Result
+    Repair -->|Required step can be skipped| Refine
+    Repair -->|Work incorrectly shared between items| Facts
+
+    classDef gate fill:#eaf2f7,stroke:#225b78,stroke-width:3px,color:#1a1a1a
+    classDef decision fill:#fff6e7,stroke:#805313,stroke-width:2px,color:#1a1a1a
+    class ActionsGate gate
+    class Classify,SourceCheck decision
 ```
+
+Generation retries and the other gates' edit/feedback/withdraw paths are omitted
+from this overview. Every generated or edited result is checked; blocking errors
+prevent passing. Final-review repairs are bounded and re-enter the normal checks
+and gates. The problem is reused only while it remains valid for the new domain.
 
 ### Stages
 
@@ -137,6 +183,48 @@ the result. Missing citations remain visible and are not silently invented.
 These checks also apply to CLI runs: invalid numbers can trigger the normal
 automatic correction attempt. Numbering currently uses Node's `Intl.Segmenter`;
 keep the Node/ICU version consistent when moving saved proofs between machines.
+
+### Source checks during Actions review
+
+At the **Actions review gate**, expand **Compare actions with your description**
+and select the rules you want checked. **Preview source check** constructs the
+exact request locally: your original process description and situation, the
+selected prerequisites or effects, the complete selected actions, related
+predicate definitions and typed participants, and a question per rule. It
+creates no task. Enter a **Classification profile name or ID** and choose
+**Run source check** to submit one `classify` task for up to 20 rules.
+
+```mermaid
+flowchart TD
+    Draft["Generated Actions draft"] --> Check{"Local: schema + static checks"}
+    Check -->|Errors| Correct["Correct draft or return with note"]
+    Correct --> Check
+    Check -->|Valid| Gate{"ACTIONS REVIEW GATE"}
+    Gate -->|Optional: select rules| Preview["Local: preview source, claims and questions"]
+    Preview -->|Run source check| Assess["classify: source supports, contradicts,<br/>or does not establish each claim"]
+    Assess --> Evidence["Show judgments, probabilities,<br/>exact questions and task evidence"]
+    Evidence --> Gate
+    Gate -->|Correct / Return with note| Correct
+    Gate -->|Pass| Refine["Refinement"]
+    Gate -->|Withdraw| Stop["Stop run"]
+    classDef gate fill:#eaf2f7,stroke:#225b78,stroke-width:3px,color:#1a1a1a
+    classDef decision fill:#fff6e7,stroke:#805313,stroke-width:2px,color:#1a1a1a
+    class Gate gate
+    class Assess decision
+```
+
+For example, if processing consumes a fresh inspection but the draft preserves
+it, select **process parcel: Keeps freshly inspected after the action**. The
+check compares that precise rule with your description. Permanent certification
+can legitimately remain true; when the description does not settle a rule, the
+third answer preserves that uncertainty.
+
+Results inform your decision. They do not pass the gate, change actions, or
+waive local errors. **Prepare correction note** fills a note for you to review;
+you decide whether to send it. Pass and corrections pause while a check runs;
+Withdraw remains available. Editing or returning the draft clears its old
+judgments. Selected-rule checks do not discover every missing requirement, and
+an Actions judgment does not validate later Refinement edits.
 
 ## Output
 

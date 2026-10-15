@@ -1,28 +1,12 @@
 {
-  "compilerOptions": {
-    "target": "ES2023",
-    "lib": [
-      "ES2023"
-    ],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "noUncheckedIndexedAccess": false,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "verbatimModuleSyntax": false,
-    "noEmit": true,
-    "types": [
-      "node"
-    ]
-  },
+  "extends": "./tsconfig.base.json",
   "include": [
-    "src/**/*.ts",
     "scripts/**/*.ts",
-    "vitest.config.ts",
-    "server/**/*.ts",
-    "vite.config.ts"
-  ]
+    "tests/**/*.ts",
+    "vitest*.ts",
+    "playwright.config.ts"
+  ],
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  }
 }

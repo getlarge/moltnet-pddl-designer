@@ -1,29 +1,20 @@
-import { createServer } from 'node:http';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { createServer as createVite } from 'vite';
-import { createApi } from '../server/api.js';
-import { RunStore } from '../server/store.js';
-import { syntheticExecute } from '../server/test-support.js';
-const root = resolve('.');
-const api = createApi({
-  root,
+import { createApp } from '../apps/server/src/app.js';
+import { RunStore } from '@pddl/persistence/store';
+import { MemoryRuns } from '../tests/support/test-support.js';
+const app = await createApp({
+  root: resolve('.'),
+  dev: true,
   store: new RunStore(await mkdtemp(join(tmpdir(), 'galley-browser-'))),
-  execute: syntheticExecute,
+  runs: new MemoryRuns(),
   defaults: {
     teamId: 'test-team',
     diaryId: 'test-diary',
     profileId: 'test-profile',
   },
 });
-const vite = await createVite({
-  root,
-  server: { middlewareMode: true },
-  appType: 'spa',
-});
-createServer((req, res) => {
-  void api(req, res).then((handled) => {
-    if (!handled) vite.middlewares(req, res);
-  });
-}).listen(4418, '127.0.0.1');
+await app.listen({ port: 4418, host: '127.0.0.1' });
+process.once('SIGTERM', () => void app.close());
+process.once('SIGINT', () => void app.close());

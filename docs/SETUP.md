@@ -9,6 +9,73 @@ ID and `DIARY` to the diary ID that will own the design tasks. The
 [agent operations guide](https://docs.themolt.net/operate/running-agents)
 covers daemon configuration and worker routing.
 
+## Local database and worker
+
+Install Docker and `uv` (providing `uvx`) for local database setup. From the
+repository root, run `pnpm db:up`, set
+`PDDL_DATABASE_URL=postgresql://designer@127.0.0.1:5440/designer`, then run
+`pnpm db:init`. The initialization command explicitly initializes Absurd 0.4.0
+and applies designer migrations; normal server startup never migrates a
+database. Use a dedicated database. The Compose database accepts connections
+only on loopback and uses trust authentication for local development. Use
+authenticated connections for any non-local database.
+
+### Durable runtime
+
+```mermaid
+flowchart LR
+    UI[React SPA] <-->|HTTP commands + SSE snapshots| API[Fastify]
+    API <--> DB[(Postgres: runs, gates, Absurd)]
+    Worker[Absurd worker] <--> DB
+    Worker --> SDK[MoltNet SDK]
+    SDK --> Tasks[MoltNet tasks and generation workers]
+```
+
+The browser remains client-rendered; there is no SSR. It reads server-owned
+snapshots and sends review decisions. Sharing state does not require rendering
+HTML on the server. Credentials and MoltNet SDK calls stay in the worker process.
+Fastify hosts only the HTTP API and UI; a separate process runs Absurd.
+`pnpm dev` starts both and stops them together; `pnpm dev --offline` starts only
+the server. Use `pnpm dev:server` and `pnpm worker` to run them independently.
+The server does not need agent credentials. The CLI remains a single-process,
+inline workflow and does not gain restart recovery from this change.
+
+Absurd checkpoints task creation, terminal outcomes, profile resolution and
+claim deadlines. Review decisions and their wake-up events commit in one database
+transaction. Each gate generation can be decided once. A replacement worker
+replays checkpoints after its predecessor's lease expires (up to about two
+minutes by default), keeping external task creation idempotent. A database outage
+pauses progress; reopening the browser does not reset the run. Exhausted engine
+retries are shown as a stopped run and release the one-active-run limit.
+
+**Withdraw running proof** stops orchestration even while waiting for a worker.
+It does not cancel a generation task already dispatched to MoltNet; that task
+may finish, but cannot advance the withdrawn proof. At a review gate, the existing
+Withdraw action records the reviewer's decision and produces a stopped proof.
+
+Keep the database volume (`moltnet-pddl-designer-data`) across restarts. Live
+history currently has no automatic retention cleanup. Keep exported proofs in a
+stable directory outside disposable worktrees, for example:
+
+```bash
+pnpm dev --runs-dir "$HOME/.local/share/moltnet-pddl-designer/runs"
+# Saved proof viewing/editing without Postgres or an agent:
+pnpm dev --offline --runs-dir "$HOME/.local/share/moltnet-pddl-designer/runs"
+```
+
+JSON import/export remains independent of the live database. Preserve both the
+Postgres volume and exported files when moving installations. A run URL can
+reopen its persisted result; saving it also adds it to the file-backed galley rack.
+Do not replace workflow code underneath active runs with incompatible stage or
+checkpoint changes: drain those runs first or introduce a versioned queue/handler.
+
+Recovery tests use a dedicated provisioned test database and real worker process
+kills, with persisted synthetic tasks instead of live MoltNet credentials:
+
+```bash
+PDDL_TEST_DATABASE_URL="$PDDL_DATABASE_URL" pnpm test:durable
+```
+
 ## Runtime profiles
 
 `runtime/profiles/legreffier-pddl-designer-v1.json` is input-only. It
@@ -105,7 +172,33 @@ and that its team/correlation filters admit the run. If execution fails, check
 provider credentials and model availability in the daemon environment. Granting
 extra filesystem or network permissions is not a remedy for a routing problem.
 
-Optional semantic review uses `--review --classify-profile` with a profile
-configured for `models.classification` and a worker serving `classify` tasks.
-This is separate from generation overrides and is currently CLI-only. See
-[Plan review](../README.md#plan-review-optional); static validation remains authoritative.
+### Classification profiles
+
+Source checks are enabled by choosing rules at the live **Actions review gate**,
+previewing the request, and providing a classification profile there. There is
+no intake toggle and no automatic source-check charge. Use this when a draft
+prerequisite, effect, ownership link, or reusable fact needs interpretation
+against the description. Local syntax and type checks need no decision model.
+
+`runtime/profiles/legreffier-pddl-classifier-v1.json` supplies a separate
+input-only profile with `models.classification` set to TypeSafe's `jev-latest`.
+Generation profiles and per-step overrides do not select this model. Create it
+and bind the existing empty tool policy:
+
+```bash
+moltnet profile create --from-file runtime/profiles/legreffier-pddl-classifier-v1.json --team-id "$TEAM"
+moltnet profile set-policies legreffier-pddl-classifier-v1 --policy legreffier-pddl-designer-input-only-v1 --team-id "$TEAM"
+moltnet-agent poll --team "$TEAM" --profile legreffier-pddl-classifier-v1 --task-types classify --workspace-strategy none
+```
+
+The worker needs TypeSafe provider credentials in its runtime environment. No
+workspace tools or model sandbox network access are required; the daemon calls
+the provider. Keep the worker polling while you review stages. The wizard checks
+that the profile belongs to the run's team and has a classification model before
+creating a source-check task. Each explicit run has one attempt; a failure leaves
+the draft available for review. The proof retains the exact request, returned
+answers, task ID, elapsed time and available token usage.
+
+Optional **final plan review** uses `--review --classify-profile` in the CLI. It
+asks whether a skippable step is required after plan search. This is separate
+from the wizard's source checks. See [Plan review](../README.md#plan-review-optional).
