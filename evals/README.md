@@ -11,13 +11,19 @@ and effects. Its provenance names a public source and states whether the
 project curated the annotation. A paper's example is not automatically a gold
 label. Do not include local book paths or unpublished source files in fixtures.
 
-First export model-facing inputs without gold labels:
+First export model-facing inputs without gold labels and a blank predictions
+template:
 
 ```bash
-pnpm eval:temporal:inputs evals/temporal/v1.json /tmp/temporal-inputs.jsonl
+pnpm eval:temporal:inputs evals/temporal/v1.json /tmp/temporal-inputs.jsonl /tmp/predictions.jsonl
 ```
 
-For an offline run, create one JSONL prediction per case. Give every prediction
+The command prints the paths it wrote and will not overwrite an existing
+predictions file. The template has `null` detection answers; replace them and
+fill in duration and timed clauses from your model or classifier outputs.
+This export step does not call a model.
+
+For an offline run, provide one JSONL prediction per case. Give every prediction
 the same `runId`; use a new `runId` for each repeat. Each row needs `id`,
 `runId`, `hasDurativeEvidence`, `durationSeconds` (or `null`), `conditions`, and
 `effects`. For example:
