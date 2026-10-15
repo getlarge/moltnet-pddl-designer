@@ -15,6 +15,9 @@ Planning from Natural Language Descriptions" (CAI 2026,
 [code](https://github.com/giacomo1096/NL2PDDL)), with three changes found by
 reproducing that pipeline:
 
+See [related research](docs/RELATED-RESEARCH.md) for the source papers and
+related work on temporal PDDL and domain generation.
+
 | Paper                                                         | This library                                                                                                      |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | BAML classes; preconditions and effects as free-text strings  | TypeBox schemas sent as `outputContract`; preconditions and effects are typed atoms                               |
