@@ -1,5 +1,7 @@
 # MoltNet PDDL designer (experimental)
 
+> **When can we trust a generated planning model to represent the process the expert actually described?**
+
 Turns an expert's process description and a concrete situation into a typed
 PDDL domain and problem, checks them with a planner, and presents a plan for
 review. Generation runs as contracted `freeform` tasks on
