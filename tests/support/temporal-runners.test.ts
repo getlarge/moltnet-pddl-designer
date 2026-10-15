@@ -74,9 +74,10 @@ describe('temporal runner artifacts', () => {
       import('../../scripts/eval/run-temporal-detection.js'),
     ).rejects.toThrow('offline');
     expect(JSON.parse(readFileSync(reportFile, 'utf8'))).toMatchObject({
-      status: 'started',
+      status: 'failed',
       runId: 'new-run',
       completed: 0,
+      error: 'offline',
     });
 
     vi.resetModules();
@@ -108,9 +109,11 @@ describe('temporal runner artifacts', () => {
       import('../../scripts/eval/run-temporal-detection.js'),
     ).rejects.toThrow('second case failed');
     expect(JSON.parse(readFileSync(reportFile, 'utf8'))).toMatchObject({
-      status: 'partial',
+      status: 'failed',
       runId: 'new-run',
       completed: 1,
+      failedCaseId: 'negative',
+      error: 'second case failed',
     });
 
     vi.resetModules();
@@ -146,8 +149,9 @@ describe('temporal runner artifacts', () => {
     expect(
       JSON.parse(readFileSync(`${predictionsFile}.meta.json`, 'utf8')),
     ).toMatchObject({
-      status: 'started',
+      status: 'failed',
       runId: 'new-run',
+      error: 'offline',
     });
 
     vi.resetModules();
@@ -203,8 +207,10 @@ describe('temporal runner artifacts', () => {
     expect(
       JSON.parse(readFileSync(`${predictionsFile}.meta.json`, 'utf8')),
     ).toMatchObject({
-      status: 'partial',
+      status: 'failed',
       runId: 'new-run',
+      failedCaseId: 'two',
+      error: 'second task failed',
     });
 
     vi.resetModules();

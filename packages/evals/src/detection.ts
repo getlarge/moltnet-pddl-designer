@@ -101,16 +101,14 @@ export function evaluateTemporalDetection(
     runIds.add(prediction.runId);
     const expected = item.gold.hasDurativeEvidence;
     const predicted = prediction.probability >= threshold;
-    const result: keyof Pick<
+    let result: keyof Pick<
       Counts,
       'truePositive' | 'trueNegative' | 'falsePositive' | 'falseNegative'
-    > = expected
-      ? predicted
-        ? 'truePositive'
-        : 'falseNegative'
-      : predicted
-        ? 'falsePositive'
-        : 'trueNegative';
+    >;
+    if (expected && predicted) result = 'truePositive';
+    else if (expected) result = 'falseNegative';
+    else if (predicted) result = 'falsePositive';
+    else result = 'trueNegative';
     const correct = expected === predicted;
     for (const bucket of [
       totals,
