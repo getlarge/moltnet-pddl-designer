@@ -9,9 +9,12 @@ Read `evals/README.md` and the selected versioned case file before preparing an
 evaluation. Keep case IDs, gold labels, and source provenance stable during a
 comparison; make deliberate annotation revisions in a new dataset version.
 
-Export model-facing inputs with `pnpm eval:temporal:inputs`. Adapt the model or
-classifier output into the normalized prediction rows used by `pnpm
-eval:temporal`. Supply exactly one row per case and run. Treat `dev` cases as
+Use `pnpm eval:temporal:live` to collect and score MoltNet generation outputs.
+Use `pnpm eval:temporal:detect` to score a MoltNet classification profile's
+temporal-evidence decision and record probabilities and wall time.
+For external models or classifiers, export inputs with
+`pnpm eval:temporal:inputs` and adapt outputs into the normalized rows used by
+`pnpm eval:temporal`. Supply exactly one row per case and run. Treat `dev` cases as
 visible examples and `holdout` cases as scoring data only; never place holdout
 gold in a runtime prompt or retrieval corpus.
 

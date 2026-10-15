@@ -1,0 +1,41 @@
+{
+  "allowedWorkspaceModes": ["none"],
+  "context": [],
+  "defaultWorkspaceMode": "none",
+  "description": "Input-only local Ollama Nimble classifier for source checks, plan review, and temporal detection evaluations.",
+  "maxBashTimeouts": 1,
+  "maxTurns": 0,
+  "models": {
+    "classification": {
+      "model": "nimble:9b-q4_k_m",
+      "provider": "ollama"
+    }
+  },
+  "name": "legreffier-pddl-classifier-ollama-v1",
+  "requiredEnv": [],
+  "requiredExecutables": [],
+  "requiredTools": [],
+  "runtimeKind": "gondolin_pi",
+  "sandbox": {
+    "env": {},
+    "network": {
+      "allowedHosts": [],
+      "allowedInternalHosts": []
+    },
+    "resources": {
+      "cpus": 2,
+      "memory": "4G"
+    },
+    "vfs": {
+      "shadow": [
+        ".moltnet",
+        ".moltnet/**",
+        ".env",
+        ".env.local",
+        ".env.infra.local"
+      ],
+      "shadowMode": "deny"
+    }
+  },
+  "toolEnforcement": "enforce"
+}
