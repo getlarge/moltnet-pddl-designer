@@ -4,6 +4,7 @@
  * diffed, and signed. Requirements are derived from the IR, never guessed.
  */
 import type { Atom, Domain, Literal, Problem } from './ir.js';
+import { checkDurativeAction, type DurativeAction } from './temporal.js';
 
 const atom = (x: Atom) =>
   x.args.length ? `(${x.predicate} ${x.args.join(' ')})` : `(${x.predicate})`;
@@ -36,9 +37,31 @@ export function requirements(domain: Domain): string[] {
 }
 
 export function renderDomain(domain: Domain): string {
+  return renderDomainWithTiming(domain, []);
+}
+
+/** Render a mixed domain, replacing the named classical drafts with durative actions. */
+export function renderDomainWithTiming(
+  domain: Domain,
+  durativeActions: DurativeAction[],
+): string {
+  const timed = new Map<string, DurativeAction>();
+  for (const action of durativeActions) {
+    if (timed.has(action.name))
+      throw new Error(`Duplicate durative action ${action.name}.`);
+    checkDurativeAction(domain, action);
+    timed.set(action.name, action);
+  }
+  const reqs = requirements(domain);
+  if (timed.size) reqs.push(':durative-actions');
+  if (
+    [...timed.values()].some((a) => a.conditions.some((c) => c.negated)) &&
+    !reqs.includes(':negative-preconditions')
+  )
+    reqs.push(':negative-preconditions');
   const lines = [
     `(define (domain ${domain.name})`,
-    `  (:requirements ${requirements(domain).join(' ')})`,
+    `  (:requirements ${reqs.join(' ')})`,
     '  (:types',
     ...typedList(
       domain.types.map((t) => ({ name: t.name, type: t.parent ?? 'object' })),
@@ -52,6 +75,22 @@ export function renderDomain(domain: Domain): string {
     '  )',
   ];
   for (const a of domain.actions) {
+    const durative = timed.get(a.name);
+    if (durative) {
+      const timedLiteral = (c: DurativeAction['conditions'][number]) =>
+        c.timing === 'overall'
+          ? `(over all ${literal(c)})`
+          : `(at ${c.timing} ${literal(c)})`;
+      lines.push(
+        `  (:durative-action ${a.name}`,
+        `    :parameters (${typedList(a.parameters).join(' ')})`,
+        `    :duration (= ?duration ${durative.durationSeconds})`,
+        `    :condition ${conj(durative.conditions.map(timedLiteral))}`,
+        `    :effect ${conj(durative.effects.map(timedLiteral))}`,
+        '  )',
+      );
+      continue;
+    }
     const effects = [
       ...a.addEffects.map(atom),
       ...a.deleteEffects.map((x) => `(not ${atom(x)})`),

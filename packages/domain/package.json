@@ -38,6 +38,10 @@
       "types": "./src/render.ts",
       "import": "./src/render.ts"
     },
+    "./temporal": {
+      "types": "./src/temporal.ts",
+      "import": "./src/temporal.ts"
+    },
     "./source-grounding-targets": {
       "types": "./src/source-grounding-targets.ts",
       "import": "./src/source-grounding-targets.ts"
