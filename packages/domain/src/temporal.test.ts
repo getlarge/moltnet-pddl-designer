@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Domain } from './ir.js';
 import { renderDomainWithTiming } from './render.js';
-import type { DurativeAction } from './temporal.js';
+import { assertActionCoverage, type DurativeAction } from './temporal.js';
 
 const domain: Domain = {
   name: 'loading',
@@ -114,5 +114,20 @@ describe('temporal PDDL rendering', () => {
         },
       ]),
     ).toThrow('Invalid effect timing');
+  });
+
+  it('does not treat an invariant as a draft start precondition', () => {
+    expect(() => assertActionCoverage(domain.actions[0], timed)).toThrow(
+      'omitted precondition',
+    );
+    expect(() =>
+      assertActionCoverage(domain.actions[0], {
+        ...timed,
+        conditions: [
+          ...timed.conditions,
+          { ...timed.conditions[1], timing: 'start' },
+        ],
+      }),
+    ).not.toThrow();
   });
 });

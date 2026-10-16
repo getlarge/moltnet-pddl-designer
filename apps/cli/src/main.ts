@@ -98,6 +98,11 @@ export async function main(argv = process.argv.slice(2)) {
     throw new Error(
       '--review and --temporal need --classify-profile\n' + USAGE,
     );
+  const classificationProfileId = values['classify-profile']
+    ? profileId(values['classify-profile'])
+    : undefined;
+  if (values.temporal)
+    input.temporal = { classificationProfile: classificationProfileId! };
 
   const threshold = Number(values['review-threshold']);
   if (!(threshold > 0 && threshold < 1))
@@ -122,7 +127,7 @@ export async function main(argv = process.argv.slice(2)) {
               diaryId: input.diaryId,
               ...(input.projectId ? { projectId: input.projectId } : {}),
               correlationId: input.correlationId,
-              profileId: profileId(values['classify-profile'] ?? ''),
+              profileId: classificationProfileId!,
               claimTimeoutSec,
             }),
           },
@@ -138,12 +143,13 @@ export async function main(argv = process.argv.slice(2)) {
           diaryId: input.diaryId,
           ...(input.projectId ? { projectId: input.projectId } : {}),
           correlationId: input.correlationId,
-          profileId: profileId(values['classify-profile'] ?? ''),
+          profileId: classificationProfileId!,
           claimTimeoutSec,
         }),
         createTemporalExtractor(tasks, {
           teamId: input.teamId,
           diaryId: input.diaryId,
+          projectId: input.projectId,
           correlationId: input.correlationId,
           profileId: input.profileId,
           claimTimeoutSec,

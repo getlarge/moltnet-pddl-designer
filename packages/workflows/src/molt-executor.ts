@@ -23,6 +23,10 @@ export async function finishTemporalRun(
   onEvent?: DesignOptions['onEvent'],
   valBinary?: string,
 ): Promise<DesignRun> {
+  if (run.status === 'invalid' || run.status === 'failed') {
+    await onEvent?.({ type: 'finished', run });
+    return run;
+  }
   await onEvent?.({ type: 'temporal-started' });
   try {
     const pass = await runTemporalPass(run, decisions, extractor);
@@ -119,6 +123,7 @@ export const moltExecute: Execute = async (input, options) => {
     createTemporalExtractor(tasks, {
       teamId: resolved.teamId,
       diaryId: resolved.diaryId,
+      projectId: resolved.projectId,
       correlationId: resolved.correlationId,
       profileId: resolved.profileId,
       claimTimeoutSec: options.claimTimeoutSec,

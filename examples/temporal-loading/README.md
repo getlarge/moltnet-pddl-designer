@@ -31,12 +31,13 @@ pnpm --silent cli \
 `--val` is optional. It checks the generated domain, problem, and one-step
 timed schedule with [VAL](https://github.com/KCL-Planning/VAL). Without VAL,
 the schedule is marked `candidate`; with a passing check it is `validated`.
-The built-in classical plan is kept under `baseRun` as modeling evidence. It
-must not be read as a temporal plan. For multiple steps, the pilot emits the
-timed domain and problem but does not invent a schedule.
+The CLI output is a normal run: the classical plan remains under `plan`, while
+the timed model and schedule are under `temporal`. The classical plan must not
+be read as a temporal plan. For multiple steps, the pilot emits the timed
+domain and problem but does not invent a schedule.
 
 The run reports each classifier probability, the extracted durative actions,
-and `defaultedClauses`. These defaults preserve facts from the classical draft
+and `temporal.defaultedClauses`. These defaults preserve facts from the classical draft
 that the temporal extractor did not time explicitly: preconditions use `at
 start`, effects use `at end`. Review them against the description before using
 the model in another situation. If temporal extraction or VAL fails, `--out`

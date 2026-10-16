@@ -116,6 +116,42 @@ describe('temporal pass', () => {
     expect(result.domainPddl).toContain('(at end (inspected ?c))');
   });
 
+  it('adds a start default when extraction places a draft precondition only over all', async () => {
+    const result = await runTemporalPass(
+      baseRun,
+      { yesNo: async () => 0.9 },
+      {
+        extract: async () => ({
+          ...extracted,
+          conditions: [{ ...extracted.conditions[0], timing: 'overall' }],
+        }),
+      },
+    );
+    expect(result.domainPddl).toContain('(over all (ready ?c))');
+    expect(result.domainPddl).toContain('(at start (ready ?c))');
+    expect(result.defaultedClauses).toEqual([
+      {
+        action: 'inspect',
+        kind: 'condition',
+        clause: { ...extracted.conditions[0], timing: 'start' },
+      },
+    ]);
+  });
+
+  it('extracts a timed model when the classical search found no plan', async () => {
+    const result = await runTemporalPass(
+      {
+        ...baseRun,
+        status: 'unsolvable',
+        plan: { status: 'unsolvable', explored: 2, reason: 'No path.' },
+      } as DesignRun,
+      { yesNo: async () => 0.9 },
+      { extract: async () => extracted },
+    );
+    expect(result.domainPddl).toContain('(:durative-action inspect');
+    expect(result.temporalPlan).toBeNull();
+  });
+
   it('keeps supported actions when another action has timing but no numeric duration', async () => {
     const mixed = {
       ...baseRun,

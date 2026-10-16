@@ -14,6 +14,7 @@ import {
   type DurativeAction,
 } from '@pddl/domain/temporal';
 import type { DecisionClient } from './decision.js';
+import { TASK_TAGS } from './task-tags.js';
 
 export const TEMPORAL_QUESTION = {
   instructions:
@@ -85,7 +86,11 @@ export function completeTimedAction(
     effects: [...extracted.effects],
   };
   const defaults: TemporalPass['defaultedClauses'] = [];
-  const conditions = new Set(action.conditions.map(atomKey));
+  const conditions = new Set(
+    action.conditions
+      .filter((clause) => clause.timing === 'start')
+      .map(atomKey),
+  );
   const effects = new Set(action.effects.map(atomKey));
   for (const pre of base.preconditions) {
     const key = atomKey(pre);
@@ -126,9 +131,9 @@ export async function runTemporalPass(
     throw new Error(
       'The classical workflow must produce a domain and problem first.',
     );
-  if (baseRun.status !== 'planned')
+  if (!['planned', 'unsolvable', 'search_limit'].includes(baseRun.status))
     throw new Error(
-      `The classical workflow must finish with a plan before temporal extraction (got ${baseRun.status}).`,
+      `The classical workflow must finish modeling before temporal extraction (got ${baseRun.status}).`,
     );
   if (!(threshold > 0 && threshold < 1))
     throw new Error('Temporal threshold must be between 0 and 1.');
@@ -219,6 +224,7 @@ const extractionSchema = {
 export interface TemporalExtractionOptions {
   teamId: string;
   diaryId: string;
+  projectId?: string;
   correlationId: string;
   profileId: string;
   claimTimeoutSec?: number;
@@ -241,7 +247,7 @@ export function createTemporalExtractor(
         `Extract a complete numeric-duration PDDL 2.1 action for ${action.name}.`,
         'Use seconds for duration. Return only predicates and parameter variables listed below.',
         'Conditions may be at start, overall (throughout), or end. Effects may be at start or end.',
-        'Return timed conditions and effects explicitly supported by the description. Untimed draft facts are retained by code with documented start/end defaults; do not invent timing for them. If no numeric duration is stated, return durationSeconds -1; this pilot will reject that unsupported case.',
+        'Return timed conditions and effects explicitly supported by the description. Untimed draft facts are retained by code with documented start/end defaults; do not invent timing for them. If no numeric duration is stated, return durationSeconds -1; this pilot will keep that action classical and report it as unsupported.',
         'Do not convert ordering between separate actions into a timed clause.',
         `Description: ${JSON.stringify(description)}`,
         `Draft action: ${JSON.stringify(action)}`,
@@ -256,7 +262,13 @@ export function createTemporalExtractor(
           title: `PDDL temporal extraction ${action.name}`,
           teamId: options.teamId,
           diaryId: options.diaryId,
+          ...(options.projectId ? { projectId: options.projectId } : {}),
           correlationId: options.correlationId,
+          tags: [
+            TASK_TAGS.designer,
+            TASK_TAGS.stage.temporal,
+            TASK_TAGS.domain(domain.name),
+          ],
           allowedProfiles: [{ profileId: options.profileId }],
           runningTimeoutSec: 300,
           dispatchTimeoutSec: 300,

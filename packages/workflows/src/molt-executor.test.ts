@@ -112,3 +112,26 @@ it('retains the classical result and publishes invalid temporal output', async (
     error: 'Duration for inspect must be positive seconds.',
   });
 });
+
+it('publishes a failed classical run without starting a timed pass', async () => {
+  const events: string[] = [];
+  const run = await finishTemporalRun(
+    { ...base(), status: 'invalid' },
+    {
+      yesNo: async () => {
+        throw new Error('must not classify');
+      },
+    },
+    {
+      extract: async () => {
+        throw new Error('must not extract');
+      },
+    },
+    async (event) => {
+      events.push(event.type);
+    },
+  );
+  expect(run.status).toBe('invalid');
+  expect(run.temporal).toBeUndefined();
+  expect(events).toEqual(['finished']);
+});

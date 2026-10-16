@@ -84,7 +84,10 @@ export function assertActionCoverage(
 ): void {
   const key = (x: { predicate: string; args: string[]; negated: boolean }) =>
     JSON.stringify([x.predicate, x.args, x.negated]);
-  const conditions = new Set(timed.conditions.map(key));
+  // Over-all and end conditions do not require a fact at the exact start.
+  const conditions = new Set(
+    timed.conditions.filter((item) => item.timing === 'start').map(key),
+  );
   const effects = new Set(timed.effects.map(key));
   for (const pre of base.preconditions)
     if (!conditions.has(key(pre)))
