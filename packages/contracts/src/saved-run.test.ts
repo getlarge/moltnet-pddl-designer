@@ -18,6 +18,7 @@ import {
   blocksTypes,
 } from '@pddl/domain/test-fixtures';
 import type { DesignRun } from './design.js';
+import { renderDomainWithTiming, renderProblem } from '@pddl/domain/render';
 export function savedFixture(): DesignRun {
   return {
     version: 1,
@@ -49,6 +50,59 @@ export function savedFixture(): DesignRun {
   };
 }
 describe('saved proof revisions', () => {
+  it('rechecks a saved timed model and drops its old VAL claim', () => {
+    const original = recheckRun(savedFixture());
+    const action = original.domain!.actions[0];
+    const timed = {
+      name: action.name,
+      parameters: action.parameters,
+      durationSeconds: 120,
+      conditions: action.preconditions.map((item) => ({
+        ...item,
+        timing: 'start' as const,
+      })),
+      effects: [
+        ...action.addEffects.map((item) => ({
+          ...item,
+          negated: false,
+          timing: 'end' as const,
+        })),
+        ...action.deleteEffects.map((item) => ({
+          ...item,
+          negated: true,
+          timing: 'end' as const,
+        })),
+      ],
+    };
+    original.temporal = {
+      status: 'complete',
+      detections: [{ action: action.name, probability: 0.97, timed: true }],
+      durativeActions: [timed],
+      defaultedClauses: [],
+      domainPddl: renderDomainWithTiming(original.domain!, [timed]),
+      problemPddl: renderProblem(original.problem!, original.domain!.name),
+      temporalPlan: {
+        status: 'validated',
+        text: `0: (${action.name} a) [120]\n`,
+        validator: 'VAL',
+      },
+    };
+    const loaded = readRun(original);
+    expect(loaded.temporal).toMatchObject({
+      status: 'complete',
+      temporalPlan: { status: 'candidate' },
+    });
+    expect(
+      loaded.temporal?.status === 'complete' && loaded.temporal.domainPddl,
+    ).toContain(':durative-actions');
+    expect(
+      editRun(loaded, 'actions', loaded.stages[2].result).temporal,
+    ).toBeUndefined();
+    const tampered = structuredClone(original);
+    if (tampered.temporal?.status === 'complete')
+      tampered.temporal.durativeActions[0].conditions = [];
+    expect(readRun(tampered).temporal).toMatchObject({ status: 'failed' });
+  });
   it('preserves audit evidence through save/load and invalidates it after a draft edit', () => {
     const input = () =>
       buildGroundingRequest(

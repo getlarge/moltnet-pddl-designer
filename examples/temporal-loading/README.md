@@ -5,11 +5,16 @@ PDDL 2.1 generation.
 
 To inspect these inputs in the local wizard, open its URL with
 `?example=temporal-loading` (for example,
-`http://127.0.0.1:4318/?example=temporal-loading`). The wizard fills both input
-fields and model names. Its generation flow is currently classical.
+`http://127.0.0.1:4317/?example=temporal-loading`). The wizard fills both input
+fields and model names and enables temporal extraction. Start the server with
+`--classify-profile NAME` (or `PDDL_CLASSIFY_PROFILE=NAME`) to prefill the
+classification profile. Set `PDDL_VAL_PATH` on the worker to validate a
+one-step timed schedule with VAL; without it, the schedule is marked a
+candidate. Saved proofs retain the timed model; reopening one rechecks its
+structure and marks the schedule as a candidate until VAL is run again.
 
-For the temporal pass, configure a generation worker and a classification
-worker for the same MoltNet team, then run:
+Configure generation and classification workers for the same MoltNet team. The
+same example can also be run through the CLI:
 
 ```bash
 pnpm --silent cli \
