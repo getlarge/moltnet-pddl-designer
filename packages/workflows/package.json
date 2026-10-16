@@ -50,6 +50,10 @@
       "types": "./src/task-client.ts",
       "import": "./src/task-client.ts"
     },
+    "./temporal": {
+      "types": "./src/temporal.ts",
+      "import": "./src/temporal.ts"
+    },
     "./task-tags": {
       "types": "./src/task-tags.ts",
       "import": "./src/task-tags.ts"

@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { connect } from '@themoltnet/sdk/node';
 import { createTeamTaskClient } from '@pddl/workflows/task-client';
 import { createClassifyDecisionClient } from '@pddl/workflows/decision';
+import { TEMPORAL_QUESTION } from '@pddl/workflows/temporal';
 import { hasDurativeEvidence, type TemporalCase } from '@pddl/evals/temporal';
 import {
   evaluateTemporalDetection,
@@ -83,15 +84,7 @@ try {
   for (const item of cases) {
     failedCaseId = item.id;
     const start = Date.now();
-    const probability = await client.yesNo(item.input, {
-      instructions:
-        'Does the description explicitly provide a quantitative duration (number or formula) for the named action, or a PDDL 2.1 timing qualifier for one of its conditions or effects (at start, throughout, or at end)? Ignore timing of other actions, background clocks, ordering alone, and qualitative words such as quickly.',
-      criteria: {
-        true: 'A numeric or symbolic duration, or a timed start, invariant, or end condition/effect of the named action is stated.',
-        false:
-          'No extractable duration or timed clause for the named action is stated.',
-      },
-    });
+    const probability = await client.yesNo(item.input, TEMPORAL_QUESTION);
     const prediction = {
       id: item.id,
       runId: correlationId,
