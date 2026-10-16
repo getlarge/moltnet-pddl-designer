@@ -15,6 +15,7 @@ const { values } = parseArgs({
     team: { type: 'string' },
     diary: { type: 'string' },
     profile: { type: 'string' },
+    'classify-profile': { type: 'string' },
   },
 });
 const port = Number(values.port);
@@ -42,6 +43,8 @@ try {
       diaryId: values.diary ?? process.env.MOLTNET_DIARY_ID,
       profileId: values.profile ?? process.env.MOLTNET_PROFILE_ID,
     },
+    classificationProfile:
+      values['classify-profile'] ?? process.env.PDDL_CLASSIFY_PROFILE,
   });
   app.addHook('onClose', async () => runs?.close());
   await app.listen({ port, host: '127.0.0.1' });

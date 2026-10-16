@@ -14,6 +14,7 @@ const app = await createApp({
     diaryId: 'test-diary',
     profileId: 'test-profile',
   },
+  classificationProfile: 'test-classifier',
 });
 await app.listen({ port: 4418, host: '127.0.0.1' });
 process.once('SIGTERM', () => void app.close());

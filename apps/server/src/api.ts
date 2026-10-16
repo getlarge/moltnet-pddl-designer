@@ -30,6 +30,12 @@ const inputSchema = Type.Object(
     teamId: Type.String({ minLength: 1 }),
     diaryId: Type.String({ minLength: 1 }),
     profileId: Type.String({ minLength: 1 }),
+    temporal: Type.Optional(
+      Type.Object(
+        { classificationProfile: Type.String({ minLength: 1 }) },
+        { additionalProperties: false },
+      ),
+    ),
     stageProfiles: Type.Optional(
       Type.Object(
         Object.fromEntries(
@@ -109,6 +115,7 @@ export interface ApiOptions {
   store: RunStore;
   runs?: RunService;
   defaults?: Partial<DesignInput>;
+  classificationProfile?: string;
 }
 type RunParams = { Params: { id: string } };
 
@@ -163,6 +170,7 @@ export function createApi(options: ApiOptions) {
       });
       api.get('/config', async () => ({
         defaults: options.defaults ?? {},
+        classificationProfile: options.classificationProfile ?? '',
         runsDirectory: options.store.directory,
       }));
       api.get('/examples', async () => {
@@ -223,6 +231,9 @@ export function createApi(options: ApiOptions) {
             data.input.teamId,
             data.input.diaryId,
             data.input.profileId,
+            ...(data.input.temporal
+              ? [data.input.temporal.classificationProfile]
+              : []),
           ].some((s) => !s.trim())
         )
           throw new Error('Required fields cannot be blank.');

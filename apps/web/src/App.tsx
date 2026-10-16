@@ -19,6 +19,7 @@ import {
 } from './model.js';
 import { emptyStage, StageEditor } from './StageEditor.js';
 import { PlanExplorer } from './PlanExplorer.js';
+import { TemporalResult } from './TemporalResult.js';
 import { FactDefinition } from './FactDefinition.js';
 import { CodeBlock } from './CodeBlock.js';
 import { SourceCheck } from './SourceCheck.js';
@@ -160,8 +161,9 @@ function ProfileGuidance({
         <p className="small">
           Keep modeling profiles input-only: no workspace or network access is
           needed. Static checks and the planner run locally without a profile.
-          Optional classification review has a separate profile and is currently
-          available through the CLI.
+          Temporal extraction needs a classify worker on the selected
+          classification profile. Optional plan review is available through the
+          CLI.
         </p>
         <p className="small">
           See README.md → Runtime profiles for setup commands, model selection,
@@ -177,6 +179,8 @@ export function App() {
   const [page, setPage] = useState<'new' | 'rack' | 'proof'>('new');
   const [input, setInput] = useState<RunInput>(initialInput);
   const [examples, setExamples] = useState<Example[]>([]);
+  const [defaultClassificationProfile, setDefaultClassificationProfile] =
+    useState('');
   const [selectedExample, setSelectedExample] = useState(
     () => new URLSearchParams(location.search).get('example') ?? '',
   );
@@ -217,6 +221,9 @@ export function App() {
   const gateId = gate?.id;
   const gateStage = gate?.stage;
   const hasPlan = !!snapshot?.run?.plan;
+  const temporalRunning =
+    snapshot?.state === 'running' &&
+    snapshot.events.some(({ event }) => event.type === 'temporal-started');
   const isGate = gate?.stage === stage;
   const findings = isGate ? gate.issues : (record?.issues ?? []);
   const ownsFinding = (name: string, finding: Issue) =>
@@ -273,12 +280,17 @@ export function App() {
     let cancelled = false;
     Promise.all([
       api<Example[]>('examples'),
-      api<{ defaults: Partial<RunInput>; runsDirectory: string }>('config'),
+      api<{
+        defaults: Partial<RunInput>;
+        classificationProfile: string;
+        runsDirectory: string;
+      }>('config'),
       api<RunSnapshot[]>('runs'),
     ])
       .then(([items, config, runs]) => {
         if (!cancelled) {
           setExamples(items);
+          setDefaultClassificationProfile(config.classificationProfile);
           setRecoverableRun(runs[0]);
           const requestedExample = items.find(
             (item) =>
@@ -298,6 +310,13 @@ export function App() {
                   problemDescription: requestedExample.problemDescription,
                   domainName: requestedExample.name,
                   problemName: `${requestedExample.name.slice(0, 30)}-case`,
+                  ...(requestedExample.name === 'temporal-loading'
+                    ? {
+                        temporal: {
+                          classificationProfile: config.classificationProfile,
+                        },
+                      }
+                    : {}),
                 }
               : {}),
           }));
@@ -377,6 +396,9 @@ export function App() {
       setEditor(false);
     }
   }, [snapshot?.state, hasPlan]);
+  useEffect(() => {
+    if (temporalRunning) setStage('plan');
+  }, [temporalRunning]);
   useEffect(() => {
     setSelectedMark('');
     setSelectedLine(undefined);
@@ -639,6 +661,14 @@ export function App() {
                       problemDescription: example.problemDescription,
                       domainName: example.name,
                       problemName: `${example.name.slice(0, 30)}-case`,
+                      temporal:
+                        example.name === 'temporal-loading'
+                          ? {
+                              classificationProfile:
+                                v.temporal?.classificationProfile ||
+                                defaultClassificationProfile,
+                            }
+                          : undefined,
                     }));
                 }}
               >
@@ -701,6 +731,46 @@ export function App() {
                 />
               </label>
             </div>
+            <label className="field temporal-option">
+              <span>
+                <input
+                  type="checkbox"
+                  checked={!!input.temporal}
+                  onChange={(e) =>
+                    setInput({
+                      ...input,
+                      temporal: e.target.checked
+                        ? {
+                            classificationProfile:
+                              input.temporal?.classificationProfile ||
+                              defaultClassificationProfile,
+                          }
+                        : undefined,
+                    })
+                  }
+                />{' '}
+                Extract timing after the model is approved
+              </span>
+              <span className="small">
+                Uses a classification worker, then extracts numeric durations
+                and timed conditions and effects.
+              </span>
+            </label>
+            {input.temporal && (
+              <label className="field">
+                Classification profile name or ID
+                <input
+                  required
+                  value={input.temporal.classificationProfile}
+                  onChange={(e) =>
+                    setInput({
+                      ...input,
+                      temporal: { classificationProfile: e.target.value },
+                    })
+                  }
+                />
+              </label>
+            )}
             <details
               className="connection"
               open={!input.teamId || !input.diaryId || !input.profileId}
@@ -1119,16 +1189,30 @@ export function App() {
 
                 {stage === 'plan' ? (
                   run?.domain && run?.problem ? (
-                    <PlanExplorer
-                      key={`${saved?.id ?? snapshot?.id}-${run.durationMs}`}
-                      run={run}
-                      onAction={selectAction}
-                    />
+                    <>
+                      {run.temporal && (
+                        <TemporalResult
+                          result={run.temporal}
+                          restoredFromSaved={!!saved}
+                        />
+                      )}
+                      <PlanExplorer
+                        key={`${saved?.id ?? snapshot?.id}-${run.durationMs}`}
+                        run={run}
+                        onAction={selectAction}
+                      />
+                    </>
                   ) : (
                     <div className="empty">
-                      <h3>The plan comes after the model.</h3>
+                      <h3>
+                        {temporalRunning
+                          ? 'Extracting timing from the description…'
+                          : 'The plan comes after the model.'}
+                      </h3>
                       <p>
-                        Pass each stage, then inspect the planner’s result here.
+                        {temporalRunning
+                          ? 'The classifier and generation workers are building the timed model.'
+                          : 'Pass each stage, then inspect the planner’s result here.'}
                       </p>
                     </div>
                   )

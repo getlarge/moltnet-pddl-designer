@@ -100,7 +100,9 @@ export function PlanExplorer({
   return (
     <section className="plan-explorer">
       <div className="section-title">
-        <h2>Plan walkthrough</h2>
+        <h2>
+          {run.temporal ? 'Classical plan walkthrough' : 'Plan walkthrough'}
+        </h2>
         <span
           className={`stamp${!run.needsReview?.length && reached ? ' passed' : ''}`}
         >
