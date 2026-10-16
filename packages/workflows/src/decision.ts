@@ -11,10 +11,13 @@ import { createHash } from 'node:crypto';
 import { type ClassifyInput, ClassifyOutput } from '@themoltnet/sdk';
 import {
   createInlineContext,
+  createTaskStep,
   type TaskClient,
+  type WorkflowContext,
   waitForTaskOutcome,
 } from '@themoltnet/tasks-orchestrator';
 import { Value } from 'typebox/value';
+import { TerminalTaskError } from './task-client.js';
 
 export interface YesNoQuestion {
   instructions: string;
@@ -39,6 +42,7 @@ export interface ClassifyDecisionOptions {
   pollIntervalSec?: number;
   /** Fail when no worker claims a question within this many seconds. */
   claimTimeoutSec?: number;
+  ctx?: WorkflowContext;
 }
 
 const QUESTION = 'answer';
@@ -49,7 +53,7 @@ export function createClassifyDecisionClient(
 ): DecisionClient {
   const pollIntervalSec = options.pollIntervalSec ?? 2;
   const claimTimeoutSec = options.claimTimeoutSec ?? 600;
-  const ctx = {
+  const ctx: WorkflowContext = options.ctx ?? {
     ...createInlineContext(),
     sleepFor: (_name: string, seconds: number) =>
       new Promise<void>((resolve) => {
@@ -58,11 +62,20 @@ export function createClassifyDecisionClient(
   };
 
   async function awaitClaim(taskId: string) {
-    const deadline = Date.now() + claimTimeoutSec * 1000;
+    const deadline = await ctx.step(
+      `temporal.classify.deadline.${taskId}`,
+      async () => Date.now() + claimTimeoutSec * 1000,
+    );
     for (;;) {
-      const task = await tasks.getTask(taskId);
-      if (task.status !== 'queued') return;
-      if (Date.now() >= deadline)
+      const observation = await ctx.step(
+        `temporal.classify.claim.${taskId}`,
+        async () => ({
+          status: (await tasks.getTask(taskId)).status,
+          checkedAt: Date.now(),
+        }),
+      );
+      if (observation.status !== 'queued') return;
+      if (observation.checkedAt >= deadline)
         throw new Error(
           `no worker claimed classify task ${taskId} within ${claimTimeoutSec}s; check that a poller serves the classification profile`,
         );
@@ -81,33 +94,55 @@ export function createClassifyDecisionClient(
       const digest = createHash('sha256')
         .update(`${options.correlationId}\0${JSON.stringify(input)}`)
         .digest('base64url');
-      const task = await tasks.createTask(
-        {
-          taskType: 'classify',
-          title: 'PDDL review question',
-          teamId: options.teamId,
-          diaryId: options.diaryId,
-          ...(options.projectId ? { projectId: options.projectId } : {}),
-          correlationId: options.correlationId,
-          allowedProfiles: [{ profileId: options.profileId }],
-          runningTimeoutSec: 120,
-          dispatchTimeoutSec: 300,
-          expiresInSec: 3600,
-          maxAttempts: 2,
-          tags: [TASK_TAGS.designer, TASK_TAGS.stage.review],
-          input,
-        },
-        { idempotencyKey: 'pddl-review:' + digest },
+      const task = await createTaskStep(
+        ctx,
+        `temporal.classify.create.${digest}`,
+        () =>
+          tasks.createTask(
+            {
+              taskType: 'classify',
+              title: 'PDDL review question',
+              teamId: options.teamId,
+              diaryId: options.diaryId,
+              ...(options.projectId ? { projectId: options.projectId } : {}),
+              correlationId: options.correlationId,
+              allowedProfiles: [{ profileId: options.profileId }],
+              runningTimeoutSec: 120,
+              dispatchTimeoutSec: 300,
+              expiresInSec: 3600,
+              maxAttempts: 2,
+              tags: [TASK_TAGS.designer, TASK_TAGS.stage.review],
+              input,
+            },
+            { idempotencyKey: 'pddl-review:' + digest },
+          ),
       );
       await awaitClaim(task.id);
       const outcome = await waitForTaskOutcome(task.id, {
-        tasks,
-        ctx,
+        tasks: {
+          ...tasks,
+          getTask: (id) =>
+            ctx.step(`temporal.classify.outcome.${id}`, () =>
+              tasks.getTask(id),
+            ),
+          listAttempts: (id) => tasks.listAttempts(id),
+        },
+        ctx: { ...ctx, awaitEvent: undefined },
         pollIntervalSec,
-        parse: parseYesNo,
+        parse: (raw) => {
+          try {
+            return parseYesNo(raw);
+          } catch (error) {
+            throw new TerminalTaskError(
+              `review question returned invalid output: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        },
       });
       if (outcome.kind !== 'accepted')
-        throw new Error(`review question failed: ${outcome.reason}`);
+        throw new TerminalTaskError(
+          `review question failed: ${outcome.reason}`,
+        );
       return outcome.result.state;
     },
   };

@@ -1,5 +1,6 @@
 import { connect } from '@themoltnet/sdk/node';
 import { createTeamTaskClient } from './task-client.js';
+import { TerminalTaskError } from './task-client.js';
 import { runPddlDesign } from './workflow.js';
 import type { Execute, SourceExecute } from './executor.js';
 import { createSourceAssessor } from './source-check.js';
@@ -45,7 +46,10 @@ export async function finishTemporalRun(
       ...(validationError ? { validationError } : {}),
     };
   } catch (error) {
-    if (!(error instanceof TemporalModelError)) throw error;
+    if (!(
+      error instanceof TemporalModelError || error instanceof TerminalTaskError
+    ))
+      throw error;
     run.temporal = {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error),
@@ -119,6 +123,7 @@ export const moltExecute: Execute = async (input, options) => {
       correlationId: resolved.correlationId,
       profileId: resolved.temporal.classificationProfile,
       claimTimeoutSec: options.claimTimeoutSec,
+      ctx: options.ctx,
     }),
     createTemporalExtractor(tasks, {
       teamId: resolved.teamId,
@@ -127,6 +132,7 @@ export const moltExecute: Execute = async (input, options) => {
       correlationId: resolved.correlationId,
       profileId: resolved.profileId,
       claimTimeoutSec: options.claimTimeoutSec,
+      ctx: options.ctx,
     }),
     options.onEvent,
     process.env.PDDL_VAL_PATH,

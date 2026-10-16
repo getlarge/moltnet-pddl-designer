@@ -6,6 +6,9 @@ type TaskApi = Pick<
   'create' | 'get' | 'listAttempts' | 'listMessages'
 >;
 
+/** A completed task cannot succeed on a durable retry with the same key. */
+export class TerminalTaskError extends Error {}
+
 /** Bind all task I/O to the run's team, including reads after checkpoint replay. */
 export function createTeamTaskClient(
   tasks: TaskApi,

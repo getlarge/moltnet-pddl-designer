@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest';
 import type { DesignRun } from '@pddl/contracts/design';
 import type { DurativeAction } from '@pddl/domain/temporal';
 import { finishTemporalRun } from './molt-executor.js';
+import { TerminalTaskError } from './task-client.js';
 
 const base = (): DesignRun => ({
   version: 1,
@@ -98,6 +99,49 @@ it('propagates a transient classifier failure so the durable run can retry', asy
   expect(onEvent.mock.calls.map(([event]) => event.type)).toEqual([
     'temporal-started',
   ]);
+});
+
+it('publishes the classical result when a temporal task ends in failure', async () => {
+  const events: string[] = [];
+  const run = await finishTemporalRun(
+    base(),
+    { yesNo: async () => 0.97 },
+    {
+      extract: async () => {
+        throw new TerminalTaskError('worker rejected extraction');
+      },
+    },
+    async (event) => {
+      events.push(event.type);
+    },
+  );
+  expect(run.status).toBe('planned');
+  expect(run.temporal).toEqual({
+    status: 'failed',
+    error: 'worker rejected extraction',
+  });
+  expect(events).toEqual(['temporal-started', 'finished']);
+});
+
+it('publishes the classical result when classification has a terminal outcome', async () => {
+  const events: string[] = [];
+  const run = await finishTemporalRun(
+    base(),
+    {
+      yesNo: async () => {
+        throw new TerminalTaskError('classifier task failed');
+      },
+    },
+    { extract: async () => extracted },
+    async (event) => {
+      events.push(event.type);
+    },
+  );
+  expect(run.temporal).toEqual({
+    status: 'failed',
+    error: 'classifier task failed',
+  });
+  expect(events).toEqual(['temporal-started', 'finished']);
 });
 
 it('retains the classical result and publishes invalid temporal output', async () => {

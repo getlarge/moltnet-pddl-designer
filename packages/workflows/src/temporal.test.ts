@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
+import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
+import { createInlineContext } from '@themoltnet/tasks-orchestrator';
 import type { DesignRun } from '@pddl/contracts/design';
 import type { Domain } from '@pddl/domain/ir';
 import type { DurativeAction } from '@pddl/domain/temporal';
-import { runTemporalPass } from './temporal.js';
+import { createTemporalExtractor, runTemporalPass } from './temporal.js';
+import { TerminalTaskError } from './task-client.js';
 
 const domain: Domain = {
   name: 'inspection',
@@ -223,5 +226,59 @@ describe('temporal pass', () => {
       },
     );
     expect(result.temporalPlan?.text).toBe('0: (inspect) [120]\n');
+  });
+});
+
+describe('temporal extractor task lifecycle', () => {
+  const options = {
+    teamId: 'team',
+    diaryId: 'diary',
+    correlationId: 'run-1',
+    profileId: 'freeform-profile',
+    pollIntervalSec: 0,
+  };
+
+  it('creates, observes, and parses an accepted extraction task through the context', async () => {
+    const tasks = new FakeTasks([
+      {
+        result: {
+          durationSeconds: 120,
+          conditions: extracted.conditions,
+          effects: extracted.effects,
+        },
+      },
+    ]);
+    const labels: string[] = [];
+    const inline = createInlineContext();
+    const ctx = {
+      ...inline,
+      step: async <T>(name: string, run: () => Promise<T>) => {
+        labels.push(name);
+        return inline.step(name, run);
+      },
+    };
+    const extractor = createTemporalExtractor(tasks, { ...options, ctx });
+    const result = await extractor.extract(
+      domain,
+      domain.actions[0],
+      baseRun.input.description,
+    );
+    expect(result).toEqual(extracted);
+    expect(tasks.created[0].taskType).toBe('freeform');
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^temporal\.extract\.deadline\./),
+        expect.stringMatching(/^temporal\.extract\.claim\./),
+        expect.stringMatching(/^temporal\.extract\.outcome\./),
+      ]),
+    );
+  });
+
+  it('distinguishes a terminal task failure from a transport error', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
+    const extractor = createTemporalExtractor(tasks, options);
+    await expect(
+      extractor.extract(domain, domain.actions[0], baseRun.input.description),
+    ).rejects.toBeInstanceOf(TerminalTaskError);
   });
 });
