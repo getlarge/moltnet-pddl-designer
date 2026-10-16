@@ -1619,8 +1619,6 @@ td:first-child {
   border-color: var(--focus);
 }
 .source-check-targets {
-  max-height: 260px;
-  overflow-y: auto;
   margin-block: 16px;
 }
 .source-check-option {
@@ -1638,15 +1636,15 @@ td:first-child {
 }
 .source-check-result {
   border-top: 1px solid var(--rule);
-  padding-block: 16px;
+  padding-block: 24px;
 }
-.source-check-result.supported h4 {
+.source-check-result.supported .source-check-verdict {
   color: var(--success);
 }
-.source-check-result.contradicted h4 {
+.source-check-result.contradicted .source-check-verdict {
   color: var(--red);
 }
-.source-check-result.not_established h4 {
+.source-check-result.not_established .source-check-verdict {
   color: var(--warning);
 }
 .source-check-preview {
@@ -1660,10 +1658,116 @@ td:first-child {
 }
 
 .source-check-evidence {
-  border-top: 2px solid var(--ink);
-  margin-top: 28px;
+  border-top: 1px solid var(--rule);
+  margin-top: 12px;
   padding-top: 20px;
 }
 .source-check-evidence h4 {
   margin-block: 0 10px;
+}
+
+.source-check-claims {
+  padding-left: 24px;
+}
+.source-check-claims > li {
+  padding-block: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.claim-reading {
+  max-width: 70ch;
+  overflow-wrap: anywhere;
+}
+.claim-reading > p {
+  margin-block: 0 12px;
+}
+.claim-reading dl > div {
+  display: flex;
+  gap: 16px;
+}
+.claim-reading dt {
+  min-width: 4ch;
+}
+.claim-reading dd {
+  margin: 0;
+}
+
+.source-check-panel > summary {
+  font-size: 18px;
+  font-weight: 600;
+}
+.source-check-results-heading,
+.source-check-result-heading,
+.source-check-result-tools {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.source-check-result-heading {
+  margin-bottom: 12px;
+}
+.source-check-result-heading h5 {
+  font-size: 16px;
+  margin: 0;
+}
+.source-check-verdict {
+  font-size: 13px;
+  font-weight: 600;
+}
+.source-check-summary {
+  font-weight: 600;
+}
+.source-check-result-tools {
+  justify-content: flex-start;
+}
+.source-check-result-tools details[open] {
+  flex-basis: 100%;
+}
+.source-check-result-tools h6 {
+  font-size: 14px;
+  margin-block: 20px 8px;
+}
+.claim-participants > div {
+  display: flex;
+  gap: 16px;
+}
+.claim-participants dd {
+  margin: 0;
+}
+.actions-review-heading {
+  margin-block: 28px 12px;
+}
+.source-check-action {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+  margin-block: 24px;
+}
+.source-check-action legend {
+  font-weight: 600;
+  padding: 0;
+}
+.action-local-checks {
+  margin-top: 16px;
+}
+.action-proof-mark > .mark-heading,
+.source-check-result-heading,
+.source-check-action legend {
+  background: var(--selected);
+  padding: 10px 12px;
+}
+.action-proof-mark > .mark-heading > span:first-child,
+.source-check-result-heading h5,
+.source-check-action legend {
+  color: var(--focus);
+}
+.action-proof-mark > .mark-heading:hover {
+  background: color-mix(in srgb, var(--selected), var(--focus) 8%);
+}
+.action-proof-mark > .mark-heading[aria-pressed='true'] {
+  box-shadow: inset 0 -2px var(--focus);
+}
+.source-check-action legend {
+  width: 100%;
 }

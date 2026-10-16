@@ -49,6 +49,10 @@
     "./test-fixtures": {
       "types": "./src/test-fixtures.ts",
       "import": "./src/test-fixtures.ts"
+    },
+    "./source-claim": {
+      "types": "./src/source-claim.ts",
+      "import": "./src/source-claim.ts"
     }
   }
 }

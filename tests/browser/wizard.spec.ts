@@ -546,6 +546,7 @@ test('source check previews requests and informs the Actions review decision', a
     .evaluateAll((nodes) => nodes.map((n) => n.getBoundingClientRect().x));
   expect(columns[0]).toBeLessThan(columns[1]);
   expect(columns[1]).toBeLessThan(columns[2]);
+  await panel.locator('.source-check-panel > summary').click();
   const choices = panel.getByRole('checkbox');
   for (let n = 0; n < 3; n++) await choices.nth(n).check();
   await panel.getByRole('button', { name: 'Preview source check' }).click();
@@ -555,23 +556,65 @@ test('source check previews requests and informs the Actions review decision', a
   await panel.getByLabel('Classification profile name or ID').fill('synthetic');
   await panel.getByRole('button', { name: 'Run source check' }).click();
   await expect(
-    panel.getByText('Supported by your description', { exact: true }),
+    panel.getByText('Matches description', { exact: true }),
   ).toBeVisible();
   await expect(
-    panel.getByText('Your description disagrees', { exact: true }),
+    panel.getByText('Conflicts with description', { exact: true }),
   ).toBeVisible();
   await expect(
-    panel.getByText('Your description does not settle this', { exact: true }),
+    panel.getByText('Not settled by description', { exact: true }),
   ).toBeVisible();
-  const shared = panel.getByRole('region', {
-    name: 'Shared evidence for all checked rules',
-  });
-  await expect(shared).toContainText('Shared evidence for all 3 checked rules');
+  await expect(panel.getByRole('checkbox')).toHaveCount(0);
+  await expect(panel.locator('.source-check-result').first()).toContainText(
+    'Conflicts with description',
+  );
+  await expect(
+    panel.getByText(/model probability for this label/).first(),
+  ).not.toBeVisible();
+  const firstResult = panel.locator('.source-check-result').first();
+  await expect(
+    firstResult.getByLabel('Classifier state, question and answer'),
+  ).toHaveCount(0);
+  await firstResult.getByText('Check details', { exact: true }).click();
+  const evidence = JSON.parse(
+    (await firstResult
+      .getByLabel('Classifier state, question and answer')
+      .textContent())!,
+  );
+  expect(evidence.state.source).toContain('An arm moves blocks');
+  expect(evidence.question.instructions).toContain('state.source');
+  expect(evidence.question.criteria).toHaveProperty('contradicted');
+  expect(evidence.answer.choice).toBe('contradicted');
+  await firstResult.getByText('Check details', { exact: true }).click();
+  await expect(
+    firstResult.getByLabel('Classifier state, question and answer'),
+  ).toHaveCount(0);
+  const shared = panel.locator('.source-check-evidence');
+  await expect(shared.locator(':scope > summary')).toContainText('all 3 rules');
+  await shared.locator(':scope > summary').click();
   await expect(
     shared.getByText('Exact request and raw response — all checked rules', {
       exact: true,
     }),
   ).toBeVisible();
+  await shared.locator(':scope > summary').click();
+  await panel.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: '.impeccable/review/source-results-desktop.png',
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await panel.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: '.impeccable/review/source-results-mobile.png',
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(
     panel.getByText('Source used for all checked rules', { exact: true }),
   ).toHaveCount(0);
@@ -595,8 +638,9 @@ test('source check previews requests and informs the Actions review decision', a
   await page.getByRole('button', { name: 'Correct', exact: true }).click();
   await page.getByRole('button', { name: 'Check corrections' }).click();
   await expect(
-    panel.getByText('Your description disagrees', { exact: true }),
+    panel.getByText('Conflicts with description', { exact: true }),
   ).toHaveCount(0);
+  await panel.locator('.source-check-panel > summary').click();
   await panel.getByRole('checkbox').first().check();
   await panel.getByRole('button', { name: 'Preview source check' }).click();
   await panel
@@ -614,4 +658,63 @@ test('source check previews requests and informs the Actions review decision', a
   await expect(
     page.getByRole('button', { name: 'Pass', exact: true }),
   ).toBeEnabled();
+});
+
+test('editable readable meanings become the exact preview claims', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startReview(page);
+  await expect(page.locator('.margin .column-heading h2')).toHaveText('Types');
+  await page.getByRole('button', { name: 'Pass', exact: true }).click();
+  await expect(page.locator('.margin .column-heading h2')).toHaveText('Facts');
+  await page.getByRole('button', { name: 'Correct', exact: true }).click();
+  await page
+    .getByLabel('When this fact is true')
+    .first()
+    .fill('{?b} is on the table');
+  await page
+    .getByLabel('When this fact is false')
+    .first()
+    .fill('{?b} is not on the table');
+  await page
+    .getByRole('button', { name: 'Check corrections', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Pass', exact: true }).click();
+  await expect(page.locator('.margin .column-heading h2')).toHaveText(
+    'Actions',
+  );
+  await page.getByRole('button', { name: 'Correct', exact: true }).click();
+  await page.getByLabel('Readable wording').first().fill('{?a} picks up {?b}');
+  await page
+    .getByRole('button', { name: 'Check corrections', exact: true })
+    .click();
+  const panel = page.getByRole('region', {
+    name: 'Compare actions with your description',
+  });
+  await panel.locator('.source-check-panel > summary').click();
+  const claim =
+    'The robotic arm picks up the block. Immediately afterward, the block is not on the table.';
+  await panel
+    .getByRole('checkbox', {
+      name: new RegExp(claim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    })
+    .check();
+  await panel.getByRole('button', { name: 'Preview source check' }).click();
+  const list = panel.getByRole('list', { name: 'Claims the model will check' });
+  await expect(list.getByText(claim, { exact: true })).toBeVisible();
+  await list.getByText('Formal rule and participants', { exact: true }).click();
+  await expect(list).toContainText('on-table(?b) is false');
+  await expect(list).toContainText('the robotic arm');
+  await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await page.screenshot({
+    path: '.impeccable/review/readable-claims-mobile.png',
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(list.getByText(claim, { exact: true })).toBeVisible();
+  await page.screenshot({
+    path: '.impeccable/review/readable-claims-desktop.png',
+    fullPage: true,
+  });
 });

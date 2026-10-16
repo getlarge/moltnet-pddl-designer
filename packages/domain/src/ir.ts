@@ -29,6 +29,8 @@ export const ParameterSchema = Type.Object(
   {
     name: Type.String({ pattern: VAR_PATTERN, minLength: 2, maxLength: 41 }),
     type: Name,
+    /** A role label for readable action claims, e.g. "block A". */
+    label: Type.Optional(Note(80)),
   },
   { additionalProperties: false },
 );
@@ -76,6 +78,13 @@ export const PredicateDefSchema = Type.Object(
     name: Name,
     parameters: Type.Array(ParameterSchema, { maxItems: 6 }),
     description: Note(200),
+    /** Opposite truth readings; placeholders use this predicate's parameters. */
+    reading: Type.Optional(
+      Type.Object(
+        { true: Note(300), false: Note(300) },
+        { additionalProperties: false },
+      ),
+    ),
     sourceLines: SourceLines,
   },
   { additionalProperties: false },
@@ -88,6 +97,8 @@ export const ActionDefSchema = Type.Object(
     preconditions: Type.Array(LiteralSchema, { maxItems: 20 }),
     addEffects: Type.Array(AtomSchema, { maxItems: 20 }),
     deleteEffects: Type.Array(AtomSchema, { maxItems: 20 }),
+    /** A neutral action sentence; placeholders use this action's parameters. */
+    reading: Type.Optional(Note(400)),
     /** The sentence of the description this action models. */
     source: Note(400),
     sourceLines: SourceLines,

@@ -7,6 +7,10 @@ const captions: Record<string, string> = {
   name: 'Name',
   parent: 'Parent type (optional)',
   description: 'Meaning',
+  reading: 'Readable wording',
+  true: 'When this fact is true',
+  false: 'When this fact is false',
+  label: 'Readable participant name (optional)',
   parameters: 'Who or what takes part',
   type: 'Type',
   source: 'Source sentence',
@@ -77,6 +81,9 @@ function normalize(value: unknown, key = ''): unknown {
     if (['types', 'predicates', 'actions'].includes(key))
       row.sourceLines ??= [];
     if (key === 'types') row.parent ??= '';
+    if (key === 'predicates') row.reading ??= { true: '', false: '' };
+    if (key === 'actions') row.reading ??= '';
+    if (key === 'parameters') row.label ??= '';
     return {
       ...Object.fromEntries(
         Object.entries(row).map(([k, v]) => [k, normalize(v, k)]),
@@ -91,7 +98,18 @@ function clean(value: unknown): unknown {
   if (value && typeof value === 'object')
     return Object.fromEntries(
       Object.entries(value)
-        .filter(([k, v]) => k !== 'parent' || v !== '')
+        .filter(([k, v]) => {
+          if (['parent', 'label', 'reading'].includes(k) && v === '')
+            return false;
+          if (
+            k === 'reading' &&
+            v &&
+            typeof v === 'object' &&
+            Object.values(v).every((value) => value === '')
+          )
+            return false;
+          return true;
+        })
         .map(([k, v]) => [k, clean(v)]),
     );
   return value;
@@ -228,7 +246,14 @@ function Field({
   return (
     <label className="field">
       {caption.endsWith('-row') ? 'Text' : caption}
-      {['description', 'source'].includes(name) ? (
+      {['reading', 'true', 'false'].includes(name) && (
+        <span className="small">
+          Use simple words and include each participant as a placeholder, such
+          as {'{?b}'}. The true and false fact wordings must describe opposite
+          states.
+        </span>
+      )}
+      {['description', 'source', 'reading', 'true', 'false'].includes(name) ? (
         <textarea
           rows={2}
           value={String(value)}

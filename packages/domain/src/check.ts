@@ -8,6 +8,7 @@
  * Errors make a stage result unusable and trigger a correction attempt.
  * Warnings are passed to the refine stage as hints and kept in the run record.
  */
+import { participantLabels, templateProblems } from './readable.js';
 import type {
   ActionDef,
   Atom,
@@ -127,10 +128,26 @@ export function checkPredicates(
   const issues: Issue[] = [];
   for (const name of duplicates(predicates.map((p) => p.name)))
     issues.push(err(`predicates/${name}`, 'duplicate predicate name'));
-  for (const p of predicates)
+  for (const p of predicates) {
+    if (
+      p.reading &&
+      p.reading.true.trim().toLowerCase() ===
+        p.reading.false.trim().toLowerCase()
+    )
+      issues.push(
+        err(
+          `predicates/${p.name}/reading`,
+          'true and false wordings must describe opposite states',
+        ),
+      );
+    if (p.reading)
+      for (const truth of ['true', 'false'] as const)
+        for (const message of templateProblems(p.reading[truth], p.parameters))
+          issues.push(err(`predicates/${p.name}/reading/${truth}`, message));
     issues.push(
       ...checkParameters(`predicates/${p.name}`, p.parameters, typeNames),
     );
+  }
   return issues;
 }
 
@@ -185,6 +202,34 @@ export function checkActions(
     issues.push(err(`actions/${name}`, 'duplicate action name'));
   for (const a of actions) {
     const base = `actions/${a.name}`;
+    if (a.reading) {
+      for (const message of templateProblems(a.reading, a.parameters))
+        issues.push(err(`${base}/reading`, message));
+      const labels = [...participantLabels(a).values()].map((label) =>
+        label.toLowerCase().trim(),
+      );
+      if (new Set(labels).size !== labels.length)
+        issues.push(
+          err(
+            `${base}/parameters`,
+            'readable participant labels must be distinct',
+          ),
+        );
+      if (labels.some((label) => !label))
+        issues.push(
+          err(
+            `${base}/parameters`,
+            'readable participant labels must not be empty',
+          ),
+        );
+      if (labels.some((label) => /[{}]/.test(label)))
+        issues.push(
+          err(
+            `${base}/parameters`,
+            'participant labels must not contain braces',
+          ),
+        );
+    }
     issues.push(...checkParameters(base, a.parameters, typeNames));
     const params = new Map(a.parameters.map((p) => [p.name, p.type]));
     const atom = (kind: string) => (x: Atom | Literal, i: number) =>

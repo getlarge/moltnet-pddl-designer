@@ -1,5 +1,7 @@
 /** Source grounding checks a model claim, not the correctness of a whole plan. */
 import { type ClassifyInput, ClassifyOutput } from '@themoltnet/sdk';
+import { describeGroundingTarget } from './source-claim.js';
+export { describeGroundingTarget } from './source-claim.js';
 import { Value } from 'typebox/value';
 import {
   checkActions,
@@ -8,7 +10,7 @@ import {
   hasErrors,
   isSubtype,
 } from './check.js';
-import type { Atom, Domain, Literal } from './ir.js';
+import type { Atom, Domain } from './ir.js';
 
 export const GROUNDING_RELATIONS = [
   'supported',
@@ -38,10 +40,6 @@ const criteria: Record<GroundingRelation, string> = {
   not_established:
     'The original source does not establish whether the model claim is true or false. Missing evidence is not permission and is not a contradiction.',
 };
-const sameAtom = (a: Atom, b: Atom) =>
-  a.predicate === b.predicate &&
-  a.args.length === b.args.length &&
-  a.args.every((v, i) => v === b.args[i]);
 
 /** Claims are rendered from actual fields; the caller cannot supply their wording. */
 export function buildGroundingRequest(
@@ -100,12 +98,6 @@ export function buildGroundingRequest(
     if (identities.has(identity))
       throw new Error('Duplicate grounding target.');
     identities.add(identity);
-    const present = action[target.field].some(
-      (atom) =>
-        sameAtom(atom, target.atom) &&
-        (target.field !== 'preconditions' ||
-          (atom as Literal).negated === !!target.negated),
-    );
     selectedActions.add(action.name);
     selectedPredicates.add(predicate.name);
     for (const atom of [
@@ -114,22 +106,16 @@ export function buildGroundingRequest(
       ...action.deleteEffects,
     ])
       selectedPredicates.add(atom.predicate);
-    const fact = `${target.atom.predicate}(${target.atom.args.join(', ')})`;
-    const statement =
-      target.field === 'preconditions'
-        ? `${action.name} ${present ? 'requires' : 'does not require'} ${fact} to be ${target.negated ? 'false' : 'true'} before it can execute.`
-        : target.field === 'deleteEffects'
-          ? present
-            ? `Immediately after ${action.name}, ${fact} is false: the action removes that fact.`
-            : `If ${fact} is true before ${action.name}, it remains true afterward: the action does not remove that fact.`
-          : present
-            ? `Immediately after ${action.name}, ${fact} is true: the action establishes that fact.`
-            : `${action.name} does not establish ${fact} as an effect.`;
+    const { statement, formalStatement, wording, participants, present } =
+      describeGroundingTarget(domain, target);
     const id = `claim_${i + 1}`;
     claims[id] = {
       target,
       present,
       statement,
+      formalStatement,
+      wording,
+      ...(participants ? { participants } : {}),
       predicate,
       parameters: action.parameters,
     };

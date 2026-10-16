@@ -175,3 +175,25 @@ describe('source evidence', () => {
     expect(sourceLines({ source: 'An arm lifts.' }, sentences)).toEqual([3]);
   });
 });
+
+it('rejects malformed readable claim metadata before displaying imported evidence', () => {
+  const input = buildGroundingRequest('Blocks can be moved.', blocksDomain, [
+    groundingTargets(blocksDomain)[0],
+  ]);
+  const record = { attempt: 1, input, status: 'failed', durationMs: 0 };
+  const claims = input.state.claims as Record<string, Record<string, unknown>>;
+  const claim = claims.claim_1;
+  claim.formalStatement = 'Formal rule';
+  claim.wording = 'readable';
+  claim.participants = { '?a': 'the arm' };
+  expect(readSourceChecks([record])[0].input).toEqual(input);
+  claim.participants = { '?a': { invalid: 'object' } };
+  expect(() => readSourceChecks([record])).toThrow(
+    'readable source-check metadata',
+  );
+  claim.participants = { '?a': 'the arm' };
+  claim.formalStatement = { invalid: 'object' };
+  expect(() => readSourceChecks([record])).toThrow(
+    'readable source-check metadata',
+  );
+});
