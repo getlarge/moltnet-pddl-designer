@@ -225,6 +225,9 @@ export function readRun(value: unknown): DesignRun {
         temporalPlan: raw.temporal.temporalPlan
           ? { status: 'candidate', text: raw.temporal.temporalPlan.text }
           : null,
+        ...(raw.temporal.validationError
+          ? { validationError: raw.temporal.validationError.slice(0, 1000) }
+          : {}),
       };
     } catch (error) {
       checked.temporal = {

@@ -98,6 +98,16 @@ describe('saved proof revisions', () => {
     expect(
       editRun(loaded, 'actions', loaded.stages[2].result).temporal,
     ).toBeUndefined();
+    const rejected = structuredClone(original);
+    if (rejected.temporal?.status === 'complete') {
+      rejected.temporal.temporalPlan!.status = 'candidate';
+      rejected.temporal.validationError = 'VAL rejected the schedule.';
+    }
+    expect(readRun(rejected).temporal).toMatchObject({
+      status: 'complete',
+      temporalPlan: { status: 'candidate' },
+      validationError: 'VAL rejected the schedule.',
+    });
     const tampered = structuredClone(original);
     if (tampered.temporal?.status === 'complete')
       tampered.temporal.durativeActions[0].conditions = [];
