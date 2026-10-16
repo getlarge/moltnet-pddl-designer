@@ -5,6 +5,7 @@ import importX from 'eslint-plugin-import-x';
 // These are allowed direct edges, not transitive permissions.
 export const dependencyPolicy = {
   domain: [],
+  evals: ['domain'],
   contracts: ['domain'],
   persistence: ['domain', 'contracts'],
   workflows: ['domain', 'contracts', 'persistence'],

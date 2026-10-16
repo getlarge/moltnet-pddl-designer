@@ -5,6 +5,7 @@ import { dependencyPolicy } from './boundaries.mjs';
 const eslint = new ESLint();
 const locations = {
   domain: 'packages/domain/src/probe.ts',
+  evals: 'packages/evals/src/probe.ts',
   contracts: 'packages/contracts/src/probe.ts',
   persistence: 'packages/persistence/src/probe.ts',
   workflows: 'packages/workflows/src/probe.ts',
@@ -15,6 +16,7 @@ const locations = {
 };
 const modules = {
   domain: '@pddl/domain/ir',
+  evals: '@pddl/evals/plan',
   contracts: '@pddl/contracts/design',
   persistence: '@pddl/persistence/store',
   workflows: '@pddl/workflows/workflow',

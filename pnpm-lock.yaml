@@ -17,6 +17,9 @@ importers:
       '@pddl/domain':
         specifier: workspace:*
         version: link:packages/domain
+      '@pddl/evals':
+        specifier: workspace:*
+        version: link:packages/evals
       '@pddl/persistence':
         specifier: workspace:*
         version: link:packages/persistence
@@ -213,6 +216,16 @@ importers:
       typebox:
         specifier: ^1.2.8
         version: 1.3.37
+    devDependencies:
+      vitest:
+        specifier: ^3.2.6
+        version: 3.2.7(@types/node@24.19.2)(lightningcss@1.33.0)(tsx@4.23.15)
+
+  packages/evals:
+    dependencies:
+      '@pddl/domain':
+        specifier: workspace:*
+        version: link:../domain
     devDependencies:
       vitest:
         specifier: ^3.2.6

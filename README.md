@@ -332,6 +332,11 @@ pnpm exec tsx scripts/score-runs.ts /tmp/runs e1 --json scores.json
 
 `--examples <dir>` scores examples kept outside the repository.
 
+Versioned temporal gold cases and an offline scorer are described in
+[evals/README.md](evals/README.md). The plan scorer above and temporal scorer
+live in `packages/evals`; both operate on saved artifacts, so repeat runs can
+be compared without charging for another model call.
+
 ## Research basis
 
 The pipeline builds on Acitelli et al., [*Generating Domain Models for

@@ -1,0 +1,87 @@
+[
+  {
+    "id": "beamish-match-light",
+    "split": "dev",
+    "input": {
+      "description": "Lighting an unused match starts with the match unused. It is lit at the start, burns for five minutes, and is no longer lit when the action ends.",
+      "action": "light-match",
+      "vocabulary": ["unused(?match)", "lit(?match)"]
+    },
+    "gold": {
+      "durationSeconds": 300,
+      "conditions": [
+        { "atom": "unused(?match)", "timing": "start", "negated": false }
+      ],
+      "effects": [
+        { "atom": "lit(?match)", "timing": "start", "negated": false },
+        { "atom": "lit(?match)", "timing": "end", "negated": true }
+      ]
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/main/AnnotationsDataset/matchcellar.txt",
+      "sourceId": "matchcellar/light-match; project paraphrase",
+      "annotation": "project-curated",
+      "notes": "The project normalized this published description and its explicit timing into predicate clauses; these clauses are not claimed to be author-supplied gold."
+    }
+  },
+  {
+    "id": "synthetic-overall-inspection",
+    "split": "dev",
+    "input": {
+      "description": "Inspecting a container takes two minutes. The safety light must stay on throughout the inspection. At the end, the container is marked inspected.",
+      "action": "inspect-container",
+      "vocabulary": ["safety-light-on(?station)", "inspected(?container)"]
+    },
+    "gold": {
+      "durationSeconds": 120,
+      "conditions": [
+        {
+          "atom": "safety-light-on(?station)",
+          "timing": "overall",
+          "negated": false
+        }
+      ],
+      "effects": [
+        { "atom": "inspected(?container)", "timing": "end", "negated": false }
+      ]
+    },
+    "provenance": {
+      "sourceUrl": "https://www.cs.cmu.edu/afs/cs/project/jair/pub/volume20/fox03a-html/node13.html",
+      "sourceId": "project-created example using PDDL 2.1 timing",
+      "annotation": "project-curated",
+      "notes": "Synthetic wording and labels, checked against PDDL 2.1 timing semantics."
+    }
+  },
+  {
+    "id": "synthetic-order-only",
+    "split": "dev",
+    "input": {
+      "description": "Label the container before packing it.",
+      "action": "pack-container",
+      "vocabulary": ["labeled(?container)"]
+    },
+    "gold": { "durationSeconds": null, "conditions": [], "effects": [] },
+    "provenance": {
+      "sourceUrl": "https://www.cs.cmu.edu/afs/cs/project/jair/pub/volume20/fox03a-html/node13.html",
+      "sourceId": "project-created order-only control",
+      "annotation": "project-curated",
+      "notes": "Ordering alone does not establish a durative action, timed condition, or timed effect."
+    }
+  },
+  {
+    "id": "synthetic-plain-action",
+    "split": "holdout",
+    "input": {
+      "description": "An operator checks the container and records the result.",
+      "action": "check-container",
+      "vocabulary": ["checked(?container)"]
+    },
+    "gold": { "durationSeconds": null, "conditions": [], "effects": [] },
+    "provenance": {
+      "sourceUrl": "https://www.cs.cmu.edu/afs/cs/project/jair/pub/volume20/fox03a-html/node13.html",
+      "sourceId": "project-created plain-action control",
+      "annotation": "project-curated",
+      "notes": "No quantitative duration or PDDL 2.1 timing qualifier is stated."
+    }
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "name": "@pddl/evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pddl/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.6"
+  },
+  "exports": {
+    "./detection": {
+      "types": "./src/detection.ts",
+      "import": "./src/detection.ts"
+    },
+    "./plan": {
+      "types": "./src/plan.ts",
+      "import": "./src/plan.ts"
+    },
+    "./temporal": {
+      "types": "./src/temporal.ts",
+      "import": "./src/temporal.ts"
+    }
+  }
+}
