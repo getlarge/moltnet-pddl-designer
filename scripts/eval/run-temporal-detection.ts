@@ -8,12 +8,14 @@ import {
   type TemporalDetectionCase,
   type TemporalDetectionPrediction,
 } from '@pddl/evals/detection';
+import { assertDistinctFilePaths } from './distinct-paths.js';
 
 const [casesFile, outputFile, correlationId] = process.argv.slice(2);
 if (!casesFile || !outputFile || !correlationId)
   throw new Error(
     'Usage: run-temporal-detection.ts <cases.json> <report.json> <correlation-id>',
   );
+assertDistinctFilePaths([casesFile, outputFile]);
 const teamId = process.env.TEAM;
 const diaryId = process.env.DIARY;
 const profileName =

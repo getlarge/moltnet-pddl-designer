@@ -4,12 +4,14 @@ import {
   type TemporalDetectionCase,
   type TemporalDetectionPrediction,
 } from '@pddl/evals/detection';
+import { assertDistinctFilePaths } from './distinct-paths.js';
 
 const [casesFile, outputFile, ...reportFiles] = process.argv.slice(2);
 if (!casesFile || !outputFile || reportFiles.length === 0)
   throw new Error(
     'Usage: score-temporal-detection.ts <cases.json> <output.json> <run-report.json>...',
   );
+assertDistinctFilePaths([casesFile, outputFile, ...reportFiles]);
 writeFileSync(outputFile, '');
 
 const cases = JSON.parse(

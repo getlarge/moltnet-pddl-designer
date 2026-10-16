@@ -6,6 +6,7 @@ if [ "$#" -ne 3 ]; then
   echo 'Usage: TEAM=<team-id> DIARY=<diary-id> [PROFILE=<generation-profile>] pnpm eval:temporal:live <cases.json> <predictions.jsonl> <report.json>' >&2
   exit 2
 fi
+node --import tsx scripts/eval/check-distinct-paths.ts "$1" "$2" "$2.meta.json" "$2.poller.log" "$3"
 CORRELATION=$(node -e 'console.log(crypto.randomUUID())')
 REPORT_FILE=$3
 META_FILE="$2.meta.json"

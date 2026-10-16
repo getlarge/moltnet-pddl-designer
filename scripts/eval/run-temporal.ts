@@ -6,12 +6,14 @@ import {
   waitForTaskOutcome,
 } from '@themoltnet/tasks-orchestrator';
 import { createTeamTaskClient } from '@pddl/workflows/task-client';
+import { assertDistinctFilePaths } from './distinct-paths.js';
 
 const [casesFile, outputFile, correlationId] = process.argv.slice(2);
 if (!casesFile || !outputFile || !correlationId)
   throw new Error(
     'Usage: run-temporal.ts <cases.json> <predictions.jsonl> <correlation-id>',
   );
+assertDistinctFilePaths([casesFile, outputFile, `${outputFile}.meta.json`]);
 const teamId = process.env.TEAM;
 const diaryId = process.env.DIARY;
 const profileName = process.env.PROFILE ?? 'legreffier-pddl-designer-v1';

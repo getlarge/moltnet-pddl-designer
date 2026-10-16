@@ -6,8 +6,11 @@ import {
   type TemporalCase,
   type TemporalPrediction,
 } from '@pddl/evals/temporal';
+import { assertDistinctFilePaths } from './distinct-paths.js';
 
 const [casesFile, predictionsFile, reportFile] = process.argv.slice(2);
+if (casesFile && predictionsFile && reportFile)
+  assertDistinctFilePaths([casesFile, predictionsFile, reportFile]);
 if (reportFile) writeFileSync(reportFile, '');
 if (!casesFile || !predictionsFile) {
   process.stderr.write(

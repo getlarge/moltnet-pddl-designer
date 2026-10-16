@@ -6,6 +6,7 @@ if [ "$#" -ne 2 ]; then
   echo 'Usage: TEAM=<team-id> DIARY=<diary-id> CLASSIFY_PROFILE=<profile> pnpm eval:temporal:detect <cases.json> <report.json>' >&2
   exit 2
 fi
+node --import tsx scripts/eval/check-distinct-paths.ts "$1" "$2" "$2.poller.log"
 CORRELATION=$(node -e 'console.log(crypto.randomUUID())')
 REPORT_FILE=$2
 printf '{"runId":"%s","status":"started","completed":0,"predictions":[]}\n' "$CORRELATION" > "$2"
