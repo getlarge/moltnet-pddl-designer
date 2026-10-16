@@ -1,8 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
 import { connect } from '@themoltnet/sdk/node';
@@ -12,8 +9,8 @@ import { createClassifyDecisionClient } from '@pddl/workflows/decision';
 import {
   createTemporalExtractor,
   runTemporalPass,
-  type TemporalPass,
 } from '@pddl/workflows/temporal';
+import { validateTemporalPlan } from '@pddl/workflows/temporal-validate';
 import { buildTypesTask, type DesignInput } from '@pddl/workflows/stages';
 import { formatEvent } from './progress.js';
 import { runPddlDesign } from '@pddl/workflows/workflow';
@@ -23,39 +20,6 @@ const USAGE =
   '[--team UUID --diary UUID --profile NAME|ID --correlation UUID --project UUID] [--out FILE] [--max-corrections N] ' +
   '[--types-profile NAME|ID --predicates-profile NAME|ID --actions-profile NAME|ID --refine-profile NAME|ID --problem-profile NAME|ID] ' +
   '[--review --classify-profile NAME|ID [--review-threshold 0.9]] [--temporal --classify-profile NAME|ID [--val PATH]] [--claim-timeout SEC] [--dry-run]';
-
-function validateSingleStep(pass: TemporalPass, binary: string): void {
-  if (!pass.temporalPlan)
-    throw new Error('VAL validation currently needs a one-step durative plan.');
-  const dir = mkdtempSync(join(tmpdir(), 'pddl-temporal-'));
-  try {
-    const domain = join(dir, 'domain.pddl');
-    const problem = join(dir, 'problem.pddl');
-    const plan = join(dir, 'plan.soln');
-    writeFileSync(domain, pass.domainPddl);
-    writeFileSync(problem, pass.problemPddl);
-    writeFileSync(plan, pass.temporalPlan.text);
-    const check = spawnSync(binary, [domain, problem, plan], {
-      encoding: 'utf8',
-      timeout: 30_000,
-    });
-    if (
-      check.error ||
-      check.status !== 0 ||
-      !/\bPlan valid\b/.test(check.stdout)
-    )
-      throw new Error(
-        `VAL rejected the temporal plan: ${check.error?.message ?? (check.stdout + check.stderr).trim()}`,
-      );
-    pass.temporalPlan = {
-      ...pass.temporalPlan,
-      status: 'validated',
-      validator: 'VAL',
-    };
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
 
 export async function main(argv = process.argv.slice(2)) {
   const { values } = parseArgs({
@@ -189,7 +153,7 @@ export async function main(argv = process.argv.slice(2)) {
           claimTimeoutSec,
         }),
       );
-      if (values.val) validateSingleStep(result, values.val);
+      if (values.val) validateTemporalPlan(result, values.val);
     } catch (error) {
       if (values.out)
         writeFileSync(

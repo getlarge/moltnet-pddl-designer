@@ -54,6 +54,10 @@
       "types": "./src/temporal.ts",
       "import": "./src/temporal.ts"
     },
+    "./temporal-validate": {
+      "types": "./src/temporal-validate.ts",
+      "import": "./src/temporal-validate.ts"
+    },
     "./task-tags": {
       "types": "./src/task-tags.ts",
       "import": "./src/task-tags.ts"
