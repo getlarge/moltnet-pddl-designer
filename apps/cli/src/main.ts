@@ -1,11 +1,19 @@
 import { randomUUID } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { connect } from '@themoltnet/sdk/node';
 import { createTeamTaskClient } from '@pddl/workflows/task-client';
 
 import { createClassifyDecisionClient } from '@pddl/workflows/decision';
+import {
+  createTemporalExtractor,
+  runTemporalPass,
+  type TemporalPass,
+} from '@pddl/workflows/temporal';
 import { buildTypesTask, type DesignInput } from '@pddl/workflows/stages';
 import { formatEvent } from './progress.js';
 import { runPddlDesign } from '@pddl/workflows/workflow';
@@ -14,7 +22,40 @@ const USAGE =
   'Usage: pddl-designer --description FILE --problem FILE [--domain-name NAME --problem-name NAME] ' +
   '[--team UUID --diary UUID --profile NAME|ID --correlation UUID --project UUID] [--out FILE] [--max-corrections N] ' +
   '[--types-profile NAME|ID --predicates-profile NAME|ID --actions-profile NAME|ID --refine-profile NAME|ID --problem-profile NAME|ID] ' +
-  '[--review --classify-profile NAME|ID [--review-threshold 0.9]] [--claim-timeout SEC] [--dry-run]';
+  '[--review --classify-profile NAME|ID [--review-threshold 0.9]] [--temporal --classify-profile NAME|ID [--val PATH]] [--claim-timeout SEC] [--dry-run]';
+
+function validateSingleStep(pass: TemporalPass, binary: string): void {
+  if (!pass.temporalPlan)
+    throw new Error('VAL validation currently needs a one-step durative plan.');
+  const dir = mkdtempSync(join(tmpdir(), 'pddl-temporal-'));
+  try {
+    const domain = join(dir, 'domain.pddl');
+    const problem = join(dir, 'problem.pddl');
+    const plan = join(dir, 'plan.soln');
+    writeFileSync(domain, pass.domainPddl);
+    writeFileSync(problem, pass.problemPddl);
+    writeFileSync(plan, pass.temporalPlan.text);
+    const check = spawnSync(binary, [domain, problem, plan], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    });
+    if (
+      check.error ||
+      check.status !== 0 ||
+      !/\bPlan valid\b/.test(check.stdout)
+    )
+      throw new Error(
+        `VAL rejected the temporal plan: ${check.error?.message ?? (check.stdout + check.stderr).trim()}`,
+      );
+    pass.temporalPlan = {
+      ...pass.temporalPlan,
+      status: 'validated',
+      validator: 'VAL',
+    };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
 
 export async function main(argv = process.argv.slice(2)) {
   const { values } = parseArgs({
@@ -37,6 +78,8 @@ export async function main(argv = process.argv.slice(2)) {
       out: { type: 'string' },
       'max-corrections': { type: 'string', default: '1' },
       review: { type: 'boolean', default: false },
+      temporal: { type: 'boolean', default: false },
+      val: { type: 'string' },
       'claim-timeout': { type: 'string', default: '600' },
       'classify-profile': { type: 'string' },
       'review-threshold': { type: 'string', default: '0.9' },
@@ -44,6 +87,8 @@ export async function main(argv = process.argv.slice(2)) {
     },
   });
   if (!values.description || !values.problem) throw new Error(USAGE);
+  if (values.val && !values.temporal)
+    throw new Error('--val needs --temporal\n' + USAGE);
   const input: DesignInput = {
     description: readFileSync(values.description, 'utf8').trim(),
     problemDescription: readFileSync(values.problem, 'utf8').trim(),
@@ -88,8 +133,10 @@ export async function main(argv = process.argv.slice(2)) {
     const reference = values[`${stage}-profile`];
     if (reference) input.stageProfiles[stage] = profileId(reference);
   }
-  if (values.review && !values['classify-profile'])
-    throw new Error('--review needs --classify-profile\n' + USAGE);
+  if ((values.review || values.temporal) && !values['classify-profile'])
+    throw new Error(
+      '--review and --temporal need --classify-profile\n' + USAGE,
+    );
 
   const threshold = Number(values['review-threshold']);
   if (!(threshold > 0 && threshold < 1))
@@ -121,11 +168,45 @@ export async function main(argv = process.argv.slice(2)) {
         }
       : {}),
   });
-  const text = `${JSON.stringify(run, null, 2)}\n`;
+  let result: Awaited<ReturnType<typeof runTemporalPass>> | typeof run = run;
+  if (values.temporal) {
+    try {
+      result = await runTemporalPass(
+        run,
+        createClassifyDecisionClient(tasks, {
+          teamId: input.teamId,
+          diaryId: input.diaryId,
+          ...(input.projectId ? { projectId: input.projectId } : {}),
+          correlationId: input.correlationId,
+          profileId: profileId(values['classify-profile'] ?? ''),
+          claimTimeoutSec,
+        }),
+        createTemporalExtractor(tasks, {
+          teamId: input.teamId,
+          diaryId: input.diaryId,
+          correlationId: input.correlationId,
+          profileId: input.profileId,
+          claimTimeoutSec,
+        }),
+      );
+      if (values.val) validateSingleStep(result, values.val);
+    } catch (error) {
+      if (values.out)
+        writeFileSync(
+          values.out,
+          `${JSON.stringify({ status: 'failed', baseRun: run, error: error instanceof Error ? error.message : String(error) }, null, 2)}\n`,
+        );
+      throw error;
+    }
+  }
+  const text = `${JSON.stringify(result, null, 2)}\n`;
   if (values.out) writeFileSync(values.out, text);
   else process.stdout.write(text);
   process.stderr.write(
     `[pddl-designer] status=${run.status} stages=${run.stages.length}` +
+      (values.temporal
+        ? ` temporal=${'durativeActions' in result ? result.durativeActions.length : 0} temporal-plan=${'temporalPlan' in result ? (result.temporalPlan?.status ?? 'none') : 'none'}`
+        : '') +
       (run.plan?.status === 'found'
         ? ` plan=${run.plan.steps.length} steps`
         : '') +
