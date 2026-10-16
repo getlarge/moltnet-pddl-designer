@@ -4,7 +4,11 @@ import { runPddlDesign } from './workflow.js';
 import type { Execute, SourceExecute } from './executor.js';
 import { createSourceAssessor } from './source-check.js';
 import { createClassifyDecisionClient } from './decision.js';
-import { createTemporalExtractor, runTemporalPass } from './temporal.js';
+import {
+  createTemporalExtractor,
+  runTemporalPass,
+  TemporalModelError,
+} from './temporal.js';
 import { validateTemporalPlan } from './temporal-validate.js';
 import type { DecisionClient } from './decision.js';
 import type { TemporalExtractor } from './temporal.js';
@@ -37,6 +41,7 @@ export async function finishTemporalRun(
       ...(validationError ? { validationError } : {}),
     };
   } catch (error) {
+    if (!(error instanceof TemporalModelError)) throw error;
     run.temporal = {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error),

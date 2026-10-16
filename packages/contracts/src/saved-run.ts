@@ -87,6 +87,9 @@ const temporalSchema = Type.Object({
       action: Type.String(),
       probability: Type.Number({ minimum: 0, maximum: 1 }),
       timed: Type.Boolean(),
+      unsupportedReason: Type.Optional(
+        Type.Literal('numeric-duration-required'),
+      ),
     }),
   ),
   durativeActions: Type.Array(

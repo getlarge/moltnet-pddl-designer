@@ -81,25 +81,34 @@ it('publishes a single finished event with the timed model after extraction', as
   });
 });
 
-it('retains the classical result and publishes a visible temporal failure', async () => {
+it('propagates a transient classifier failure so the durable run can retry', async () => {
   const onEvent = vi.fn();
+  await expect(
+    finishTemporalRun(
+      base(),
+      {
+        yesNo: async () => {
+          throw new Error('classifier unavailable');
+        },
+      },
+      { extract: async () => extracted },
+      onEvent,
+    ),
+  ).rejects.toThrow('classifier unavailable');
+  expect(onEvent.mock.calls.map(([event]) => event.type)).toEqual([
+    'temporal-started',
+  ]);
+});
+
+it('retains the classical result and publishes invalid temporal output', async () => {
   const run = await finishTemporalRun(
     base(),
-    {
-      yesNo: async () => {
-        throw new Error('classifier unavailable');
-      },
-    },
-    { extract: async () => extracted },
-    onEvent,
+    { yesNo: async () => 0.97 },
+    { extract: async () => ({ ...extracted, durationSeconds: 0 }) },
   );
   expect(run.status).toBe('planned');
   expect(run.temporal).toEqual({
     status: 'failed',
-    error: 'classifier unavailable',
+    error: 'Duration for inspect must be positive seconds.',
   });
-  expect(onEvent.mock.calls.map(([event]) => event.type)).toEqual([
-    'temporal-started',
-    'finished',
-  ]);
 });

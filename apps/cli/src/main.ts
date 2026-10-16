@@ -6,11 +6,8 @@ import { connect } from '@themoltnet/sdk/node';
 import { createTeamTaskClient } from '@pddl/workflows/task-client';
 
 import { createClassifyDecisionClient } from '@pddl/workflows/decision';
-import {
-  createTemporalExtractor,
-  runTemporalPass,
-} from '@pddl/workflows/temporal';
-import { validateTemporalPlan } from '@pddl/workflows/temporal-validate';
+import { createTemporalExtractor } from '@pddl/workflows/temporal';
+import { finishTemporalRun } from '@pddl/workflows/molt-executor';
 import { buildTypesTask, type DesignInput } from '@pddl/workflows/stages';
 import { formatEvent } from './progress.js';
 import { runPddlDesign } from '@pddl/workflows/workflow';
@@ -132,10 +129,9 @@ export async function main(argv = process.argv.slice(2)) {
         }
       : {}),
   });
-  let result: Awaited<ReturnType<typeof runTemporalPass>> | typeof run = run;
   if (values.temporal) {
     try {
-      result = await runTemporalPass(
+      await finishTemporalRun(
         run,
         createClassifyDecisionClient(tasks, {
           teamId: input.teamId,
@@ -152,24 +148,26 @@ export async function main(argv = process.argv.slice(2)) {
           profileId: input.profileId,
           claimTimeoutSec,
         }),
+        undefined,
+        values.val,
       );
-      if (values.val) validateTemporalPlan(result, values.val);
     } catch (error) {
+      run.temporal = {
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      };
       if (values.out)
-        writeFileSync(
-          values.out,
-          `${JSON.stringify({ status: 'failed', baseRun: run, error: error instanceof Error ? error.message : String(error) }, null, 2)}\n`,
-        );
+        writeFileSync(values.out, `${JSON.stringify(run, null, 2)}\n`);
       throw error;
     }
   }
-  const text = `${JSON.stringify(result, null, 2)}\n`;
+  const text = `${JSON.stringify(run, null, 2)}\n`;
   if (values.out) writeFileSync(values.out, text);
   else process.stdout.write(text);
   process.stderr.write(
     `[pddl-designer] status=${run.status} stages=${run.stages.length}` +
       (values.temporal
-        ? ` temporal=${'durativeActions' in result ? result.durativeActions.length : 0} temporal-plan=${'temporalPlan' in result ? (result.temporalPlan?.status ?? 'none') : 'none'}`
+        ? ` temporal=${run.temporal?.status === 'complete' ? run.temporal.durativeActions.length : 0} temporal-plan=${run.temporal?.status === 'complete' ? (run.temporal.temporalPlan?.status ?? 'none') : 'none'}`
         : '') +
       (run.plan?.status === 'found'
         ? ` plan=${run.plan.steps.length} steps`
@@ -182,5 +180,13 @@ export async function main(argv = process.argv.slice(2)) {
         : '') +
       '\n',
   );
-  if (run.status === 'failed' || run.status === 'invalid') process.exitCode = 1;
+  if (
+    run.status === 'failed' ||
+    run.status === 'invalid' ||
+    run.temporal?.status === 'failed' ||
+    (values.val &&
+      run.temporal?.status === 'complete' &&
+      run.temporal.validationError)
+  )
+    process.exitCode = 1;
 }

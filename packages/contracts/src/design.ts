@@ -70,6 +70,7 @@ export interface DesignRun {
           action: string;
           probability: number;
           timed: boolean;
+          unsupportedReason?: 'numeric-duration-required';
         }>;
         durativeActions: DurativeAction[];
         defaultedClauses: Array<{

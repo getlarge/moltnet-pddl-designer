@@ -39,8 +39,12 @@ export function TemporalResult({
         {result.detections.map((item) => (
           <li key={item.action}>
             <strong>{item.action.replaceAll('-', ' ')}</strong> ·{' '}
-            {item.timed ? 'timed' : 'classical'} · classifier probability{' '}
-            {item.probability.toFixed(2)}
+            {item.unsupportedReason
+              ? 'timing detected; numeric duration required'
+              : item.timed
+                ? 'timed'
+                : 'classical'}{' '}
+            · classifier probability {item.probability.toFixed(2)}
           </li>
         ))}
       </ul>

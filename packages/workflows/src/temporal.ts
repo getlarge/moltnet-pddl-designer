@@ -37,7 +37,12 @@ export interface TemporalPass {
   /** The classical run stays available for stage provenance and comparison. */
   baseRun: DesignRun;
   status: 'complete';
-  detections: Array<{ action: string; probability: number; timed: boolean }>;
+  detections: Array<{
+    action: string;
+    probability: number;
+    timed: boolean;
+    unsupportedReason?: 'numeric-duration-required';
+  }>;
   durativeActions: DurativeAction[];
   /** Draft facts with no extracted timing receive the conventional start/end defaults. */
   defaultedClauses: Array<{
@@ -61,7 +66,7 @@ function singleStepSchedule(
 ): TemporalPass['temporalPlan'] {
   if (run.plan?.status !== 'found' || run.plan.steps.length !== 1) return null;
   const step = run.plan.steps[0];
-  const name = /^\(([a-z][a-z0-9-]*)\s/.exec(step)?.[1];
+  const name = /^\(([a-z][a-z0-9-]*)(?:\s|\))/.exec(step)?.[1];
   const action = actions.find((item) => item.name === name);
   if (!action) return null;
   return {
@@ -108,6 +113,9 @@ export function completeTimedAction(
 const atomKey = (x: { predicate: string; args: string[]; negated: boolean }) =>
   JSON.stringify([x.predicate, x.args, x.negated]);
 
+/** The generated action conflicts with the supported temporal model. */
+export class TemporalModelError extends Error {}
+
 export async function runTemporalPass(
   baseRun: DesignRun,
   decisions: DecisionClient,
@@ -139,17 +147,34 @@ export async function runTemporalPass(
     );
     if (!Number.isFinite(probability) || probability < 0 || probability > 1)
       throw new Error(`Invalid temporal probability for ${action.name}.`);
-    const timed = probability >= threshold;
-    detections.push({ action: action.name, probability, timed });
-    if (!timed) continue;
+    if (probability < threshold) {
+      detections.push({ action: action.name, probability, timed: false });
+      continue;
+    }
     const extracted = await extractor.extract(
       domain,
       action,
       baseRun.input.description,
     );
+    if (extracted.durationSeconds === -1) {
+      detections.push({
+        action: action.name,
+        probability,
+        timed: false,
+        unsupportedReason: 'numeric-duration-required',
+      });
+      continue;
+    }
     const completed = completeTimedAction(action, extracted);
-    checkDurativeAction(domain, completed.action);
-    assertActionCoverage(action, completed.action);
+    try {
+      checkDurativeAction(domain, completed.action);
+      assertActionCoverage(action, completed.action);
+    } catch (error) {
+      throw new TemporalModelError(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+    detections.push({ action: action.name, probability, timed: true });
     durativeActions.push(completed.action);
     defaultedClauses.push(...completed.defaults);
   }

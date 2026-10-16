@@ -110,7 +110,9 @@ extracts timed clauses for positive actions. Open the wizard with
 extraction. The wizard and CLI render PDDL 2.1 durative actions and show any
 untimed draft facts assigned start/end defaults. Set `PDDL_VAL_PATH` on the
 wizard worker, or pass `--val PATH` to the CLI, to check a one-step timed
-schedule with VAL.
+schedule with VAL. Actions with timing evidence but no usable numeric duration
+stay classical and are identified in the result. CLI JSON keeps the normal
+run structure, with the timed model under `temporal`.
 
 ## Workflow at a glance
 
