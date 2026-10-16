@@ -31,6 +31,8 @@ export interface DesignInput {
   profileId: string;
   /** Optional generation profile overrides, keyed by modeling stage. */
   stageProfiles?: Partial<Record<StageName, string>>;
+  /** Opt-in temporal extraction after the classical modeling stages. */
+  temporal?: { classificationProfile: string };
   projectId?: string;
 }
 

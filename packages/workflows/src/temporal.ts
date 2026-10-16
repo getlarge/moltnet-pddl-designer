@@ -9,6 +9,7 @@ import type { DesignRun } from '@pddl/contracts/design';
 import type { ActionDef, Domain } from '@pddl/domain/ir';
 import { renderDomainWithTiming, renderProblem } from '@pddl/domain/render';
 import {
+  assertActionCoverage,
   checkDurativeAction,
   type DurativeAction,
 } from '@pddl/domain/temporal';
@@ -106,30 +107,6 @@ export function completeTimedAction(
 
 const atomKey = (x: { predicate: string; args: string[]; negated: boolean }) =>
   JSON.stringify([x.predicate, x.args, x.negated]);
-
-/** A timed rewrite must retain every fact represented by the classical draft. */
-export function assertActionCoverage(
-  base: ActionDef,
-  timed: DurativeAction,
-): void {
-  const conditions = new Set(timed.conditions.map(atomKey));
-  const effects = new Set(timed.effects.map(atomKey));
-  for (const pre of base.preconditions)
-    if (!conditions.has(atomKey(pre)))
-      throw new Error(
-        `${base.name}: temporal extraction omitted precondition ${atomKey(pre)}`,
-      );
-  for (const effect of base.addEffects)
-    if (!effects.has(atomKey({ ...effect, negated: false })))
-      throw new Error(
-        `${base.name}: temporal extraction omitted add effect ${atomKey({ ...effect, negated: false })}`,
-      );
-  for (const effect of base.deleteEffects)
-    if (!effects.has(atomKey({ ...effect, negated: true })))
-      throw new Error(
-        `${base.name}: temporal extraction omitted delete effect ${atomKey({ ...effect, negated: true })}`,
-      );
-}
 
 export async function runTemporalPass(
   baseRun: DesignRun,

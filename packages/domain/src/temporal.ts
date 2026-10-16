@@ -1,5 +1,5 @@
 import { isSubtype } from './check.js';
-import type { Domain, Parameter } from './ir.js';
+import type { ActionDef, Domain, Parameter } from './ir.js';
 
 export type ConditionTiming = 'start' | 'overall' | 'end';
 export type EffectTiming = 'start' | 'end';
@@ -75,4 +75,30 @@ export function checkDurativeAction(
   }
   if (!action.effects.length)
     throw new Error(`Durative action ${action.name} has no effects.`);
+}
+
+/** A timed rewrite must retain every fact represented by the classical draft. */
+export function assertActionCoverage(
+  base: ActionDef,
+  timed: DurativeAction,
+): void {
+  const key = (x: { predicate: string; args: string[]; negated: boolean }) =>
+    JSON.stringify([x.predicate, x.args, x.negated]);
+  const conditions = new Set(timed.conditions.map(key));
+  const effects = new Set(timed.effects.map(key));
+  for (const pre of base.preconditions)
+    if (!conditions.has(key(pre)))
+      throw new Error(
+        `${base.name}: temporal extraction omitted precondition ${key(pre)}`,
+      );
+  for (const effect of base.addEffects)
+    if (!effects.has(key({ ...effect, negated: false })))
+      throw new Error(
+        `${base.name}: temporal extraction omitted add effect ${key({ ...effect, negated: false })}`,
+      );
+  for (const effect of base.deleteEffects)
+    if (!effects.has(key({ ...effect, negated: true })))
+      throw new Error(
+        `${base.name}: temporal extraction omitted delete effect ${key({ ...effect, negated: true })}`,
+      );
 }

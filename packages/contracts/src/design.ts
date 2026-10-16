@@ -2,6 +2,7 @@ import type { SourceCheckRecord } from './source-check.js';
 import type { SourceSentence } from '@pddl/domain/provenance';
 import type { Issue } from '@pddl/domain/check';
 import type { Domain, Problem } from '@pddl/domain/ir';
+import type { DurativeAction } from '@pddl/domain/temporal';
 import type {
   GroundingRow,
   PlanResult,
@@ -43,6 +44,7 @@ export interface DesignRun {
     | 'domainName'
     | 'problemName'
     | 'correlationId'
+    | 'temporal'
   >;
   stages: StageRecord[];
   domain?: Domain;
@@ -61,6 +63,30 @@ export interface DesignRun {
   /** True when the last review found no shortcuts. */
   reviewPassed?: boolean;
   sourceChecks?: SourceCheckRecord[];
+  temporal?:
+    | {
+        status: 'complete';
+        detections: Array<{
+          action: string;
+          probability: number;
+          timed: boolean;
+        }>;
+        durativeActions: DurativeAction[];
+        defaultedClauses: Array<{
+          action: string;
+          kind: 'condition' | 'effect';
+          clause: DurativeAction['conditions'][number];
+        }>;
+        domainPddl: string;
+        problemPddl: string;
+        temporalPlan: {
+          status: 'candidate' | 'validated';
+          text: string;
+          validator?: 'VAL';
+        } | null;
+        validationError?: string;
+      }
+    | { status: 'failed'; error: string };
   durationMs: number;
 }
 
@@ -72,6 +98,7 @@ export type DesignEvent =
   | { type: 'stage-result'; record: StageRecord }
   | { type: 'stage-accepted'; stage: StageName; attempt: number }
   | { type: 'plan-checked'; status: DesignStatus; plan: PlanResult }
+  | { type: 'temporal-started' }
   | { type: 'review'; round: number; findings: Issue[] }
   | { type: 'finished'; run: DesignRun };
 
