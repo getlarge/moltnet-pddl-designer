@@ -1,8 +1,15 @@
 # Temporal loading pilot
 
 The description and situation in this directory exercise numeric-duration
-PDDL 2.1 generation. Configure a generation worker and a classification worker
-for the same MoltNet team, then run:
+PDDL 2.1 generation.
+
+To inspect these inputs in the local wizard, open its URL with
+`?example=temporal-loading` (for example,
+`http://127.0.0.1:4318/?example=temporal-loading`). The wizard fills both input
+fields and model names. Its generation flow is currently classical.
+
+For the temporal pass, configure a generation worker and a classification
+worker for the same MoltNet team, then run:
 
 ```bash
 pnpm --silent cli \

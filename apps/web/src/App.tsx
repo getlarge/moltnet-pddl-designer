@@ -177,6 +177,9 @@ export function App() {
   const [page, setPage] = useState<'new' | 'rack' | 'proof'>('new');
   const [input, setInput] = useState<RunInput>(initialInput);
   const [examples, setExamples] = useState<Example[]>([]);
+  const [selectedExample, setSelectedExample] = useState(
+    () => new URLSearchParams(location.search).get('example') ?? '',
+  );
   const [rack, setRack] = useState<SavedItem[]>([]);
   const [snapshot, setSnapshot] = useState<RunSnapshot>();
   const [saved, setSaved] = useState<Saved>();
@@ -277,6 +280,11 @@ export function App() {
         if (!cancelled) {
           setExamples(items);
           setRecoverableRun(runs[0]);
+          const requestedExample = items.find(
+            (item) =>
+              item.name === new URLSearchParams(location.search).get('example'),
+          );
+          if (!requestedExample) setSelectedExample('');
           setInput((v) => ({
             ...v,
             ...Object.fromEntries(
@@ -284,6 +292,14 @@ export function App() {
                 ([, v]) => v !== undefined,
               ),
             ),
+            ...(requestedExample
+              ? {
+                  description: requestedExample.description,
+                  problemDescription: requestedExample.problemDescription,
+                  domainName: requestedExample.name,
+                  problemName: `${requestedExample.name.slice(0, 30)}-case`,
+                }
+              : {}),
           }));
           setRunsDirectory(config.runsDirectory);
         }
@@ -610,8 +626,9 @@ export function App() {
             <label className="field">
               Start with an example
               <select
-                defaultValue=""
+                value={selectedExample}
                 onChange={(e) => {
+                  setSelectedExample(e.target.value);
                   const example = examples.find(
                     (x) => x.name === e.target.value,
                   );
@@ -640,9 +657,10 @@ export function App() {
                 required
                 rows={8}
                 value={input.description}
-                onChange={(e) =>
-                  setInput({ ...input, description: e.target.value })
-                }
+                onChange={(e) => {
+                  setSelectedExample('');
+                  setInput({ ...input, description: e.target.value });
+                }}
                 placeholder="Describe who takes part, what each step needs, and what changes after it."
               />
             </label>
@@ -652,9 +670,10 @@ export function App() {
                 required
                 rows={4}
                 value={input.problemDescription}
-                onChange={(e) =>
-                  setInput({ ...input, problemDescription: e.target.value })
-                }
+                onChange={(e) => {
+                  setSelectedExample('');
+                  setInput({ ...input, problemDescription: e.target.value });
+                }}
                 placeholder="Name the things involved, what is true at the start, and the goal."
               />
             </label>
