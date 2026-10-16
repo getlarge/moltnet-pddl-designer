@@ -2,6 +2,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 import type { TemporalCase } from '@pddl/evals/temporal';
+import { assertDistinctFilePaths } from './distinct-paths.js';
 
 const [casesFile, outputFile, templateFile] = process.argv.slice(2);
 if (!casesFile || !outputFile) {
@@ -10,6 +11,11 @@ if (!casesFile || !outputFile) {
   );
   process.exitCode = 2;
 } else {
+  assertDistinctFilePaths([
+    casesFile,
+    outputFile,
+    ...(templateFile ? [templateFile] : []),
+  ]);
   const cases = JSON.parse(readFileSync(casesFile, 'utf8')) as TemporalCase[];
   writeFileSync(
     outputFile,

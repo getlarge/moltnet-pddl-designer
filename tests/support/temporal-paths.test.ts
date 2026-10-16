@@ -23,6 +23,34 @@ afterEach(() => {
 });
 
 describe('temporal CLI output paths', () => {
+  it('preserves gold cases when the input exporter output aliases them', () => {
+    const cases = join(directory, 'cases.json');
+    const original = '[{"id":"gold","gold":{"hasDurativeEvidence":true}}]\n';
+    writeFileSync(cases, original);
+    const result = spawnSync(
+      process.execPath,
+      ['--import', 'tsx', script('temporal-inputs.ts'), cases, cases],
+      { encoding: 'utf8' },
+    );
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('File paths must be distinct');
+    expect(readFileSync(cases, 'utf8')).toBe(original);
+  });
+
+  it('rejects a prediction template that aliases exported inputs', () => {
+    const cases = join(directory, 'cases.json');
+    const output = join(directory, 'inputs.jsonl');
+    writeFileSync(cases, '[]\n');
+    const result = spawnSync(
+      process.execPath,
+      ['--import', 'tsx', script('temporal-inputs.ts'), cases, output, output],
+      { encoding: 'utf8' },
+    );
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('File paths must be distinct');
+    expect(() => readFileSync(output)).toThrow();
+  });
+
   it('preserves extraction cases when the score report aliases them', () => {
     const cases = join(directory, 'cases.json');
     const predictions = join(directory, 'predictions.jsonl');

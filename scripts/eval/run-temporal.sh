@@ -33,6 +33,9 @@ cleanup() {
       const fs = require("node:fs");
       const [reportPath, metadataPath, signal] = process.argv.slice(1);
       const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+      const error = signal ? `Interrupted by ${signal}.` : metadata.error ?? "Live temporal evaluation failed before scoring.";
+      if (signal || metadata.status !== "complete")
+        fs.writeFileSync(metadataPath, JSON.stringify({ ...metadata, status: "failed", error }, null, 2) + "\n");
       let report;
       try { report = JSON.parse(fs.readFileSync(reportPath, "utf8")); }
       catch { report = { runId: metadata.runId }; }
@@ -42,7 +45,7 @@ cleanup() {
         completed: metadata.timings?.length ?? report.completed ?? 0,
         failedCaseId: metadata.failedCaseId,
         failedTaskId: metadata.failedTaskId,
-        error: signal ? `Interrupted by ${signal}.` : metadata.error ?? "Live temporal evaluation failed before scoring."
+        error
       }, null, 2) + "\n");
     ' "$REPORT_FILE" "$META_FILE" "$SIGNAL" || true
   fi

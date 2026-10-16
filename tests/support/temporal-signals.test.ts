@@ -32,7 +32,7 @@ describe('temporal shell interruption', () => {
       const fakePoller = join(directory, 'moltnet-agent');
       writeFileSync(
         fakeNode,
-      '#!/bin/sh\nif [ "$1" = "--import" ] && [ "$3" != "scripts/eval/check-distinct-paths.ts" ]; then echo $$ > "$TEMPORAL_RUNNER_PID"; exec sleep 30; fi\nexec "$TEMPORAL_REAL_NODE" "$@"\n',
+        '#!/bin/sh\nif [ "$1" = "--import" ] && [ "$3" != "scripts/eval/check-distinct-paths.ts" ]; then echo $$ > "$TEMPORAL_RUNNER_PID"; exec sleep 30; fi\nexec "$TEMPORAL_REAL_NODE" "$@"\n',
         { mode: 0o755 },
       );
       writeFileSync(
@@ -91,6 +91,13 @@ describe('temporal shell interruption', () => {
           status: 'failed',
           error: 'Interrupted by SIGTERM.',
         });
+        if (name === 'run-temporal.sh')
+          expect(
+            JSON.parse(readFileSync(`${args[1]}.meta.json`, 'utf8')),
+          ).toMatchObject({
+            status: 'failed',
+            error: 'Interrupted by SIGTERM.',
+          });
         for (const file of [runnerPid, pollerPid]) {
           const pid = Number(readFileSync(file, 'utf8'));
           expect(() => process.kill(pid, 0)).toThrow();
