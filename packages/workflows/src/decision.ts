@@ -17,7 +17,7 @@ import {
   waitForTaskOutcome,
 } from '@themoltnet/tasks-orchestrator';
 import { Value } from 'typebox/value';
-import { TerminalTaskError } from './task-client.js';
+import { TerminalTaskError, waitForTaskClaim } from './task-client.js';
 
 export interface YesNoQuestion {
   instructions: string;
@@ -43,6 +43,7 @@ export interface ClassifyDecisionOptions {
   /** Fail when no worker claims a question within this many seconds. */
   claimTimeoutSec?: number;
   ctx?: WorkflowContext;
+  purpose?: 'review' | 'temporal';
 }
 
 const QUESTION = 'answer';
@@ -53,6 +54,7 @@ export function createClassifyDecisionClient(
 ): DecisionClient {
   const pollIntervalSec = options.pollIntervalSec ?? 2;
   const claimTimeoutSec = options.claimTimeoutSec ?? 600;
+  const temporal = options.purpose === 'temporal';
   const ctx: WorkflowContext = options.ctx ?? {
     ...createInlineContext(),
     sleepFor: (_name: string, seconds: number) =>
@@ -60,28 +62,6 @@ export function createClassifyDecisionClient(
         setTimeout(resolve, seconds * 1000);
       }),
   };
-
-  async function awaitClaim(taskId: string) {
-    const deadline = await ctx.step(
-      `temporal.classify.deadline.${taskId}`,
-      async () => Date.now() + claimTimeoutSec * 1000,
-    );
-    for (;;) {
-      const observation = await ctx.step(
-        `temporal.classify.claim.${taskId}`,
-        async () => ({
-          status: (await tasks.getTask(taskId)).status,
-          checkedAt: Date.now(),
-        }),
-      );
-      if (observation.status !== 'queued') return;
-      if (observation.checkedAt >= deadline)
-        throw new Error(
-          `no worker claimed classify task ${taskId} within ${claimTimeoutSec}s; check that a poller serves the classification profile`,
-        );
-      await ctx.sleepFor(`claim.${taskId}`, pollIntervalSec);
-    }
-  }
 
   return {
     async yesNo(state, question) {
@@ -101,7 +81,9 @@ export function createClassifyDecisionClient(
           tasks.createTask(
             {
               taskType: 'classify',
-              title: 'PDDL review question',
+              title: temporal
+                ? `PDDL temporal detection ${String(state.action ?? '')}`.trim()
+                : 'PDDL review question',
               teamId: options.teamId,
               diaryId: options.diaryId,
               ...(options.projectId ? { projectId: options.projectId } : {}),
@@ -111,13 +93,23 @@ export function createClassifyDecisionClient(
               dispatchTimeoutSec: 300,
               expiresInSec: 3600,
               maxAttempts: 2,
-              tags: [TASK_TAGS.designer, TASK_TAGS.stage.review],
+              tags: [
+                TASK_TAGS.designer,
+                temporal ? TASK_TAGS.stage.temporal : TASK_TAGS.stage.review,
+              ],
               input,
             },
             { idempotencyKey: 'pddl-review:' + digest },
           ),
       );
-      await awaitClaim(task.id);
+      await waitForTaskClaim(tasks, ctx, task.id, {
+        deadlineStep: `temporal.classify.deadline.${task.id}`,
+        claimStep: `temporal.classify.claim.${task.id}`,
+        sleepStep: `claim.${task.id}`,
+        timeoutSec: claimTimeoutSec,
+        pollIntervalSec,
+        timeoutMessage: `no worker claimed classify task ${task.id} within ${claimTimeoutSec}s; check that a poller serves the classification profile`,
+      });
       const outcome = await waitForTaskOutcome(task.id, {
         tasks: {
           ...tasks,

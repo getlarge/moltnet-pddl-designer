@@ -124,6 +124,7 @@ export const moltExecute: Execute = async (input, options) => {
       profileId: resolved.temporal.classificationProfile,
       claimTimeoutSec: options.claimTimeoutSec,
       ctx: options.ctx,
+      purpose: 'temporal',
     }),
     createTemporalExtractor(tasks, {
       teamId: resolved.teamId,

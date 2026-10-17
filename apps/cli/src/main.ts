@@ -145,6 +145,7 @@ export async function main(argv = process.argv.slice(2)) {
           correlationId: input.correlationId,
           profileId: classificationProfileId!,
           claimTimeoutSec,
+          purpose: 'temporal',
         }),
         createTemporalExtractor(tasks, {
           teamId: input.teamId,

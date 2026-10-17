@@ -43,6 +43,18 @@ describe('createClassifyDecisionClient', () => {
     });
   });
 
+  it('labels temporal detection with its action and temporal stage', async () => {
+    const tasks = new FakeTasks([answer(0.93)]);
+    const client = createClassifyDecisionClient(tasks, {
+      ...options,
+      purpose: 'temporal',
+    });
+    await client.yesNo({ action: 'inspect-box' }, question);
+    expect(tasks.created[0].title).toBe('PDDL temporal detection inspect-box');
+    expect(tasks.created[0].tags).toContain('stage:temporal');
+    expect(tasks.created[0].tags).not.toContain('stage:review');
+  });
+
   it('reuses the idempotency key for the same question about the same state', async () => {
     // Arrange
     const tasks = new FakeTasks([answer(0.1), answer(0.1), answer(0.1)]);

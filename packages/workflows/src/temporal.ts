@@ -11,13 +11,12 @@ import type { DesignRun } from '@pddl/contracts/design';
 import type { ActionDef, Domain } from '@pddl/domain/ir';
 import { renderDomainWithTiming, renderProblem } from '@pddl/domain/render';
 import {
-  assertActionCoverage,
   checkDurativeAction,
   type DurativeAction,
 } from '@pddl/domain/temporal';
 import type { DecisionClient } from './decision.js';
 import { TASK_TAGS } from './task-tags.js';
-import { TerminalTaskError } from './task-client.js';
+import { TerminalTaskError, waitForTaskClaim } from './task-client.js';
 
 export const TEMPORAL_QUESTION = {
   instructions:
@@ -37,33 +36,17 @@ export interface TemporalExtractor {
   ): Promise<DurativeAction>;
 }
 
-export interface TemporalPass {
+type CompleteTemporalResult = Extract<
+  NonNullable<DesignRun['temporal']>,
+  { status: 'complete' }
+>;
+
+export interface TemporalPass extends CompleteTemporalResult {
   /** The classical run stays available for stage provenance and comparison. */
   baseRun: DesignRun;
-  status: 'complete';
-  detections: Array<{
-    action: string;
-    probability: number;
-    timed: boolean;
-    unsupportedReason?: 'numeric-duration-required';
-  }>;
-  durativeActions: DurativeAction[];
-  /** Draft facts with no extracted timing receive the conventional start/end defaults. */
-  defaultedClauses: Array<{
-    action: string;
-    kind: 'condition' | 'effect';
-    clause: DurativeAction['conditions'][number];
-  }>;
-  domainPddl: string;
-  problemPddl: string;
-  /** A one-step schedule derived from the classical plan; validate before trusting it. */
-  temporalPlan: {
-    status: 'candidate' | 'validated';
-    text: string;
-    validator?: 'VAL';
-  } | null;
 }
 
+/** A one-step schedule derived from the classical plan; validate before trusting it. */
 function singleStepSchedule(
   run: DesignRun,
   actions: DurativeAction[],
@@ -176,7 +159,6 @@ export async function runTemporalPass(
     const completed = completeTimedAction(action, extracted);
     try {
       checkDurativeAction(domain, completed.action);
-      assertActionCoverage(action, completed.action);
     } catch (error) {
       throw new TemporalModelError(
         error instanceof Error ? error.message : String(error),
@@ -300,25 +282,14 @@ export function createTemporalExtractor(
             { idempotencyKey: `pddl-temporal:${digest}` },
           ),
       );
-      const deadline = await ctx.step(
-        `temporal.extract.deadline.${digest}`,
-        async () => Date.now() + (options.claimTimeoutSec ?? 600) * 1000,
-      );
-      for (;;) {
-        const observation = await ctx.step(
-          `temporal.extract.claim.${task.id}`,
-          async () => ({
-            status: (await tasks.getTask(task.id)).status,
-            checkedAt: Date.now(),
-          }),
-        );
-        if (observation.status !== 'queued') break;
-        if (observation.checkedAt >= deadline)
-          throw new Error(
-            `No worker claimed temporal extraction task ${task.id}.`,
-          );
-        await ctx.sleepFor(`temporal-claim.${task.id}`, pollIntervalSec);
-      }
+      await waitForTaskClaim(tasks, ctx, task.id, {
+        deadlineStep: `temporal.extract.deadline.${digest}`,
+        claimStep: `temporal.extract.claim.${task.id}`,
+        sleepStep: `temporal-claim.${task.id}`,
+        timeoutSec: options.claimTimeoutSec ?? 600,
+        pollIntervalSec,
+        timeoutMessage: `No worker claimed temporal extraction task ${task.id}.`,
+      });
       const outcome = await waitForTaskOutcome(task.id, {
         tasks: {
           ...tasks,
