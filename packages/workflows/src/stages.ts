@@ -95,7 +95,7 @@ function stageTask(
     ...(input.projectId ? { projectId: input.projectId } : {}),
     correlationId: input.correlationId,
     allowedProfiles: [
-      { profileId: input.stageProfiles?.[stage] ?? input.profileId },
+      { profileId: input.stageProfiles?.[stage] ?? input.generationProfileId },
     ],
     runningTimeoutSec: 300,
     dispatchTimeoutSec: 300,

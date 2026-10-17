@@ -179,6 +179,10 @@ export async function runPddlDesign(
       domainName: input.domainName,
       problemName: input.problemName,
       correlationId: input.correlationId,
+      ...(input.temporal ? { temporal: input.temporal } : {}),
+      ...(input.classificationProfileId
+        ? { classificationProfileId: input.classificationProfileId }
+        : {}),
     },
     stages: [],
     issues: [],

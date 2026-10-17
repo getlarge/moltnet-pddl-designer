@@ -18,6 +18,33 @@ test.afterEach(async ({ page, request }) => {
   }
 });
 
+test('temporal example fills both inputs and submits its classifier profile', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/?example=temporal-loading');
+  await expect(page.getByLabel('How does the process work?')).toHaveValue(
+    /takes two minutes/,
+  );
+  await expect(
+    page.getByLabel('What situation should the plan solve?'),
+  ).toHaveValue(/parcel-one/);
+  await expect(
+    page.getByRole('checkbox', {
+      name: /Extract timing after the model is approved/,
+    }),
+  ).toBeChecked();
+  await expect(
+    page.getByLabel('Classification profile name or ID'),
+  ).toHaveValue('test-classifier');
+  await page.getByRole('button', { name: 'Begin proof' }).click();
+  await expect(page).toHaveURL(/#run\//);
+  const id = new URL(page.url()).hash.slice(5);
+  const snapshot = await (await request.get(`/api/runs/${id}`)).json();
+  expect(snapshot.input.temporal).toBe(true);
+  expect(snapshot.input.classificationProfileId).toBe('test-classifier');
+});
+
 test('proofing flow, source links, corrections, plan exploration and offline revision', async ({
   page,
 }) => {

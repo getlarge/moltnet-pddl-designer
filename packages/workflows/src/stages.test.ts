@@ -29,7 +29,7 @@ const input: DesignInput = {
   teamId: 'team',
   diaryId: 'diary',
   correlationId: 'corr',
-  profileId: 'profile',
+  generationProfileId: 'profile',
 };
 
 const bodies = {

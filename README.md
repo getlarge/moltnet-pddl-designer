@@ -82,7 +82,7 @@ pnpm --silent cli \
   --description examples/issue-workflow/description.md \
   --problem examples/issue-workflow/situation.md \
   --domain-name issue-workflow --problem-name two-issues \
-  --team "$TEAM" --diary "$DIARY" --profile legreffier-pddl-designer-v1 \
+  --team "$TEAM" --diary "$DIARY" --generation-profile legreffier-pddl-designer-v1 \
   --out run.json
 ```
 
@@ -92,7 +92,7 @@ runtime profile, and start a worker.
 
 ### Plan review (optional)
 
-`--review --classify-profile <profile>` re-plans without each step and asks
+`--review --classification-profile <profile>` re-plans without each step and asks
 whether the description requires every step the planner can skip. Each question
 is a `classify` task with one `bool` question, served by a profile whose
 `models.classification` names a decision model; the task attempt's usage
@@ -100,6 +100,19 @@ records the provider and model that answered. A failed question fails the run ra
 passing the plan. A daemon must also be serving `classify` tasks for that
 profile. Review is off by default: in live runs its findings have not yet
 improved pass rates beyond run-to-run noise.
+
+### Temporal pilot (wizard or CLI)
+
+The [truck-loading example](examples/temporal-loading/README.md) runs the five
+modeling stages, asks the temporal-evidence classifier about each action, and
+extracts timed clauses for positive actions. Open the wizard with
+`?example=temporal-loading` to prefill both inputs and enable temporal
+extraction. The wizard and CLI render PDDL 2.1 durative actions and show any
+untimed draft facts assigned start/end defaults. Set `PDDL_VAL_PATH` on the
+wizard worker, or pass `--val PATH` to the CLI, to check a one-step timed
+schedule with VAL. Actions with timing evidence but no usable numeric duration
+stay classical and are identified in the result. CLI JSON keeps the normal
+run structure, with the timed model under `temporal`.
 
 ## Workflow at a glance
 
@@ -314,7 +327,7 @@ the run as `invalid`, as before.
 
 ## Limits
 
-- The supported fragment is STRIPS with typing and negative preconditions. There are no quantifiers, conditional effects, or numeric fluents.
+- The built-in planner supports STRIPS with typing and negative preconditions. The opt-in temporal pilot supports positive numeric durations and timed conditions/effects in the wizard or CLI, but not symbolic durations or general temporal scheduling. There are no quantifiers, conditional effects, or numeric fluents.
 - The built-in planner is a checker for small models. Its default limits are 20,000 concrete actions and 100,000 states. For larger models, or for optimal plans, give the rendered PDDL to Fast Downward.
 - The output contract cannot carry `pattern`, so naming rules are checked by the stage parsers after the daemon accepts a result. A naming error fails that stage's task outcome; it does not trigger a correction.
 

@@ -19,6 +19,7 @@ import {
 } from './model.js';
 import { emptyStage, StageEditor } from './StageEditor.js';
 import { PlanExplorer } from './PlanExplorer.js';
+import { TemporalResult } from './TemporalResult.js';
 import { FactDefinition } from './FactDefinition.js';
 import { CodeBlock } from './CodeBlock.js';
 import { SourceCheck } from './SourceCheck.js';
@@ -37,7 +38,7 @@ const initialInput: RunInput = {
   problemName: 'my-situation',
   teamId: '',
   diaryId: '',
-  profileId: '',
+  generationProfileId: '',
 };
 function obj(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -160,8 +161,9 @@ function ProfileGuidance({
         <p className="small">
           Keep modeling profiles input-only: no workspace or network access is
           needed. Static checks and the planner run locally without a profile.
-          Optional classification review has a separate profile and is currently
-          available through the CLI.
+          Temporal extraction needs a classify worker on the selected
+          classification profile. Optional plan review is available through the
+          CLI.
         </p>
         <p className="small">
           See README.md → Runtime profiles for setup commands, model selection,
@@ -177,6 +179,9 @@ export function App() {
   const [page, setPage] = useState<'new' | 'rack' | 'proof'>('new');
   const [input, setInput] = useState<RunInput>(initialInput);
   const [examples, setExamples] = useState<Example[]>([]);
+  const [selectedExample, setSelectedExample] = useState(
+    () => new URLSearchParams(location.search).get('example') ?? '',
+  );
   const [rack, setRack] = useState<SavedItem[]>([]);
   const [snapshot, setSnapshot] = useState<RunSnapshot>();
   const [saved, setSaved] = useState<Saved>();
@@ -214,6 +219,9 @@ export function App() {
   const gateId = gate?.id;
   const gateStage = gate?.stage;
   const hasPlan = !!snapshot?.run?.plan;
+  const temporalRunning =
+    snapshot?.state === 'running' &&
+    snapshot.events.some(({ event }) => event.type === 'temporal-started');
   const isGate = gate?.stage === stage;
   const findings = isGate ? gate.issues : (record?.issues ?? []);
   const ownsFinding = (name: string, finding: Issue) =>
@@ -270,13 +278,21 @@ export function App() {
     let cancelled = false;
     Promise.all([
       api<Example[]>('examples'),
-      api<{ defaults: Partial<RunInput>; runsDirectory: string }>('config'),
+      api<{
+        defaults: Partial<RunInput>;
+        runsDirectory: string;
+      }>('config'),
       api<RunSnapshot[]>('runs'),
     ])
       .then(([items, config, runs]) => {
         if (!cancelled) {
           setExamples(items);
           setRecoverableRun(runs[0]);
+          const requestedExample = items.find(
+            (item) =>
+              item.name === new URLSearchParams(location.search).get('example'),
+          );
+          if (!requestedExample) setSelectedExample('');
           setInput((v) => ({
             ...v,
             ...Object.fromEntries(
@@ -284,6 +300,19 @@ export function App() {
                 ([, v]) => v !== undefined,
               ),
             ),
+            ...(requestedExample
+              ? {
+                  description: requestedExample.description,
+                  problemDescription: requestedExample.problemDescription,
+                  domainName: requestedExample.name,
+                  problemName: `${requestedExample.name.slice(0, 30)}-case`,
+                  ...(requestedExample.name === 'temporal-loading'
+                    ? {
+                        temporal: true,
+                      }
+                    : {}),
+                }
+              : {}),
           }));
           setRunsDirectory(config.runsDirectory);
         }
@@ -361,6 +390,9 @@ export function App() {
       setEditor(false);
     }
   }, [snapshot?.state, hasPlan]);
+  useEffect(() => {
+    if (temporalRunning) setStage('plan');
+  }, [temporalRunning]);
   useEffect(() => {
     setSelectedMark('');
     setSelectedLine(undefined);
@@ -610,8 +642,9 @@ export function App() {
             <label className="field">
               Start with an example
               <select
-                defaultValue=""
+                value={selectedExample}
                 onChange={(e) => {
+                  setSelectedExample(e.target.value);
                   const example = examples.find(
                     (x) => x.name === e.target.value,
                   );
@@ -622,6 +655,8 @@ export function App() {
                       problemDescription: example.problemDescription,
                       domainName: example.name,
                       problemName: `${example.name.slice(0, 30)}-case`,
+                      temporal:
+                        example.name === 'temporal-loading' ? true : undefined,
                     }));
                 }}
               >
@@ -640,9 +675,10 @@ export function App() {
                 required
                 rows={8}
                 value={input.description}
-                onChange={(e) =>
-                  setInput({ ...input, description: e.target.value })
-                }
+                onChange={(e) => {
+                  setSelectedExample('');
+                  setInput({ ...input, description: e.target.value });
+                }}
                 placeholder="Describe who takes part, what each step needs, and what changes after it."
               />
             </label>
@@ -652,9 +688,10 @@ export function App() {
                 required
                 rows={4}
                 value={input.problemDescription}
-                onChange={(e) =>
-                  setInput({ ...input, problemDescription: e.target.value })
-                }
+                onChange={(e) => {
+                  setSelectedExample('');
+                  setInput({ ...input, problemDescription: e.target.value });
+                }}
                 placeholder="Name the things involved, what is true at the start, and the goal."
               />
             </label>
@@ -682,34 +719,73 @@ export function App() {
                 />
               </label>
             </div>
+            <label className="field temporal-option">
+              <span>
+                <input
+                  type="checkbox"
+                  checked={!!input.temporal}
+                  onChange={(e) =>
+                    setInput({
+                      ...input,
+                      temporal: e.target.checked || undefined,
+                    })
+                  }
+                />{' '}
+                Extract timing after the model is approved
+              </span>
+              <span className="small">
+                Uses a classification worker, then extracts numeric durations
+                and timed conditions and effects.
+              </span>
+            </label>
             <details
               className="connection"
-              open={!input.teamId || !input.diaryId || !input.profileId}
+              open={
+                !input.teamId ||
+                !input.diaryId ||
+                !input.generationProfileId ||
+                (input.temporal && !input.classificationProfileId)
+              }
             >
               <summary>MoltNet connection</summary>
               <p className="small">
                 Use your configured agent and running daemon. Credentials stay
                 on this machine’s server.
               </p>
-              {(['teamId', 'diaryId', 'profileId'] as const).map((k) => (
-                <label className="field" key={k}>
-                  {k === 'teamId'
-                    ? 'Team ID'
-                    : k === 'diaryId'
-                      ? 'Diary ID'
-                      : 'Default generation profile name or ID'}
-                  <input
-                    required
-                    aria-describedby={
-                      k === 'profileId' ? 'profile-help' : undefined
-                    }
-                    value={input[k]}
-                    onChange={(e) =>
-                      setInput({ ...input, [k]: e.target.value })
-                    }
-                  />
-                </label>
-              ))}
+              {(['teamId', 'diaryId', 'generationProfileId'] as const).map(
+                (k) => (
+                  <label className="field" key={k}>
+                    {k === 'teamId'
+                      ? 'Team ID'
+                      : k === 'diaryId'
+                        ? 'Diary ID'
+                        : 'Default generation profile name or ID'}
+                    <input
+                      required
+                      aria-describedby={
+                        k === 'generationProfileId' ? 'profile-help' : undefined
+                      }
+                      value={input[k]}
+                      onChange={(e) =>
+                        setInput({ ...input, [k]: e.target.value })
+                      }
+                    />
+                  </label>
+                ),
+              )}
+              <label className="field">
+                Classification profile name or ID
+                <input
+                  required={!!input.temporal}
+                  value={input.classificationProfileId ?? ''}
+                  onChange={(e) =>
+                    setInput({
+                      ...input,
+                      classificationProfileId: e.target.value || undefined,
+                    })
+                  }
+                />
+              </label>
               <ProfileGuidance input={input} onChange={setInput} />
             </details>
             <div className="intake-submit">
@@ -1100,16 +1176,30 @@ export function App() {
 
                 {stage === 'plan' ? (
                   run?.domain && run?.problem ? (
-                    <PlanExplorer
-                      key={`${saved?.id ?? snapshot?.id}-${run.durationMs}`}
-                      run={run}
-                      onAction={selectAction}
-                    />
+                    <>
+                      {run.temporal && (
+                        <TemporalResult
+                          result={run.temporal}
+                          restoredFromSaved={!!saved}
+                        />
+                      )}
+                      <PlanExplorer
+                        key={`${saved?.id ?? snapshot?.id}-${run.durationMs}`}
+                        run={run}
+                        onAction={selectAction}
+                      />
+                    </>
                   ) : (
                     <div className="empty">
-                      <h3>The plan comes after the model.</h3>
+                      <h3>
+                        {temporalRunning
+                          ? 'Extracting timing from the description…'
+                          : 'The plan comes after the model.'}
+                      </h3>
                       <p>
-                        Pass each stage, then inspect the planner’s result here.
+                        {temporalRunning
+                          ? 'The classifier and generation workers are building the timed model.'
+                          : 'Pass each stage, then inspect the planner’s result here.'}
                       </p>
                     </div>
                   )
@@ -1584,26 +1674,44 @@ export function App() {
                           A correction starts a new run and needs a daemon. Use
                           the configured connection below.
                         </p>
-                        {(['teamId', 'diaryId', 'profileId'] as const).map(
-                          (k) => (
-                            <label key={k} className="field">
-                              {k === 'teamId'
-                                ? 'Team ID'
-                                : k === 'diaryId'
-                                  ? 'Diary ID'
-                                  : 'Default generation profile name or ID'}
-                              <input
-                                required
-                                aria-describedby={
-                                  k === 'profileId' ? 'profile-help' : undefined
-                                }
-                                value={input[k]}
-                                onChange={(e) =>
-                                  setInput({ ...input, [k]: e.target.value })
-                                }
-                              />
-                            </label>
-                          ),
+                        {(
+                          ['teamId', 'diaryId', 'generationProfileId'] as const
+                        ).map((k) => (
+                          <label key={k} className="field">
+                            {k === 'teamId'
+                              ? 'Team ID'
+                              : k === 'diaryId'
+                                ? 'Diary ID'
+                                : 'Default generation profile name or ID'}
+                            <input
+                              required
+                              aria-describedby={
+                                k === 'generationProfileId'
+                                  ? 'profile-help'
+                                  : undefined
+                              }
+                              value={input[k]}
+                              onChange={(e) =>
+                                setInput({ ...input, [k]: e.target.value })
+                              }
+                            />
+                          </label>
+                        ))}
+                        {input.temporal && (
+                          <label className="field">
+                            Classification profile name or ID
+                            <input
+                              required
+                              value={input.classificationProfileId ?? ''}
+                              onChange={(e) =>
+                                setInput({
+                                  ...input,
+                                  classificationProfileId:
+                                    e.target.value || undefined,
+                                })
+                              }
+                            />
+                          </label>
                         )}
                         <ProfileGuidance input={input} onChange={setInput} />
                       </>
