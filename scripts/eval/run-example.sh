@@ -29,7 +29,7 @@ pnpm --silent cli \
   --description "$EXAMPLES_DIR/$EXAMPLE/description.md" \
   --problem "$EXAMPLES_DIR/$EXAMPLE/situation.md" \
   --domain-name "$EXAMPLE" --problem-name "$LABEL" \
-  --team "$TEAM" --diary "$DIARY" --profile "$PROFILE" \
+  --team "$TEAM" --diary "$DIARY" --generation-profile "$PROFILE" \
   --correlation "$CORR" --out "$RUNS_DIR/run-$LABEL.json" ${EXTRA:-} \
   2> "$RUNS_DIR/cli-$LABEL.err"
 CODE=$?

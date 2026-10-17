@@ -12,9 +12,9 @@ const app = await createApp({
   defaults: {
     teamId: 'test-team',
     diaryId: 'test-diary',
-    profileId: 'test-profile',
+    generationProfileId: 'test-profile',
+    classificationProfileId: 'test-classifier',
   },
-  classificationProfile: 'test-classifier',
 });
 await app.listen({ port: 4418, host: '127.0.0.1' });
 process.once('SIGTERM', () => void app.close());

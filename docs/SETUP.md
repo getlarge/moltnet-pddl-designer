@@ -131,12 +131,12 @@ pnpm --silent cli \
   --description examples/issue-workflow/description.md \
   --problem examples/issue-workflow/situation.md \
   --team "$TEAM" --diary "$DIARY" \
-  --profile legreffier-pddl-designer-v1 \
+  --generation-profile legreffier-pddl-designer-v1 \
   --actions-profile pddl-reasoning --refine-profile pddl-reasoning \
   --out run.json
 ```
 
-The library equivalent is `DesignInput.profileId` plus optional
+The library equivalent is `DesignInput.generationProfileId` plus optional
 `stageProfiles: { actions: reasoningProfileId, refine: reasoningProfileId }`.
 Library callers pass resolved profile IDs; the wizard and CLI also accept names.
 Corrections and retries use the profile selected for their modeling step.
@@ -157,11 +157,14 @@ moltnet-agent drain --profile pddl-reasoning
 To prefill the wizard's default connection:
 
 ```bash
-pnpm dev --team "$TEAM" --diary "$DIARY" --profile legreffier-pddl-designer-v1
+pnpm dev --team "$TEAM" --diary "$DIARY" \
+  --generation-profile legreffier-pddl-designer-v1 \
+  --classification-profile legreffier-pddl-classifier-v1
 ```
 
-The local server also reads `MOLTNET_TEAM_ID`, `MOLTNET_DIARY_ID`, and
-`MOLTNET_PROFILE_ID`; explicit flags take precedence. Profile references are
+The local server also reads `MOLTNET_TEAM_ID`, `MOLTNET_DIARY_ID`,
+`MOLTNET_GENERATION_PROFILE_ID`, and `MOLTNET_CLASSIFICATION_PROFILE_ID`;
+explicit flags take precedence. Profile references are
 configuration, not credentials. Authentication stays on the server. Saved proofs
 can be inspected and manually edited offline; asking for a generated correction
 requires the selected workers again.
@@ -227,6 +230,6 @@ Use `legreffier-pddl-classifier-ollama-v1` as the classification profile in the
 wizard or CLI. The classifier returns a probability for a Boolean decision;
 check a threshold against your own labeled cases before using it as a gate.
 
-Optional **final plan review** uses `--review --classify-profile` in the CLI. It
+Optional **final plan review** uses `--review --classification-profile` in the CLI. It
 asks whether a skippable step is required after plan search. This is separate
 from the wizard's source checks. See [Plan review](../README.md#plan-review-optional).

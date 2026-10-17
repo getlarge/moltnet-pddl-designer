@@ -50,6 +50,21 @@ export function savedFixture(): DesignRun {
   };
 }
 describe('saved proof revisions', () => {
+  it('normalizes the earlier temporal profile field when loading a proof', () => {
+    const original = savedFixture();
+    const legacy = structuredClone(original) as unknown as Record<
+      string,
+      unknown
+    >;
+    legacy.input = {
+      ...original.input,
+      temporal: { classificationProfile: 'classifier-v1' },
+    };
+    expect(readRun(legacy).input).toMatchObject({
+      temporal: true,
+      classificationProfileId: 'classifier-v1',
+    });
+  });
   it('rechecks a saved timed model and drops its old VAL claim', () => {
     const original = recheckRun(savedFixture());
     const action = original.domain!.actions[0];

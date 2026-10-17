@@ -156,6 +156,6 @@ export const syntheticInput = {
   problemName: 'tower',
   teamId: 'test-team',
   diaryId: 'test-diary',
-  profileId: 'test-profile',
+  generationProfileId: 'test-profile',
   correlationId: 'test-correlation',
 };

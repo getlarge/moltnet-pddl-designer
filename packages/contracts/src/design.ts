@@ -44,6 +44,7 @@ export interface DesignRun {
     | 'domainName'
     | 'problemName'
     | 'correlationId'
+    | 'classificationProfileId'
     | 'temporal'
   >;
   stages: StageRecord[];

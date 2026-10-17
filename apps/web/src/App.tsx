@@ -38,7 +38,7 @@ const initialInput: RunInput = {
   problemName: 'my-situation',
   teamId: '',
   diaryId: '',
-  profileId: '',
+  generationProfileId: '',
 };
 function obj(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -179,8 +179,6 @@ export function App() {
   const [page, setPage] = useState<'new' | 'rack' | 'proof'>('new');
   const [input, setInput] = useState<RunInput>(initialInput);
   const [examples, setExamples] = useState<Example[]>([]);
-  const [defaultClassificationProfile, setDefaultClassificationProfile] =
-    useState('');
   const [selectedExample, setSelectedExample] = useState(
     () => new URLSearchParams(location.search).get('example') ?? '',
   );
@@ -282,7 +280,6 @@ export function App() {
       api<Example[]>('examples'),
       api<{
         defaults: Partial<RunInput>;
-        classificationProfile: string;
         runsDirectory: string;
       }>('config'),
       api<RunSnapshot[]>('runs'),
@@ -290,7 +287,6 @@ export function App() {
       .then(([items, config, runs]) => {
         if (!cancelled) {
           setExamples(items);
-          setDefaultClassificationProfile(config.classificationProfile);
           setRecoverableRun(runs[0]);
           const requestedExample = items.find(
             (item) =>
@@ -312,9 +308,7 @@ export function App() {
                   problemName: `${requestedExample.name.slice(0, 30)}-case`,
                   ...(requestedExample.name === 'temporal-loading'
                     ? {
-                        temporal: {
-                          classificationProfile: config.classificationProfile,
-                        },
+                        temporal: true,
                       }
                     : {}),
                 }
@@ -662,13 +656,7 @@ export function App() {
                       domainName: example.name,
                       problemName: `${example.name.slice(0, 30)}-case`,
                       temporal:
-                        example.name === 'temporal-loading'
-                          ? {
-                              classificationProfile:
-                                v.temporal?.classificationProfile ||
-                                defaultClassificationProfile,
-                            }
-                          : undefined,
+                        example.name === 'temporal-loading' ? true : undefined,
                     }));
                 }}
               >
@@ -739,13 +727,7 @@ export function App() {
                   onChange={(e) =>
                     setInput({
                       ...input,
-                      temporal: e.target.checked
-                        ? {
-                            classificationProfile:
-                              input.temporal?.classificationProfile ||
-                              defaultClassificationProfile,
-                          }
-                        : undefined,
+                      temporal: e.target.checked || undefined,
                     })
                   }
                 />{' '}
@@ -756,49 +738,54 @@ export function App() {
                 and timed conditions and effects.
               </span>
             </label>
-            {input.temporal && (
-              <label className="field">
-                Classification profile name or ID
-                <input
-                  required
-                  value={input.temporal.classificationProfile}
-                  onChange={(e) =>
-                    setInput({
-                      ...input,
-                      temporal: { classificationProfile: e.target.value },
-                    })
-                  }
-                />
-              </label>
-            )}
             <details
               className="connection"
-              open={!input.teamId || !input.diaryId || !input.profileId}
+              open={
+                !input.teamId ||
+                !input.diaryId ||
+                !input.generationProfileId ||
+                (input.temporal && !input.classificationProfileId)
+              }
             >
               <summary>MoltNet connection</summary>
               <p className="small">
                 Use your configured agent and running daemon. Credentials stay
                 on this machine’s server.
               </p>
-              {(['teamId', 'diaryId', 'profileId'] as const).map((k) => (
-                <label className="field" key={k}>
-                  {k === 'teamId'
-                    ? 'Team ID'
-                    : k === 'diaryId'
-                      ? 'Diary ID'
-                      : 'Default generation profile name or ID'}
-                  <input
-                    required
-                    aria-describedby={
-                      k === 'profileId' ? 'profile-help' : undefined
-                    }
-                    value={input[k]}
-                    onChange={(e) =>
-                      setInput({ ...input, [k]: e.target.value })
-                    }
-                  />
-                </label>
-              ))}
+              {(['teamId', 'diaryId', 'generationProfileId'] as const).map(
+                (k) => (
+                  <label className="field" key={k}>
+                    {k === 'teamId'
+                      ? 'Team ID'
+                      : k === 'diaryId'
+                        ? 'Diary ID'
+                        : 'Default generation profile name or ID'}
+                    <input
+                      required
+                      aria-describedby={
+                        k === 'generationProfileId' ? 'profile-help' : undefined
+                      }
+                      value={input[k]}
+                      onChange={(e) =>
+                        setInput({ ...input, [k]: e.target.value })
+                      }
+                    />
+                  </label>
+                ),
+              )}
+              <label className="field">
+                Classification profile name or ID
+                <input
+                  required={!!input.temporal}
+                  value={input.classificationProfileId ?? ''}
+                  onChange={(e) =>
+                    setInput({
+                      ...input,
+                      classificationProfileId: e.target.value || undefined,
+                    })
+                  }
+                />
+              </label>
               <ProfileGuidance input={input} onChange={setInput} />
             </details>
             <div className="intake-submit">
@@ -1687,26 +1674,44 @@ export function App() {
                           A correction starts a new run and needs a daemon. Use
                           the configured connection below.
                         </p>
-                        {(['teamId', 'diaryId', 'profileId'] as const).map(
-                          (k) => (
-                            <label key={k} className="field">
-                              {k === 'teamId'
-                                ? 'Team ID'
-                                : k === 'diaryId'
-                                  ? 'Diary ID'
-                                  : 'Default generation profile name or ID'}
-                              <input
-                                required
-                                aria-describedby={
-                                  k === 'profileId' ? 'profile-help' : undefined
-                                }
-                                value={input[k]}
-                                onChange={(e) =>
-                                  setInput({ ...input, [k]: e.target.value })
-                                }
-                              />
-                            </label>
-                          ),
+                        {(
+                          ['teamId', 'diaryId', 'generationProfileId'] as const
+                        ).map((k) => (
+                          <label key={k} className="field">
+                            {k === 'teamId'
+                              ? 'Team ID'
+                              : k === 'diaryId'
+                                ? 'Diary ID'
+                                : 'Default generation profile name or ID'}
+                            <input
+                              required
+                              aria-describedby={
+                                k === 'generationProfileId'
+                                  ? 'profile-help'
+                                  : undefined
+                              }
+                              value={input[k]}
+                              onChange={(e) =>
+                                setInput({ ...input, [k]: e.target.value })
+                              }
+                            />
+                          </label>
+                        ))}
+                        {input.temporal && (
+                          <label className="field">
+                            Classification profile name or ID
+                            <input
+                              required
+                              value={input.classificationProfileId ?? ''}
+                              onChange={(e) =>
+                                setInput({
+                                  ...input,
+                                  classificationProfileId:
+                                    e.target.value || undefined,
+                                })
+                              }
+                            />
+                          </label>
                         )}
                         <ProfileGuidance input={input} onChange={setInput} />
                       </>

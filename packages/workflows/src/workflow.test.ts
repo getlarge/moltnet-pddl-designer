@@ -39,7 +39,7 @@ const input: DesignInput = {
   teamId: 'team',
   diaryId: 'diary',
   correlationId: 'corr',
-  profileId: 'profile',
+  generationProfileId: 'profile',
 };
 
 const ok = (result: unknown): FakeTaskOutput => ({ summary: 'done', result });

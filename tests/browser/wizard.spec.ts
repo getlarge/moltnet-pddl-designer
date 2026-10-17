@@ -41,9 +41,8 @@ test('temporal example fills both inputs and submits its classifier profile', as
   await expect(page).toHaveURL(/#run\//);
   const id = new URL(page.url()).hash.slice(5);
   const snapshot = await (await request.get(`/api/runs/${id}`)).json();
-  expect(snapshot.input.temporal).toEqual({
-    classificationProfile: 'test-classifier',
-  });
+  expect(snapshot.input.temporal).toBe(true);
+  expect(snapshot.input.classificationProfileId).toBe('test-classifier');
 });
 
 test('proofing flow, source links, corrections, plan exploration and offline revision', async ({

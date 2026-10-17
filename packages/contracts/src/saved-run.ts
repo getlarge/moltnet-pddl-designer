@@ -136,11 +136,15 @@ const runSchema = Type.Object({
     domainName: Type.String({ pattern: '^[a-z][a-z0-9-]{0,39}$' }),
     problemName: Type.String({ pattern: '^[a-z][a-z0-9-]{0,39}$' }),
     correlationId: Type.String(),
+    classificationProfileId: Type.Optional(Type.String({ minLength: 1 })),
     temporal: Type.Optional(
-      Type.Object(
-        { classificationProfile: Type.String({ minLength: 1 }) },
-        { additionalProperties: false },
-      ),
+      Type.Union([
+        Type.Literal(true),
+        Type.Object(
+          { classificationProfile: Type.String({ minLength: 1 }) },
+          { additionalProperties: false },
+        ),
+      ]),
     ),
   }),
   stages: Type.Array(
@@ -168,6 +172,13 @@ export function readRun(value: unknown): DesignRun {
     );
   // Whitelist fields: imported derived results and review claims are recomputed.
   const raw = value as DesignRun;
+  const legacyTemporal = raw.input.temporal as
+    { classificationProfile: string } | true | undefined;
+  const classificationProfileId =
+    raw.input.classificationProfileId ||
+    (typeof legacyTemporal === 'object'
+      ? legacyTemporal.classificationProfile
+      : undefined);
   const run: DesignRun = {
     version: 1,
     status: raw.status,
@@ -177,7 +188,8 @@ export function readRun(value: unknown): DesignRun {
       domainName: raw.input.domainName,
       problemName: raw.input.problemName,
       correlationId: raw.input.correlationId,
-      ...(raw.input.temporal ? { temporal: raw.input.temporal } : {}),
+      ...(legacyTemporal ? { temporal: true } : {}),
+      ...(classificationProfileId ? { classificationProfileId } : {}),
     },
     stages: structuredClone(raw.stages).map((s) => ({
       ...s,

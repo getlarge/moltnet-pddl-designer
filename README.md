@@ -82,7 +82,7 @@ pnpm --silent cli \
   --description examples/issue-workflow/description.md \
   --problem examples/issue-workflow/situation.md \
   --domain-name issue-workflow --problem-name two-issues \
-  --team "$TEAM" --diary "$DIARY" --profile legreffier-pddl-designer-v1 \
+  --team "$TEAM" --diary "$DIARY" --generation-profile legreffier-pddl-designer-v1 \
   --out run.json
 ```
 
@@ -92,7 +92,7 @@ runtime profile, and start a worker.
 
 ### Plan review (optional)
 
-`--review --classify-profile <profile>` re-plans without each step and asks
+`--review --classification-profile <profile>` re-plans without each step and asks
 whether the description requires every step the planner can skip. Each question
 is a `classify` task with one `bool` question, served by a profile whose
 `models.classification` names a decision model; the task attempt's usage

@@ -7,7 +7,7 @@ To inspect these inputs in the local wizard, open its URL with
 `?example=temporal-loading` (for example,
 `http://127.0.0.1:4317/?example=temporal-loading`). The wizard fills both input
 fields and model names and enables temporal extraction. Start the server with
-`--classify-profile NAME` (or `PDDL_CLASSIFY_PROFILE=NAME`) to prefill the
+`--classification-profile NAME` (or `MOLTNET_CLASSIFICATION_PROFILE_ID=NAME`) to prefill the
 classification profile. Set `PDDL_VAL_PATH` on the worker to validate a
 one-step timed schedule with VAL; without it, the schedule is marked a
 candidate. Saved proofs retain the timed model; reopening one rechecks its
@@ -22,8 +22,8 @@ pnpm --silent cli \
   --problem examples/temporal-loading/situation.md \
   --domain-name temporal-loading --problem-name load-one \
   --team "$TEAM" --diary "$DIARY" \
-  --profile legreffier-pddl-designer-v1 \
-  --classify-profile legreffier-pddl-classifier-v1 \
+  --generation-profile legreffier-pddl-designer-v1 \
+  --classification-profile legreffier-pddl-classifier-v1 \
   --temporal --val /path/to/VAL/build/bin/Validate \
   --out /tmp/temporal-loading-run.json
 ```

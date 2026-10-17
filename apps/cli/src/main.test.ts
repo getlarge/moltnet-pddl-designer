@@ -115,9 +115,9 @@ function setup(outputs: ConstructorParameters<typeof FakeTasks>[0]) {
       'team',
       '--diary',
       'diary',
-      '--profile',
+      '--generation-profile',
       'freeform',
-      '--classify-profile',
+      '--classification-profile',
       'classifier',
       '--temporal',
       '--out',
@@ -161,10 +161,11 @@ describe('temporal CLI', () => {
     chmodSync(binary, 0o755);
     await main([...fixture.args, '--val', binary]);
     const run = JSON.parse(readFileSync(fixture.out, 'utf8')) as DesignRun;
-    expect(vi.mocked(runPddlDesign).mock.calls[0][1].profileId).toBe(
+    expect(vi.mocked(runPddlDesign).mock.calls[0][1].generationProfileId).toBe(
       'freeform-id',
     );
-    expect(run.input.temporal?.classificationProfile).toBe('classifier-id');
+    expect(run.input.classificationProfileId).toBe('classifier-id');
+    expect(run.input.temporal).toBe(true);
     expect(run.temporal?.status).toBe('complete');
     if (run.temporal?.status === 'complete')
       expect(run.temporal.temporalPlan).toMatchObject({

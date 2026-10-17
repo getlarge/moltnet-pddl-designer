@@ -80,8 +80,8 @@ export const moltExecute: Execute = async (input, options) => {
     const classificationProfile = temporal
       ? items.find(
           (p) =>
-            p.id === temporal.classificationProfile ||
-            p.name === temporal.classificationProfile,
+            p.id === input.classificationProfileId ||
+            p.name === input.classificationProfileId,
         )
       : undefined;
     if (temporal && !classificationProfile?.models.classification)
@@ -90,9 +90,9 @@ export const moltExecute: Execute = async (input, options) => {
       );
     return {
       ...input,
-      profileId: profileId(input.profileId),
+      generationProfileId: profileId(input.generationProfileId),
       ...(classificationProfile
-        ? { temporal: { classificationProfile: classificationProfile.id } }
+        ? { classificationProfileId: classificationProfile.id }
         : {}),
       stageProfiles: Object.fromEntries(
         Object.entries(input.stageProfiles ?? {}).map(([stage, ref]) => [
@@ -121,7 +121,7 @@ export const moltExecute: Execute = async (input, options) => {
       diaryId: resolved.diaryId,
       ...(resolved.projectId ? { projectId: resolved.projectId } : {}),
       correlationId: resolved.correlationId,
-      profileId: resolved.temporal.classificationProfile,
+      profileId: resolved.classificationProfileId!,
       claimTimeoutSec: options.claimTimeoutSec,
       ctx: options.ctx,
       purpose: 'temporal',
@@ -131,7 +131,7 @@ export const moltExecute: Execute = async (input, options) => {
       diaryId: resolved.diaryId,
       projectId: resolved.projectId,
       correlationId: resolved.correlationId,
-      profileId: resolved.profileId,
+      profileId: resolved.generationProfileId,
       claimTimeoutSec: options.claimTimeoutSec,
       ctx: options.ctx,
     }),
