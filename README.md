@@ -58,11 +58,15 @@ using a classification profile.
 
 ## Writing the inputs
 
-The inputs are a process description and a situation. Follow
-[WRITING-DESCRIPTIONS.md](./WRITING-DESCRIPTIONS.md): it lists what to state
-explicitly, with the live-run failure each rule prevents.
-`examples/docs-review-guided` follows it; `examples/docs-review` is the same
-process written without it.
+The inputs are a process description and a situation. Start with the
+[process-elicitation skill](.agents/skills/process-elicitation/SKILL.md) if
+you have a story or experience but not yet a structured process. It interviews
+the expert one question at a time, distinguishes evidence from assumptions, and
+produces a description, situation and test scenarios. The skill includes the
+[writing reference](.agents/skills/process-elicitation/references/WRITING-DESCRIPTIONS.md),
+whose rules come from observed modeling failures.
+`examples/docs-review-guided` follows that guide; `examples/docs-review` is
+the same process written without it.
 
 ## CLI
 
