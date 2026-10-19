@@ -180,36 +180,37 @@ no intake toggle and no automatic source-check charge. Use this when a draft
 prerequisite, effect, ownership link, or reusable fact needs interpretation
 against the description. Local syntax and type checks need no decision model.
 
-`runtime/profiles/legreffier-pddl-classifier-v1.json` supplies a separate
-input-only profile with `models.classification` set to Ollama's `clef:cloud`.
-Both supplied generation profiles also declare `clef:cloud`; you can use one
-of them as the classification profile if its worker serves `classify` tasks.
-The run still selects a classification profile explicitly, independent of its
-generation profile and per-step overrides. To use the dedicated profile,
-create it and bind the existing empty tool policy:
+The run selects a classification profile explicitly, independent of its
+generation profile and per-step overrides. All supplied runtime profiles declare
+Clef for classification. The two classifier profiles show distinct deployment
+cases:
+
+#### Cloud: call Ollama directly
+
+`runtime/profiles/legreffier-pddl-classifier-v1.json` and both generation
+profiles use `ollama-cloud` with model `clef`. The daemon calls Ollama's hosted
+`https://ollama.com/v1/systemone` endpoint with its stored API key. A local
+Ollama server, `ollama signin`, and a model pull are not involved. Configure the
+provider, then create and serve the dedicated classifier profile:
 
 ```bash
-ollama signin
-ollama pull clef:cloud
-moltnet-agent providers set ollama --base-url http://127.0.0.1:11434/v1 \
-  --classifier-model clef:cloud --classifier-api typesafe-system-one
+moltnet-agent providers set ollama-cloud --base-url https://ollama.com/v1 \
+  --classifier-model clef --classifier-api typesafe-system-one
 moltnet profile create --from-file runtime/profiles/legreffier-pddl-classifier-v1.json --team-id "$TEAM"
 moltnet profile set-policies legreffier-pddl-classifier-v1 --policy legreffier-pddl-designer-input-only-v1 --team-id "$TEAM"
 moltnet-agent poll --team "$TEAM" --profile legreffier-pddl-classifier-v1 --task-types classify --workspace-strategy none
 ```
 
-Use Ollama 0.35.1 or newer and keep its signed-in local server running. Clef
-runs in Ollama Cloud through the local `/v1/systemone` endpoint; the MoltNet
-provider ID is therefore `ollama`. No workspace tools or model sandbox network
-access are required; the daemon calls the provider. Keep the worker polling
-while you review stages. The wizard checks
-that the profile belongs to the run's team and has a classification model before
-creating a source-check task. Each explicit run has one attempt; a failure leaves
-the draft available for review. The proof retains the exact request, returned
-answers, task ID, elapsed time and available token usage.
+If `ollama-cloud` has no stored key, pass an Ollama API key to the same provider
+command with `--api-key-stdin`. A generation profile can also serve
+classification when its worker polls `classify` tasks and the run selects that
+profile for classification.
 
-For local inference, use the supplied Clef profile. This downloads a separate
-model of roughly 20 GB and uses the same Ollama provider:
+#### Local: run Clef on your machine
+
+`runtime/profiles/legreffier-pddl-classifier-ollama-v1.json` uses `ollama` with
+model `clef`. Use Ollama 0.35.1 or newer, keep its local server running, and
+download the roughly 20 GB model:
 
 ```bash
 ollama pull clef
@@ -221,10 +222,18 @@ moltnet-agent poll --team "$TEAM" --profile legreffier-pddl-classifier-ollama-v1
 ```
 
 Use `legreffier-pddl-classifier-ollama-v1` as the classification profile in the
-wizard or CLI when you want local inference. Both classifiers return a
-probability for a Boolean decision; check a threshold against your own labeled
-cases before using it as a gate. The saved Jev and Nimble evaluation baselines
-remain historical measurements and do not establish Clef's accuracy here.
+wizard or CLI when you want local inference. No Ollama Cloud API key is needed
+for this case. Neither case needs workspace tools or model sandbox network
+access; the daemon calls the provider. Keep the selected worker polling while
+reviewing stages. The wizard checks that the profile belongs to the run's team
+and declares a classification model before creating a source-check task. The
+proof retains the request, returned answers, task ID, elapsed time, and
+available token usage.
+
+Both classifiers return a probability for a Boolean decision; check a threshold
+against your own labeled cases before using it as a gate. The saved Jev and
+Nimble evaluation baselines remain historical measurements and do not establish
+Clef's accuracy here.
 
 Optional **final plan review** uses `--review --classify-profile` in the CLI. It
 asks whether a skippable step is required after plan search. This is separate

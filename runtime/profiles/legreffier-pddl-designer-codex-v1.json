@@ -18,8 +18,8 @@
   "maxTurns": 6,
   "models": {
     "classification": {
-      "model": "clef:cloud",
-      "provider": "ollama"
+      "model": "clef",
+      "provider": "ollama-cloud"
     },
     "generation": {
       "model": "gpt-6-sol",

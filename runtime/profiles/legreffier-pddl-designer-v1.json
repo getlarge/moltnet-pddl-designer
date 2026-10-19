@@ -18,8 +18,8 @@
   "maxTurns": 6,
   "models": {
     "classification": {
-      "model": "clef:cloud",
-      "provider": "ollama"
+      "model": "clef",
+      "provider": "ollama-cloud"
     },
     "generation": {
       "maxOutputTokens": 8192,

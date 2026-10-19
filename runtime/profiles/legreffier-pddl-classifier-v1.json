@@ -7,8 +7,8 @@
   "maxTurns": 0,
   "models": {
     "classification": {
-      "model": "clef:cloud",
-      "provider": "ollama"
+      "model": "clef",
+      "provider": "ollama-cloud"
     }
   },
   "name": "legreffier-pddl-classifier-v1",

@@ -3,7 +3,7 @@
  * generating text. The review asks them through MoltNet `classify` tasks, so
  * every answer is a durable task record naming the provider and model that
  * produced it. The runtime profile's `models.classification` picks the model
- * (for example Ollama's local `clef` or cloud-backed `clef:cloud`).
+ * (for example `ollama`/`clef` locally or `ollama-cloud`/`clef` directly).
  */
 import { TASK_TAGS } from './task-tags.js';
 import { createHash } from 'node:crypto';
