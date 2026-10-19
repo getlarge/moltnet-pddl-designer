@@ -9,9 +9,11 @@ Help an expert articulate a process they know from experience. Do not require th
 
 ## Source of truth
 
-Read [WRITING-DESCRIPTIONS.md](references/WRITING-DESCRIPTIONS.md) before interviewing or producing final drafts. Its guidance is grounded in actual failed model runs and takes precedence over generic process-writing habits. Check the repository's supported PDDL fragment in [README.md](../../README.md) before promising something can be modeled.
+Read [WRITING-DESCRIPTIONS.md](references/WRITING-DESCRIPTIONS.md) before interviewing or producing final drafts. Its guidance is grounded in actual failed model runs and takes precedence over generic process-writing habits. Check the repository's supported PDDL fragment in [README.md](../../../README.md) before promising something can be modeled.
 
 Treat the conversation as **elicitation**, not automatic conversion from a story to verified requirements. The expert must confirm inferred rules.
+
+Keep restricted source documents, quotes, diagrams, and process-specific drafts in an approved private location. A public skill may describe reusable questions and modeling lessons, but anonymized object names alone do not make a distinctive workflow safe to publish.
 
 ## Interview protocol
 
@@ -37,6 +39,7 @@ Check silently first, then ask only about consequential gaps:
 - **Causal completion:** Does a step count as completed only after the underlying work actually happened?
 - **Invalidation:** What becomes stale or resets after a subsequent step, revision, or iteration?
 - **Joins and alternatives:** Are all required branches fixed and explicit? If someone says "every item", establish a fixed small count or flag that the current fragment cannot express a variable universal condition.
+- **Ordering:** If one account or diagram shows A before B, ask whether that order is required, merely possible, or caused by that case's circumstances. Check when a one-time approval can occur relative to partially completed work.
 - **Conditions:** Convert meaningful decisions into observable facts; preserve judgment-dependent or unknown conditions as open questions, not invented booleans.
 - **Scope:** Avoid budgets, tool brands, timeouts, and implementation details that do not change action ordering or state. Flag requirements outside typed STRIPS with negative preconditions rather than quietly approximating them.
 
@@ -64,11 +67,13 @@ When enough information has been elicited, offer these **separate** artifacts:
 3. **Review notes** (`elicitation-notes.md`): Source-to-rule trace, confirmed vs inferred rules, gaps, unsupported constructs, and disagreements. These notes are for people; do not silently feed assumptions into the model.
 4. **Behavioral tests** (`scenarios.md`): At least one permitted sequence and one plausible but disallowed shortcut, with why the expert expects each outcome. Include exception cases when available. These are hypotheses until validated.
 
-Do not mark a description "complete" merely because the designer parses it or produces a plan. The plan may exploit a missing rule. Review for shortcuts and revisit the interview if necessary.
+Do not mark a description "complete" merely because the designer parses it or produces a plan. The plan may exploit a missing rule. Review the actual action order for early approvals, reused resources, premature completion, and other shortcuts; revisit the interview if necessary.
 
 ## Working with the modeller
 
 Once the expert has reviewed the two input texts, point to the existing CLI and wizard instructions in `README.md`. Feed only `description.md` and `situation.md` as the core domain/problem inputs. Preserve the original story and evidence separately. In the wizard, expert corrections should become traceable stage edits; when revision tracking is available, retain source revisions and run settings separately so an experiment can attribute improvements accurately.
+
+Test several situations against the same action rules: a normal case, a missing prerequisite, an exception, and an unavailable dependency when those conditions matter. Ask the expert whether each resulting plan or failure is credible. A successful normal plan establishes reachability in the draft model, not fidelity to the real process.
 
 ## Interview opening
 
