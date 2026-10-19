@@ -45,6 +45,27 @@ test('temporal example fills both inputs and submits its classifier profile', as
   expect(snapshot.input.classificationProfileId).toBe('test-classifier');
 });
 
+for (const [name, process, situation] of [
+  ['temporal-inspection', /takes two minutes/, /container-one/],
+  ['temporal-heating', /takes five minutes/, /piece-one/],
+] as const) {
+  test(`${name} can be selected as a temporal example`, async ({ page }) => {
+    await page.goto('/');
+    await page.getByLabel('Start with an example').selectOption(name);
+    await expect(page.getByLabel('How does the process work?')).toHaveValue(
+      process,
+    );
+    await expect(
+      page.getByLabel('What situation should the plan solve?'),
+    ).toHaveValue(situation);
+    await expect(
+      page.getByRole('checkbox', {
+        name: /Extract timing after the model is approved/,
+      }),
+    ).toBeChecked();
+  });
+}
+
 test('proofing flow, source links, corrections, plan exploration and offline revision', async ({
   page,
 }) => {
