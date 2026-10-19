@@ -106,5 +106,6 @@ variants and their paired reference action fields from the pinned public
 dataset. They are useful for selecting extraction cases; they are not scored as
 gold because a paragraph may omit or contradict a reference clause. To rebuild
 them from the pinned `Data/actions.xml` file, run
-`python3 scripts/eval/import-qumulab.py <downloaded-actions.xml> evals/temporal/qumulab-pairs.json`.
-The importer accepts only the primitive pickle opcodes in that source file.
+`pnpm eval:temporal:import-qumulab <downloaded-actions.xml> evals/temporal/qumulab-pairs.json`.
+Despite its `.xml` name, the upstream file is a Python pickle. The importer
+accepts only the primitive opcodes in the pinned source.

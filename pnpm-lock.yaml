@@ -74,6 +74,9 @@ importers:
       globals:
         specifier: ^17.13.0
         version: 17.13.0
+      pickleparser:
+        specifier: 0.2.1
+        version: 0.2.1
       prettier:
         specifier: ^3.9.10
         version: 3.9.10
@@ -2088,6 +2091,10 @@ packages:
 
   pgpass@1.0.5:
     resolution: {integrity: sha512-FdW9r/jQZhSeohs1Z3sI1yxFQNFvMcnmfuj4WBMUTxOrAyLMaTcE1aAMBiTlbMNaXvBCQuVi0R7hd8udDSP7ug==}
+
+  pickleparser@0.2.1:
+    resolution: {integrity: sha512-kMzY3uFYcR6OjOqr7nV2nkaXaBsUEOafu3zgPxeD6s/2ueMfVQH8lrymcDWBPGx0OkVxGMikxQit6jgByXjwBg==}
+    hasBin: true
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -4289,6 +4296,8 @@ snapshots:
   pgpass@1.0.5:
     dependencies:
       split2: 4.2.0
+
+  pickleparser@0.2.1: {}
 
   picocolors@1.1.1: {}
 

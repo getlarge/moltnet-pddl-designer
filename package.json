@@ -34,7 +34,8 @@
     "eval:temporal:live": "sh scripts/eval/run-temporal.sh",
     "eval:temporal:detect": "sh scripts/eval/run-temporal-detection.sh",
     "eval:temporal:detect:score": "node --import tsx scripts/eval/score-temporal-detection.ts",
-    "eval:temporal:inputs": "node --import tsx scripts/eval/temporal-inputs.ts"
+    "eval:temporal:inputs": "node --import tsx scripts/eval/temporal-inputs.ts",
+    "eval:temporal:import-qumulab": "node --import tsx scripts/eval/import-qumulab.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -59,6 +60,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "fastify": "^5.12.7",
     "globals": "^17.13.0",
+    "pickleparser": "0.2.1",
     "prettier": "^3.9.10",
     "secretlint": "^13.0.7",
     "tsx": "^4.23.15",
