@@ -256,11 +256,12 @@ describe('local wizard API', () => {
   });
   it('continues saved feedback with fresh task correlation and retains preceding evidence', async () => {
     const run = await syntheticExecute(syntheticInput, {});
+    run.input.classificationProfileId = 'previous-classifier';
     const savedId = await store.save(run);
     const { correlationId: _, ...input } = syntheticInput;
     const started = (await (
       await post('runs', {
-        input,
+        input: { ...input, classificationProfileId: 'current-classifier' },
         savedId,
         stage: 'refine',
         feedback: 'Review the changes.',
@@ -269,6 +270,7 @@ describe('local wizard API', () => {
     const snapshot = await awaiting(started.id);
     expect(snapshot.gate?.stage).toBe('refine');
     expect(snapshot.input.correlationId).not.toBe(run.input.correlationId);
+    expect(snapshot.input.classificationProfileId).toBe('current-classifier');
     expect(
       snapshot.events.filter((e) => e.event.type === 'task-created'),
     ).toHaveLength(1);

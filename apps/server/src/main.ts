@@ -14,7 +14,8 @@ const { values } = parseArgs({
     'runs-dir': { type: 'string', default: 'runs' },
     team: { type: 'string' },
     diary: { type: 'string' },
-    profile: { type: 'string' },
+    'generation-profile': { type: 'string' },
+    'classification-profile': { type: 'string' },
   },
 });
 const port = Number(values.port);
@@ -40,7 +41,12 @@ try {
     defaults: {
       teamId: values.team ?? process.env.MOLTNET_TEAM_ID,
       diaryId: values.diary ?? process.env.MOLTNET_DIARY_ID,
-      profileId: values.profile ?? process.env.MOLTNET_PROFILE_ID,
+      generationProfileId:
+        values['generation-profile'] ??
+        process.env.MOLTNET_GENERATION_PROFILE_ID,
+      classificationProfileId:
+        values['classification-profile'] ??
+        process.env.MOLTNET_CLASSIFICATION_PROFILE_ID,
     },
   });
   app.addHook('onClose', async () => runs?.close());

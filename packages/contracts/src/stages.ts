@@ -28,9 +28,13 @@ export interface DesignInput {
   teamId: string;
   diaryId: string;
   correlationId: string;
-  profileId: string;
+  generationProfileId: string;
+  /** Profile used by classification tasks in this run. */
+  classificationProfileId?: string;
   /** Optional generation profile overrides, keyed by modeling stage. */
   stageProfiles?: Partial<Record<StageName, string>>;
+  /** Opt-in temporal extraction after the classical modeling stages. */
+  temporal?: true;
   projectId?: string;
 }
 

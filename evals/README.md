@@ -100,3 +100,12 @@ description revision, and latency alongside each run artifact before comparing
 profiles. Keep holdout cases out of examples and retrieval prompts. The `v1`
 extraction suite is a small smoke benchmark, not a population estimate of model
 quality. `detection-v2` only measures the initial binary classifier gate.
+
+The [QuMuLab source pairs](temporal/qumulab-pairs.json) preserve all 40 prose
+variants and their paired reference action fields from the pinned public
+dataset. They are useful for selecting extraction cases; they are not scored as
+gold because a paragraph may omit or contradict a reference clause. To rebuild
+them from the pinned `Data/actions.xml` file, run
+`pnpm eval:temporal:import-qumulab <downloaded-actions.xml> evals/temporal/qumulab-pairs.json`.
+Despite its `.xml` name, the upstream file is a Python pickle. The importer
+accepts only the primitive opcodes in the pinned source.

@@ -11,7 +11,11 @@ export const TASK_TAGS = {
     problem: 'stage:problem',
     review: 'stage:review',
     'source-check': 'stage:source-check',
-  } satisfies Record<StageName | 'review' | 'source-check', string>,
+    temporal: 'stage:temporal',
+  } satisfies Record<
+    StageName | 'review' | 'source-check' | 'temporal',
+    string
+  >,
   domain: (name: string) => `domain:${name}`,
   stageAttempt: (attempt: number) => `stage-attempt:${attempt}`,
 } as const;

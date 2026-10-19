@@ -29,7 +29,9 @@ const inputSchema = Type.Object(
     problemName: Type.String({ pattern: '^[a-z][a-z0-9-]{0,39}$' }),
     teamId: Type.String({ minLength: 1 }),
     diaryId: Type.String({ minLength: 1 }),
-    profileId: Type.String({ minLength: 1 }),
+    generationProfileId: Type.String({ minLength: 1 }),
+    classificationProfileId: Type.Optional(Type.String({ minLength: 1 })),
+    temporal: Type.Optional(Type.Literal(true)),
     stageProfiles: Type.Optional(
       Type.Object(
         Object.fromEntries(
@@ -222,10 +224,14 @@ export function createApi(options: ApiOptions) {
             data.input.problemDescription,
             data.input.teamId,
             data.input.diaryId,
-            data.input.profileId,
+            data.input.generationProfileId,
           ].some((s) => !s.trim())
         )
           throw new Error('Required fields cannot be blank.');
+        if (data.input.temporal && !data.input.classificationProfileId?.trim())
+          throw new Error(
+            'Choose a classification profile for temporal extraction.',
+          );
         if (data.savedId && (!data.stage || !data.feedback?.trim()))
           throw new Error('Choose a saved stage and write a correction note.');
         const input = {
@@ -244,7 +250,12 @@ export function createApi(options: ApiOptions) {
             throw new Error(
               `Pass the saved ${pending} stage before requesting a correction to ${data.stage}.`,
             );
-          Object.assign(input, saved.input, { correlationId: randomUUID() });
+          Object.assign(input, saved.input, {
+            correlationId: randomUUID(),
+            ...(data.input.classificationProfileId
+              ? { classificationProfileId: data.input.classificationProfileId }
+              : {}),
+          });
           runOptions.resume = {
             run: saved,
             stage: data.stage!,

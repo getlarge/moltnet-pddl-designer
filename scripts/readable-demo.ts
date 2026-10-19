@@ -40,7 +40,7 @@ for (const [domain, port, description, situation] of [
     diaryId:
       process.env.MOLTNET_DIARY_ID ?? '8a4d7ecd-b7ec-49d1-8e50-0da328159ed0',
     correlationId: crypto.randomUUID(),
-    profileId: 'local-reference',
+    generationProfileId: 'local-reference',
   };
   const results: Record<string, unknown> = {
     types: { types: domain.types },

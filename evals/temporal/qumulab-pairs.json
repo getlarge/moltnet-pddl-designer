@@ -1,0 +1,522 @@
+[
+  {
+    "id": "qumulab-loadTruck-1",
+    "family": "loadTruck",
+    "description": "This action loads a truck with an object. Both the truck and the object must be at location loc for the entire action. It takes 2 minutes to load an object into the truck. At the end, the object is in the truck.",
+    "referenceAction": {
+      "name": "LOAD-TRUCK",
+      "parameters": "(?obj - obj ?truck - truck ?loc - location)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (at ?truck ?loc)) (at start (at ?obj ?loc)))",
+      "effect": "(and (at end (not (at ?obj ?loc))) (at end (in ?obj ?truck)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-loadTruck-2",
+    "family": "loadTruck",
+    "description": "An action to load a truck, given an object, truck, and location. The duration of the action is 2 minutes. The truck must be at the location the entire time, the object must be at the location at the start. At the end, the object will be in the truck and no longer at the location.",
+    "referenceAction": {
+      "name": "LOAD-TRUCK",
+      "parameters": "(?obj - obj ?truck - truck ?loc - location)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (at ?truck ?loc)) (at start (at ?obj ?loc)))",
+      "effect": "(and (at end (not (at ?obj ?loc))) (at end (in ?obj ?truck)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-loadTruck-3",
+    "family": "loadTruck",
+    "description": "An action to load a truck at a given location with an object. The duration is 2. For a truck to be loaded with an object, it must be at the same location as the object.",
+    "referenceAction": {
+      "name": "LOAD-TRUCK",
+      "parameters": "(?obj - obj ?truck - truck ?loc - location)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (at ?truck ?loc)) (at start (at ?obj ?loc)))",
+      "effect": "(and (at end (not (at ?obj ?loc))) (at end (in ?obj ?truck)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-loadTruck-4",
+    "family": "loadTruck",
+    "description": "An action to load an object into a truck that is bound at a location. The amount of time to load the truck is 2 minutes. The truck must be at the location to start loading, and remain at the location the entire time loading takes place. After loading, the object will no longer be at the location, but it will be in the truck.",
+    "referenceAction": {
+      "name": "LOAD-TRUCK",
+      "parameters": "(?obj - obj ?truck - truck ?loc - location)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (at ?truck ?loc)) (at start (at ?obj ?loc)))",
+      "effect": "(and (at end (not (at ?obj ?loc))) (at end (in ?obj ?truck)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-loadTruck-5",
+    "family": "loadTruck",
+    "description": "An action to load an object into a truck given the object, truck, and loading location. The truck and object both need to be at the loading location at the start of the action. After the action, the object is no longer at the location and is in the truck. The duration of this action is 2 minutes.",
+    "referenceAction": {
+      "name": "LOAD-TRUCK",
+      "parameters": "(?obj - obj ?truck - truck ?loc - location)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (at ?truck ?loc)) (at start (at ?obj ?loc)))",
+      "effect": "(and (at end (not (at ?obj ?loc))) (at end (in ?obj ?truck)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-changeColor-1",
+    "family": "changeColor",
+    "description": "This action changes the color that a robot is using from color 1 to color 2. Color 2 must be available to the robot for the entire duration of the action. It takes 5 minutes to change colors. At the end the robot does not have color 1, but it has color 2.",
+    "referenceAction": {
+      "name": "change-color",
+      "parameters": "(?r - robot ?c - color ?c2 - color)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (robot-has ?r ?c)) (over all (available-color ?c2)))",
+      "effect": "(and (at start (not (robot-has ?r ?c)))(at end (robot-has ?r ?c2))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-changeColor-2",
+    "family": "changeColor",
+    "description": "An action to change color, given a robot and the first and second color. The duration of the action is 5 minutes. At the start, the robot has the first color, and the second color must be available throughout the action. At the end, the robot will no longer have the first color, bur will have the second color.",
+    "referenceAction": {
+      "name": "change-color",
+      "parameters": "(?r - robot ?c - color ?c2 - color)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (robot-has ?r ?c)) (over all (available-color ?c2)))",
+      "effect": "(and (at start (not (robot-has ?r ?c)))(at end (robot-has ?r ?c2))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-changeColor-3",
+    "family": "changeColor",
+    "description": "The action is for a robot to change the color. This action’s duration is 5 minutes. There must be an original color and a potential for a color that is available to be chosen. When the action is done the color can not be the same as the initial color. By the end the color must be new.",
+    "referenceAction": {
+      "name": "change-color",
+      "parameters": "(?r - robot ?c - color ?c2 - color)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (robot-has ?r ?c)) (over all (available-color ?c2)))",
+      "effect": "(and (at start (not (robot-has ?r ?c)))(at end (robot-has ?r ?c2))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-changeColor-4",
+    "family": "changeColor",
+    "description": "An action for a robot to change from one color to another color. Before the action, the robot must have the original colour. Over all, the second color must be available. The color change takes 5 minutes. After the robot has changed color, the robot no longer has the first color and has the second color instead.",
+    "referenceAction": {
+      "name": "change-color",
+      "parameters": "(?r - robot ?c - color ?c2 - color)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (robot-has ?r ?c)) (over all (available-color ?c2)))",
+      "effect": "(and (at start (not (robot-has ?r ?c)))(at end (robot-has ?r ?c2))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-changeColor-5",
+    "family": "changeColor",
+    "description": "An action that changes the colour currently being used by a painting robot given the robot, the current colour used by the robot c, and the new color to be used c2. The action requires that the robot is currently equipped with colour c and that the new color c2 is available for use. After the action, the robot no longer has color c and is now equipped with colour c2. The action takes 5 minutes to complete.",
+    "referenceAction": {
+      "name": "change-color",
+      "parameters": "(?r - robot ?c - color ?c2 - color)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (robot-has ?r ?c)) (over all (available-color ?c2)))",
+      "effect": "(and (at start (not (robot-has ?r ?c)))(at end (robot-has ?r ?c2))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movecurbtocurb-1",
+    "family": "movecurbtocurb",
+    "description": "It takes one minute to move the car from the source to the destination. At the start the car is at the source. At the end the car is at the destination.",
+    "referenceAction": {
+      "name": "move-curb-to-curb",
+      "parameters": "(?car - car ?curbsrc ?curbdest - curb)",
+      "duration": "(= ?duration 1)",
+      "condition": "(and (at start (car-clear ?car)) (at start (curb-clear ?curbdest)) (at start (at-curb-num ?car ?curbsrc)))",
+      "effect": "(and (at start (not (curb-clear ?curbdest))) (at end (curb-clear ?curbsrc)) (at end (at-curb-num ?car ?curbdest)) (at start (not (at-curb-num ?car ?curbsrc)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movecurbtocurb-2",
+    "family": "movecurbtocurb",
+    "description": "An action to move from curb to curb. The duration of the action is 1 minute. At the start the car and destination curb must be clear, and the car must be at the source curb. At the end the destination curb will no longer be clear, the car will not be at the source curb, the car will be at the destination curb, and the source curb will be clear.",
+    "referenceAction": {
+      "name": "move-curb-to-curb",
+      "parameters": "(?car - car ?curbsrc ?curbdest - curb)",
+      "duration": "(= ?duration 1)",
+      "condition": "(and (at start (car-clear ?car)) (at start (curb-clear ?curbdest)) (at start (at-curb-num ?car ?curbsrc)))",
+      "effect": "(and (at start (not (curb-clear ?curbdest))) (at end (curb-clear ?curbsrc)) (at end (at-curb-num ?car ?curbdest)) (at start (not (at-curb-num ?car ?curbsrc)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movecurbtocurb-3",
+    "family": "movecurbtocurb",
+    "description": "An action to move a car from one curb to another. The duration is 1. To perform this action, the car and the destination must be clear.",
+    "referenceAction": {
+      "name": "move-curb-to-curb",
+      "parameters": "(?car - car ?curbsrc ?curbdest - curb)",
+      "duration": "(= ?duration 1)",
+      "condition": "(and (at start (car-clear ?car)) (at start (curb-clear ?curbdest)) (at start (at-curb-num ?car ?curbsrc)))",
+      "effect": "(and (at start (not (curb-clear ?curbdest))) (at end (curb-clear ?curbsrc)) (at end (at-curb-num ?car ?curbdest)) (at start (not (at-curb-num ?car ?curbsrc)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movecurbtocurb-4",
+    "family": "movecurbtocurb",
+    "description": "This action is moving a car. This action takes 1 minute. Before moving the car, the car should be clear and the first curb should be clear. Once the action is completed the second curb should not be clear.",
+    "referenceAction": {
+      "name": "move-curb-to-curb",
+      "parameters": "(?car - car ?curbsrc ?curbdest - curb)",
+      "duration": "(= ?duration 1)",
+      "condition": "(and (at start (car-clear ?car)) (at start (curb-clear ?curbdest)) (at start (at-curb-num ?car ?curbsrc)))",
+      "effect": "(and (at start (not (curb-clear ?curbdest))) (at end (curb-clear ?curbsrc)) (at end (at-curb-num ?car ?curbdest)) (at start (not (at-curb-num ?car ?curbsrc)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movecurbtocurb-5",
+    "family": "movecurbtocurb",
+    "description": "An action to move from one curb to another curb. It takes one minute to complete this action. Before the action starts, the car and the destination curb must be clear. The car must also be at the starting curb. After the action is completed, the curb destination is not clear and the starting curb is clear. The car is not at the curb destination and not at the starting curb.",
+    "referenceAction": {
+      "name": "move-curb-to-curb",
+      "parameters": "(?car - car ?curbsrc ?curbdest - curb)",
+      "duration": "(= ?duration 1)",
+      "condition": "(and (at start (car-clear ?car)) (at start (curb-clear ?curbdest)) (at start (at-curb-num ?car ?curbsrc)))",
+      "effect": "(and (at start (not (curb-clear ?curbdest))) (at end (curb-clear ?curbsrc)) (at end (at-curb-num ?car ?curbdest)) (at start (not (at-curb-num ?car ?curbsrc)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-untrap-1",
+    "family": "untrap",
+    "description": "An action to untrap a victim. The duration of the action is 25 minutes. At the start the fire brigade and victim must be at the accident location. The victim must be certified, waiting, and trapped. The fire brigade must be available. At the beginning of the action the fire brigade will not be available. At the end of the action, the victim will be not trapped and the fire brigade will be available again.",
+    "referenceAction": {
+      "name": "untrap",
+      "parameters": "(?V - fire_brigade ?P - acc_victim ?A - accident_location)",
+      "duration": "(= ?duration 25)",
+      "condition": "(and (at start (at ?P ?A)) (at start (at ?V ?A)) (at start (certified ?P)) (at start (available ?V)) (at start (waiting ?P)) (at start (trapped ?P)))",
+      "effect": "(and (at start (not (available ?V))) (at end (not (trapped ?P))) (at end (untrapped ?P)) (at end (available ?V)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-untrap-2",
+    "family": "untrap",
+    "description": "An action for the fire brigade to untrap a victim from an accident at a specific location. The duration is 25. For this action to be performed, the fire brigade and victim must be at the same location. The fire brigade must be available to help, and the victim must be trapped and waiting for help.",
+    "referenceAction": {
+      "name": "untrap",
+      "parameters": "(?V - fire_brigade ?P - acc_victim ?A - accident_location)",
+      "duration": "(= ?duration 25)",
+      "condition": "(and (at start (at ?P ?A)) (at start (at ?V ?A)) (at start (certified ?P)) (at start (available ?V)) (at start (waiting ?P)) (at start (trapped ?P)))",
+      "effect": "(and (at start (not (available ?V))) (at end (not (trapped ?P))) (at end (untrapped ?P)) (at end (available ?V)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-untrap-3",
+    "family": "untrap",
+    "description": "The action here is to untrap someone from a vehicle in an accident. This action’s duration is 25 minutes. At the start the fire brigade is at the accident location where the accident victim is as well. The fire brigade must be available and the victim must be certified. The victims will be waiting as they are trapped. Doing this action means that the fire brigade will not be available any more but by the end the victim will not be trapped. Once the victim gets untapped the fire brigade will be available once again.",
+    "referenceAction": {
+      "name": "untrap",
+      "parameters": "(?V - fire_brigade ?P - acc_victim ?A - accident_location)",
+      "duration": "(= ?duration 25)",
+      "condition": "(and (at start (at ?P ?A)) (at start (at ?V ?A)) (at start (certified ?P)) (at start (available ?V)) (at start (waiting ?P)) (at start (trapped ?P)))",
+      "effect": "(and (at start (not (available ?V))) (at end (not (trapped ?P))) (at end (untrapped ?P)) (at end (available ?V)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-untrap-4",
+    "family": "untrap",
+    "description": "An action for the fire brigade to untrap an accident victim at the accident location. This action takes 25 minutes. At the start, the accident victim and the fire brigade are at the accident location. The fire brigade is certified. The accident victim is available. The accident victim is waiting, and trapped. When the action starts, the fire brigade is no longer available and the accident victim is not trapped. When the action is complete, the accident victim is not trapped and the fire brigade is available again.",
+    "referenceAction": {
+      "name": "untrap",
+      "parameters": "(?V - fire_brigade ?P - acc_victim ?A - accident_location)",
+      "duration": "(= ?duration 25)",
+      "condition": "(and (at start (at ?P ?A)) (at start (at ?V ?A)) (at start (certified ?P)) (at start (available ?V)) (at start (waiting ?P)) (at start (trapped ?P)))",
+      "effect": "(and (at start (not (available ?V))) (at end (not (trapped ?P))) (at end (untrapped ?P)) (at end (available ?V)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-untrap-5",
+    "family": "untrap",
+    "description": "An action that takes a fire brigade to perform a rescue, an accident victim who is currently trapped, and an accident location to rescue them from. The action requires that both the fire brigade and the victim are at the accident location and that the victim is certified for rescues. The action also requires that the fire brigade is not currently rescuing somebody else and that the victim is currently waiting for rescue. At the start of the action, the fire brigade is designated as unavailable. At the end of the action, the victim is no longer trapped and the fire brigade is once again available for rescue operations. The action takes 25 minutes.",
+    "referenceAction": {
+      "name": "untrap",
+      "parameters": "(?V - fire_brigade ?P - acc_victim ?A - accident_location)",
+      "duration": "(= ?duration 25)",
+      "condition": "(and (at start (at ?P ?A)) (at start (at ?V ?A)) (at start (certified ?P)) (at start (available ?V)) (at start (waiting ?P)) (at start (trapped ?P)))",
+      "effect": "(and (at start (not (available ?V))) (at end (not (trapped ?P))) (at end (untrapped ?P)) (at end (available ?V)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-LIGHT_MATCH-1",
+    "family": "LIGHT_MATCH",
+    "description": "This is an action to light a match. There has to be an unused match available at the start. The action causes the match to be lit at the start, but not at the end. The match can burn for 5 minutes.",
+    "referenceAction": {
+      "name": "LIGHT_MATCH",
+      "parameters": "(?match - match)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (unused ?match)))",
+      "effect": "(and (at start (not (unused ?match))) (at start (light ?match)) (at end (not (light ?match)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-LIGHT_MATCH-2",
+    "family": "LIGHT_MATCH",
+    "description": "An action to light a match. The duration of the action is 5 minutes. The match must be initially unused. At the start of the action the match will no longer be unused and the match will be lit. At the end of the action the match will not be lit.",
+    "referenceAction": {
+      "name": "LIGHT_MATCH",
+      "parameters": "(?match - match)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (unused ?match)))",
+      "effect": "(and (at start (not (unused ?match))) (at start (light ?match)) (at end (not (light ?match)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-LIGHT_MATCH-3",
+    "family": "LIGHT_MATCH",
+    "description": "An action to light a match. The duration is 5. For a match to be lit, it must be previously unused.",
+    "referenceAction": {
+      "name": "LIGHT_MATCH",
+      "parameters": "(?match - match)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (unused ?match)))",
+      "effect": "(and (at start (not (unused ?match))) (at start (light ?match)) (at end (not (light ?match)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-LIGHT_MATCH-4",
+    "family": "LIGHT_MATCH",
+    "description": "This action lights a match. This action lasts 5 minutes. At the start, the match must be unused. When the action starts, the match becomes used and the match is lit. At the end, the match is not lit.",
+    "referenceAction": {
+      "name": "LIGHT_MATCH",
+      "parameters": "(?match - match)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (unused ?match)))",
+      "effect": "(and (at start (not (unused ?match))) (at start (light ?match)) (at end (not (light ?match)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-LIGHT_MATCH-5",
+    "family": "LIGHT_MATCH",
+    "description": "An action to light a match given the match to light. The action requires that the match to light is currently unused. At the start of the action, the match is designated as used and is lit. When the action is completed, the match is no longer lit. The action takes 5 minutes to complete.",
+    "referenceAction": {
+      "name": "LIGHT_MATCH",
+      "parameters": "(?match - match)",
+      "duration": "(= ?duration 5)",
+      "condition": "(and (at start (unused ?match)))",
+      "effect": "(and (at start (not (unused ?match))) (at start (light ?match)) (at end (not (light ?match)))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-lift-1",
+    "family": "lift",
+    "description": "An action to lift a crate from a storage area to another area. The duration of the action is 2 minutes. The hoist must initially be available and the crate must be in the storage area. The storage area must be connected to the destination area throughout, and the hoist must be at the destination area throughout. The storage area must be in a place. At the start of the action the crate will no longer be in a place, and the hoist will no longer be available. At the start of the action the hoist will be lifting the crate, and the crate will no longer be in the storage area. At the end of the action the storage area will be clear.",
+    "referenceAction": {
+      "name": "lift",
+      "parameters": "(?h - hoist ?c - crate ?a1 - storearea ?a2 - area ?p - place)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (at start (available ?h)) (at start (on ?c ?a1)) (over all (connected ?a1 ?a2)) (over all (at ?h ?a2)) (over all (in ?a1 ?p)))",
+      "effect": "(and (at start (not (in ?c ?p))) (at start (not (available ?h))) (at start (lifting ?h ?c)) (at start (not (on ?c ?a1))) (at end (clear ?a1)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-lift-2",
+    "family": "lift",
+    "description": "An action to lift a crate with a hoist from one location to another. The duration is 2. For the action to be performed, the hoist must be available and at the same location as the the crate, and the starting and ending locations must be connected.",
+    "referenceAction": {
+      "name": "lift",
+      "parameters": "(?h - hoist ?c - crate ?a1 - storearea ?a2 - area ?p - place)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (at start (available ?h)) (at start (on ?c ?a1)) (over all (connected ?a1 ?a2)) (over all (at ?h ?a2)) (over all (in ?a1 ?p)))",
+      "effect": "(and (at start (not (in ?c ?p))) (at start (not (available ?h))) (at start (lifting ?h ?c)) (at start (not (on ?c ?a1))) (at end (clear ?a1)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-lift-3",
+    "family": "lift",
+    "description": "The action here, which can be done in 2 minutes, is to lift a crate. The crate will be moved from one location to another location. The hoist must be available to do so and at the area. The two locations must be connected.",
+    "referenceAction": {
+      "name": "lift",
+      "parameters": "(?h - hoist ?c - crate ?a1 - storearea ?a2 - area ?p - place)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (at start (available ?h)) (at start (on ?c ?a1)) (over all (connected ?a1 ?a2)) (over all (at ?h ?a2)) (over all (in ?a1 ?p)))",
+      "effect": "(and (at start (not (in ?c ?p))) (at start (not (available ?h))) (at start (lifting ?h ?c)) (at start (not (on ?c ?a1))) (at end (clear ?a1)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-lift-4",
+    "family": "lift",
+    "description": "This action uses a hoist to lift a crate from the storage area to another destination area. It takes two minutes to lift the crate. The hoist must be available. The crate must be in the storage area. The storage area and the destination area must be connected. The hoist must be in the destination area. The storage area must be in a place. Once the action starts, the crate is not in a place and the hoist is not available. The hoist is lifting the crate. The crate is not in the storage area. At the end, the storage area is clear.",
+    "referenceAction": {
+      "name": "lift",
+      "parameters": "(?h - hoist ?c - crate ?a1 - storearea ?a2 - area ?p - place)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (at start (available ?h)) (at start (on ?c ?a1)) (over all (connected ?a1 ?a2)) (over all (at ?h ?a2)) (over all (in ?a1 ?p)))",
+      "effect": "(and (at start (not (in ?c ?p))) (at start (not (available ?h))) (at start (lifting ?h ?c)) (at start (not (on ?c ?a1))) (at end (clear ?a1)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-lift-5",
+    "family": "lift",
+    "description": "An action that lifts a crate from one area to another given the hoist to perform the lift, the source area, the destination area, and the place the areas are in. The action requires that the crate is in the source area, the destination area and source area are connected, the hoist to use is available, the source area is in the correct place, and the hoist to use is in the destination area. At the start of the action, the hoist is marked as unavailable, the crate is no longer in the place of the source area nor on the source area, and the hoist is marked as lifting the crate. At the end of the action, the source area is marked as cleared. The duration of the action is 2 minutes.",
+    "referenceAction": {
+      "name": "lift",
+      "parameters": "(?h - hoist ?c - crate ?a1 - storearea ?a2 - area ?p - place)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (at start (available ?h)) (at start (on ?c ?a1)) (over all (connected ?a1 ?a2)) (over all (at ?h ?a2)) (over all (in ?a1 ?p)))",
+      "effect": "(and (at start (not (in ?c ?p))) (at start (not (available ?h))) (at start (lifting ?h ?c)) (at start (not (on ?c ?a1))) (at end (clear ?a1)))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movevehicleroad-1",
+    "family": "movevehicleroad",
+    "description": "An action to move a vehicle on the road. The duration of the action is the distance between the initial and final junction, divided by the speed of the vehicle. The vehicle must be at the initial junction, and the initial and final junctions must be connected. The road must be put in place and the final junction must be clear. At the start of the action the vehicle is no longer at the initial junction, and the initial junction is clear. At the end, the vehicle is at the final junction.",
+    "referenceAction": {
+      "name": "move_vehicle_road",
+      "parameters": "(?xy_initial - junction ?xy_final - junction ?machine - vehicle ?r1 - road)",
+      "duration": "(= ?duration (/ (distance ?xy_initial ?xy_final) (speed ?machine)))",
+      "condition": "(and (at start (at_jun ?machine ?xy_initial)) (at start (road_connect ?r1 ?xy_initial ?xy_final)) (at start (in_place ?r1)) (at end (clear ?xy_final)))",
+      "effect": "(and (at start (clear ?xy_initial)) (at end (at_jun ?machine ?xy_final)) (at start (not (at_jun ?machine ?xy_initial))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movevehicleroad-2",
+    "family": "movevehicleroad",
+    "description": "An action to move a vehicle on a road from one junction to another. The duration is the time it takes to go the stated distance based on the speed. In order for this action to occur, the junctions must be connected.",
+    "referenceAction": {
+      "name": "move_vehicle_road",
+      "parameters": "(?xy_initial - junction ?xy_final - junction ?machine - vehicle ?r1 - road)",
+      "duration": "(= ?duration (/ (distance ?xy_initial ?xy_final) (speed ?machine)))",
+      "condition": "(and (at start (at_jun ?machine ?xy_initial)) (at start (road_connect ?r1 ?xy_initial ?xy_final)) (at start (in_place ?r1)) (at end (clear ?xy_final)))",
+      "effect": "(and (at start (clear ?xy_initial)) (at end (at_jun ?machine ?xy_final)) (at start (not (at_jun ?machine ?xy_initial))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movevehicleroad-3",
+    "family": "movevehicleroad",
+    "description": "Here there is an action of a moving vehicle on the road. The duration of this action depends on the speed of the vehicle. At the start there is a vehicle at an initial junction. The initial and final junction are connected. By the end the vehicle's location will be the final junction.",
+    "referenceAction": {
+      "name": "move_vehicle_road",
+      "parameters": "(?xy_initial - junction ?xy_final - junction ?machine - vehicle ?r1 - road)",
+      "duration": "(= ?duration (/ (distance ?xy_initial ?xy_final) (speed ?machine)))",
+      "condition": "(and (at start (at_jun ?machine ?xy_initial)) (at start (road_connect ?r1 ?xy_initial ?xy_final)) (at start (in_place ?r1)) (at end (clear ?xy_final)))",
+      "effect": "(and (at start (clear ?xy_initial)) (at end (at_jun ?machine ?xy_final)) (at start (not (at_jun ?machine ?xy_initial))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movevehicleroad-4",
+    "family": "movevehicleroad",
+    "description": "This action moves a machine on a road from one junction to another. The actions takes the distance between the two junctions divided by the speed of the car. At the start, the vehicle must be at the junction in its initial position. The road must connect the initial position to the final position. The vehicle must be on the road. At the end, the final destination must be clear. When the action begins, the initial location becomes clear. The vehicle is no longer at the initial location. Ultimately, the vehicle is in the final location.",
+    "referenceAction": {
+      "name": "move_vehicle_road",
+      "parameters": "(?xy_initial - junction ?xy_final - junction ?machine - vehicle ?r1 - road)",
+      "duration": "(= ?duration (/ (distance ?xy_initial ?xy_final) (speed ?machine)))",
+      "condition": "(and (at start (at_jun ?machine ?xy_initial)) (at start (road_connect ?r1 ?xy_initial ?xy_final)) (at start (in_place ?r1)) (at end (clear ?xy_final)))",
+      "effect": "(and (at start (clear ?xy_initial)) (at end (at_jun ?machine ?xy_final)) (at start (not (at_jun ?machine ?xy_initial))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-movevehicleroad-5",
+    "family": "movevehicleroad",
+    "description": "An action that moves a vehicle down a road given an initial junction, a final junction, the vehicle to move, and the road to move along. The action requires that the vehicle is at the start junction, the start and end junctions are connected, the road is in place, and the end junction is clear. At the start of the action, the start junction is marked as clear and the car is marked as no longer at the start junction. At the end of the action the vehicle is placed at the end junction. The action lasts as long as the dividend of the distance between the two junctions and the speed of the vehicle.",
+    "referenceAction": {
+      "name": "move_vehicle_road",
+      "parameters": "(?xy_initial - junction ?xy_final - junction ?machine - vehicle ?r1 - road)",
+      "duration": "(= ?duration (/ (distance ?xy_initial ?xy_final) (speed ?machine)))",
+      "condition": "(and (at start (at_jun ?machine ?xy_initial)) (at start (road_connect ?r1 ?xy_initial ?xy_final)) (at start (in_place ?r1)) (at end (clear ?xy_final)))",
+      "effect": "(and (at start (clear ?xy_initial)) (at end (at_jun ?machine ?xy_final)) (at start (not (at_jun ?machine ?xy_initial))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-switchon-1",
+    "family": "switchon",
+    "description": "This action turns an instrument on a satellite to on, and takes 2 minutes to complete. The satellite must have power at the start in order for the instrument to be switched on. The instrument must be on board the satellite. The instrument is not calibrated at the start, and power is on at the end but is not available at the start of the action.",
+    "referenceAction": {
+      "name": "switch_on",
+      "parameters": "(?i - instrument ?s - satellite)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (on_board ?i ?s)) (at start (power_avail ?s)))",
+      "effect": "(and (at end (power_on ?i)) (at start (not (calibrated ?i))) (at start (not (power_avail ?s))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-switchon-2",
+    "family": "switchon",
+    "description": "An action to switch an instrument on a satellite on. The duration of the action is 2 minutes. The instrument must be onboard the satellite throughout, there must be power available on the satellite to start. At the start of the action the instrument is not calibrated and there is no power available at the satellite any more. At the end of the action the instrument is turned on.",
+    "referenceAction": {
+      "name": "switch_on",
+      "parameters": "(?i - instrument ?s - satellite)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (on_board ?i ?s)) (at start (power_avail ?s)))",
+      "effect": "(and (at end (power_on ?i)) (at start (not (calibrated ?i))) (at start (not (power_avail ?s))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-switchon-3",
+    "family": "switchon",
+    "description": "An action to switch an instrument on a satellite to the on position. The duration is 2. For an instrument to be switched on, there must be power available on the satellite and the satellite must be equipped with the instrument. Once switched on, the instrument will have power, but the satellite's power will no longer be available. The instrument will also not be calibrated at the start of the action.",
+    "referenceAction": {
+      "name": "switch_on",
+      "parameters": "(?i - instrument ?s - satellite)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (on_board ?i ?s)) (at start (power_avail ?s)))",
+      "effect": "(and (at end (power_on ?i)) (at start (not (calibrated ?i))) (at start (not (power_avail ?s))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-switchon-4",
+    "family": "switchon",
+    "description": "This action lasts 2 minutes. This action turns on an instrument on a satellite. At the start, power must be available on the satellite. The instrument must also be on board the satellite. When the action starts, the power is not available to the satellite and the instrument is not calibrated. At the end, the power is on the instrument.",
+    "referenceAction": {
+      "name": "switch_on",
+      "parameters": "(?i - instrument ?s - satellite)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (on_board ?i ?s)) (at start (power_avail ?s)))",
+      "effect": "(and (at end (power_on ?i)) (at start (not (calibrated ?i))) (at start (not (power_avail ?s))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  },
+  {
+    "id": "qumulab-switchon-5",
+    "family": "switchon",
+    "description": "An action that switches a given instrument on a given satellite on. The action requires that the instrument to activate is on the satellite and that the satellite has power for the instrument. After the action the instrument is on. At the start, the satellite does not have power available, and the instrument is designated as uncalibrated. The action takes 2 minutes to complete.",
+    "referenceAction": {
+      "name": "switch_on",
+      "parameters": "(?i - instrument ?s - satellite)",
+      "duration": "(= ?duration 2)",
+      "condition": "(and (over all (on_board ?i ?s)) (at start (power_avail ?s)))",
+      "effect": "(and (at end (power_on ?i)) (at start (not (calibrated ?i))) (at start (not (power_avail ?s))))"
+    },
+    "sourceUrl": "https://github.com/QuMuLab/temporal-nl-to-pddl/blob/61899bac8608baa719687adbbf0a9928fc06a106/Data/actions.xml"
+  }
+]

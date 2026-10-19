@@ -6,15 +6,17 @@ import { connect } from '@themoltnet/sdk/node';
 import { createTeamTaskClient } from '@pddl/workflows/task-client';
 
 import { createClassifyDecisionClient } from '@pddl/workflows/decision';
+import { createTemporalExtractor } from '@pddl/workflows/temporal';
+import { finishTemporalRun } from '@pddl/workflows/molt-executor';
 import { buildTypesTask, type DesignInput } from '@pddl/workflows/stages';
 import { formatEvent } from './progress.js';
 import { runPddlDesign } from '@pddl/workflows/workflow';
 
 const USAGE =
   'Usage: pddl-designer --description FILE --problem FILE [--domain-name NAME --problem-name NAME] ' +
-  '[--team UUID --diary UUID --profile NAME|ID --correlation UUID --project UUID] [--out FILE] [--max-corrections N] ' +
+  '[--team UUID --diary UUID --generation-profile NAME|ID --correlation UUID --project UUID] [--out FILE] [--max-corrections N] ' +
   '[--types-profile NAME|ID --predicates-profile NAME|ID --actions-profile NAME|ID --refine-profile NAME|ID --problem-profile NAME|ID] ' +
-  '[--review --classify-profile NAME|ID [--review-threshold 0.9]] [--claim-timeout SEC] [--dry-run]';
+  '[--review --classification-profile NAME|ID [--review-threshold 0.9]] [--temporal --classification-profile NAME|ID [--val PATH]] [--claim-timeout SEC] [--dry-run]';
 
 export async function main(argv = process.argv.slice(2)) {
   const { values } = parseArgs({
@@ -26,7 +28,7 @@ export async function main(argv = process.argv.slice(2)) {
       'problem-name': { type: 'string', default: 'designed-problem' },
       team: { type: 'string' },
       diary: { type: 'string' },
-      profile: { type: 'string' },
+      'generation-profile': { type: 'string' },
       'types-profile': { type: 'string' },
       'predicates-profile': { type: 'string' },
       'actions-profile': { type: 'string' },
@@ -37,13 +39,17 @@ export async function main(argv = process.argv.slice(2)) {
       out: { type: 'string' },
       'max-corrections': { type: 'string', default: '1' },
       review: { type: 'boolean', default: false },
+      temporal: { type: 'boolean', default: false },
+      val: { type: 'string' },
       'claim-timeout': { type: 'string', default: '600' },
-      'classify-profile': { type: 'string' },
+      'classification-profile': { type: 'string' },
       'review-threshold': { type: 'string', default: '0.9' },
       'dry-run': { type: 'boolean', default: false },
     },
   });
   if (!values.description || !values.problem) throw new Error(USAGE);
+  if (values.val && !values.temporal)
+    throw new Error('--val needs --temporal\n' + USAGE);
   const input: DesignInput = {
     description: readFileSync(values.description, 'utf8').trim(),
     problemDescription: readFileSync(values.problem, 'utf8').trim(),
@@ -52,15 +58,17 @@ export async function main(argv = process.argv.slice(2)) {
     teamId: values.team ?? '',
     diaryId: values.diary ?? '',
     correlationId: values.correlation ?? randomUUID(),
-    profileId: '',
+    generationProfileId: '',
     ...(values.project ? { projectId: values.project } : {}),
   };
   if (values['dry-run']) {
     process.stdout.write(`${JSON.stringify(buildTypesTask(input), null, 2)}\n`);
     return;
   }
-  if (!values.team || !values.diary || !values.profile)
-    throw new Error('--team, --diary and --profile are required\n' + USAGE);
+  if (!values.team || !values.diary || !values['generation-profile'])
+    throw new Error(
+      '--team, --diary and --generation-profile are required\n' + USAGE,
+    );
   const maxCorrections = Number(values['max-corrections']);
   if (
     !Number.isInteger(maxCorrections) ||
@@ -76,7 +84,7 @@ export async function main(argv = process.argv.slice(2)) {
     if (!found) throw new Error(`runtime profile ${ref} not found`);
     return found.id;
   };
-  input.profileId = profileId(values.profile);
+  input.generationProfileId = profileId(values['generation-profile']);
   input.stageProfiles = {};
   for (const stage of [
     'types',
@@ -88,8 +96,16 @@ export async function main(argv = process.argv.slice(2)) {
     const reference = values[`${stage}-profile`];
     if (reference) input.stageProfiles[stage] = profileId(reference);
   }
-  if (values.review && !values['classify-profile'])
-    throw new Error('--review needs --classify-profile\n' + USAGE);
+  if ((values.review || values.temporal) && !values['classification-profile'])
+    throw new Error(
+      '--review and --temporal need --classification-profile\n' + USAGE,
+    );
+  const classificationProfileId = values['classification-profile']
+    ? profileId(values['classification-profile'])
+    : undefined;
+  if (classificationProfileId)
+    input.classificationProfileId = classificationProfileId;
+  if (values.temporal) input.temporal = true;
 
   const threshold = Number(values['review-threshold']);
   if (!(threshold > 0 && threshold < 1))
@@ -114,18 +130,55 @@ export async function main(argv = process.argv.slice(2)) {
               diaryId: input.diaryId,
               ...(input.projectId ? { projectId: input.projectId } : {}),
               correlationId: input.correlationId,
-              profileId: profileId(values['classify-profile'] ?? ''),
+              profileId: classificationProfileId!,
               claimTimeoutSec,
             }),
           },
         }
       : {}),
   });
+  if (values.temporal) {
+    try {
+      await finishTemporalRun(
+        run,
+        createClassifyDecisionClient(tasks, {
+          teamId: input.teamId,
+          diaryId: input.diaryId,
+          ...(input.projectId ? { projectId: input.projectId } : {}),
+          correlationId: input.correlationId,
+          profileId: classificationProfileId!,
+          claimTimeoutSec,
+          purpose: 'temporal',
+        }),
+        createTemporalExtractor(tasks, {
+          teamId: input.teamId,
+          diaryId: input.diaryId,
+          projectId: input.projectId,
+          correlationId: input.correlationId,
+          profileId: input.generationProfileId,
+          claimTimeoutSec,
+        }),
+        undefined,
+        values.val,
+      );
+    } catch (error) {
+      run.temporal = {
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      };
+      if (values.out)
+        writeFileSync(values.out, `${JSON.stringify(run, null, 2)}\n`);
+      throw error;
+    }
+  }
   const text = `${JSON.stringify(run, null, 2)}\n`;
   if (values.out) writeFileSync(values.out, text);
   else process.stdout.write(text);
   process.stderr.write(
     `[pddl-designer] status=${run.status} stages=${run.stages.length}` +
+      (values.temporal
+        ? ` temporal=${run.temporal?.status === 'complete' ? run.temporal.durativeActions.length : 0} temporal-plan=${run.temporal?.status === 'complete' ? (run.temporal.temporalPlan?.status ?? 'none') : 'none'}`
+        : '') +
       (run.plan?.status === 'found'
         ? ` plan=${run.plan.steps.length} steps`
         : '') +
@@ -137,5 +190,13 @@ export async function main(argv = process.argv.slice(2)) {
         : '') +
       '\n',
   );
-  if (run.status === 'failed' || run.status === 'invalid') process.exitCode = 1;
+  if (
+    run.status === 'failed' ||
+    run.status === 'invalid' ||
+    run.temporal?.status === 'failed' ||
+    (values.val &&
+      run.temporal?.status === 'complete' &&
+      run.temporal.validationError)
+  )
+    process.exitCode = 1;
 }
