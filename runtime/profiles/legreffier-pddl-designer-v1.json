@@ -17,6 +17,10 @@
   "maxBashTimeouts": 1,
   "maxTurns": 6,
   "models": {
+    "classification": {
+      "model": "clef:cloud",
+      "provider": "ollama"
+    },
     "generation": {
       "maxOutputTokens": 8192,
       "model": "gpt-oss:120b",

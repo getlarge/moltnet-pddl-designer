@@ -2,13 +2,13 @@
   "allowedWorkspaceModes": ["none"],
   "context": [],
   "defaultWorkspaceMode": "none",
-  "description": "Input-only Jev runtime for source checks during Actions review and optional final plan review. Each classify task supplies its source, claims, questions and criteria.",
+  "description": "Input-only Ollama Cloud Clef runtime for source checks, final plan review, and temporal detection. Each classify task supplies its source, claims, questions and criteria.",
   "maxBashTimeouts": 3,
   "maxTurns": 0,
   "models": {
     "classification": {
-      "model": "jev-latest",
-      "provider": "typesafe"
+      "model": "clef:cloud",
+      "provider": "ollama"
     }
   },
   "name": "legreffier-pddl-classifier-v1",

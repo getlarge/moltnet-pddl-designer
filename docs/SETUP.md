@@ -181,51 +181,50 @@ prerequisite, effect, ownership link, or reusable fact needs interpretation
 against the description. Local syntax and type checks need no decision model.
 
 `runtime/profiles/legreffier-pddl-classifier-v1.json` supplies a separate
-input-only profile with `models.classification` set to TypeSafe's `jev-latest`.
-Generation profiles and per-step overrides do not select this model. Create it
-and bind the existing empty tool policy:
+input-only profile with `models.classification` set to Ollama's `clef:cloud`.
+Both supplied generation profiles also declare `clef:cloud`; you can use one
+of them as the classification profile if its worker serves `classify` tasks.
+The run still selects a classification profile explicitly, independent of its
+generation profile and per-step overrides. To use the dedicated profile,
+create it and bind the existing empty tool policy:
 
 ```bash
+ollama signin
+ollama pull clef:cloud
+moltnet-agent providers set ollama --base-url http://127.0.0.1:11434/v1 \
+  --classifier-model clef:cloud --classifier-api typesafe-system-one
 moltnet profile create --from-file runtime/profiles/legreffier-pddl-classifier-v1.json --team-id "$TEAM"
 moltnet profile set-policies legreffier-pddl-classifier-v1 --policy legreffier-pddl-designer-input-only-v1 --team-id "$TEAM"
 moltnet-agent poll --team "$TEAM" --profile legreffier-pddl-classifier-v1 --task-types classify --workspace-strategy none
 ```
 
-The worker needs a configured TypeSafe provider. No workspace tools or model
-sandbox network access are required; the daemon calls
-the provider. Keep the worker polling while you review stages. The wizard checks
+Use Ollama 0.35.1 or newer and keep its signed-in local server running. Clef
+runs in Ollama Cloud through the local `/v1/systemone` endpoint; the MoltNet
+provider ID is therefore `ollama`. No workspace tools or model sandbox network
+access are required; the daemon calls the provider. Keep the worker polling
+while you review stages. The wizard checks
 that the profile belongs to the run's team and has a classification model before
 creating a source-check task. Each explicit run has one attempt; a failure leaves
 the draft available for review. The proof retains the exact request, returned
 answers, task ID, elapsed time and available token usage.
 
-With a TypeSafe API key in your shell, register the provider before starting
-the worker (the key is stored in MoltNet's credential store):
+For local inference, use the supplied Clef profile. This downloads a separate
+model of roughly 20 GB and uses the same Ollama provider:
 
 ```bash
-printf '%s' "$TYPESAFE_API_KEY" | moltnet-agent providers set typesafe \
-  --base-url https://api.typesafe.ai/v1 \
-  --classifier-model jev-latest --classifier-api typesafe-system-one \
-  --api-key-stdin
-```
-
-For a local classifier without TypeSafe credentials, use Ollama 0.35 or newer
-and the supplied Nimble profile. The model is a separate download (about
-5.6 GB for this quantization); it is not available through Ollama Cloud's
-classification API. Configure MoltNet's local provider once:
-
-```bash
-ollama pull nimble:9b-q4_K_M
+ollama pull clef
 moltnet-agent providers set ollama --base-url http://127.0.0.1:11434/v1 \
-  --classifier-model nimble:9b-q4_k_m --classifier-api typesafe-system-one
+  --classifier-model clef --classifier-api typesafe-system-one
 moltnet profile create --from-file runtime/profiles/legreffier-pddl-classifier-ollama-v1.json --team-id "$TEAM"
 moltnet profile set-policies legreffier-pddl-classifier-ollama-v1 --policy legreffier-pddl-designer-input-only-v1 --team-id "$TEAM"
 moltnet-agent poll --team "$TEAM" --profile legreffier-pddl-classifier-ollama-v1 --task-types classify --workspace-strategy none
 ```
 
 Use `legreffier-pddl-classifier-ollama-v1` as the classification profile in the
-wizard or CLI. The classifier returns a probability for a Boolean decision;
-check a threshold against your own labeled cases before using it as a gate.
+wizard or CLI when you want local inference. Both classifiers return a
+probability for a Boolean decision; check a threshold against your own labeled
+cases before using it as a gate. The saved Jev and Nimble evaluation baselines
+remain historical measurements and do not establish Clef's accuracy here.
 
 Optional **final plan review** uses `--review --classify-profile` in the CLI. It
 asks whether a skippable step is required after plan search. This is separate
