@@ -306,7 +306,7 @@ export function App() {
                   problemDescription: requestedExample.problemDescription,
                   domainName: requestedExample.name,
                   problemName: `${requestedExample.name.slice(0, 30)}-case`,
-                  ...(requestedExample.name.startsWith('temporal-')
+                  ...(requestedExample.name === 'temporal-loading'
                     ? {
                         temporal: true,
                       }
@@ -655,9 +655,8 @@ export function App() {
                       problemDescription: example.problemDescription,
                       domainName: example.name,
                       problemName: `${example.name.slice(0, 30)}-case`,
-                      temporal: example.name.startsWith('temporal-')
-                        ? true
-                        : undefined,
+                      temporal:
+                        example.name === 'temporal-loading' ? true : undefined,
                     }));
                 }}
               >

@@ -107,11 +107,8 @@ The [truck-loading example](examples/temporal-loading/README.md) runs the five
 modeling stages, asks the temporal-evidence classifier about each action, and
 extracts timed clauses for positive actions. Open the wizard with
 `?example=temporal-loading` to prefill both inputs and enable temporal
-extraction. The example picker also includes
-[inspection](examples/temporal-inspection/description.md) and
-[heating](examples/temporal-heating/description.md) cases with different start,
-overall, and end clauses. The wizard and CLI render PDDL 2.1 durative actions
-and show any untimed draft facts assigned start/end defaults. Set `PDDL_VAL_PATH` on the
+extraction. The wizard and CLI render PDDL 2.1 durative actions and show any
+untimed draft facts assigned start/end defaults. Set `PDDL_VAL_PATH` on the
 wizard worker, or pass `--val PATH` to the CLI, to check a one-step timed
 schedule with VAL. Actions with timing evidence but no usable numeric duration
 stay classical and are identified in the result. CLI JSON keeps the normal
