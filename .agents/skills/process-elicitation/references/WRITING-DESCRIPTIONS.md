@@ -2,8 +2,9 @@
 
 The PDDL designer turns two short texts into a planning model. The model reads
 them literally. Anything a colleague would assume without being told has to be
-written down, or the model will leave it out. Each rule below comes from a live
-run where leaving that thing unsaid produced a wrong model.
+written down, or the model will leave it out. The numbered rules come from live
+runs where leaving a detail unsaid produced a wrong model. The timing guidance
+reflects the current temporal pilot.
 
 ## Two texts
 
@@ -73,9 +74,36 @@ fixed count, or make each item's chain end in its own result.
 works when the situation then says whether it does. Avoid conditions that depend
 on judgment ("if the change is important").
 
-**10. Leave out what does not affect the order of steps.** Budgets, timeouts,
-tool names and output formats do not belong here, and vague verbs ("handles",
-"takes care of") hide what actually changes.
+**10. Leave out what does not affect process behavior.** Infrastructure
+timeouts, tool names and output formats do not belong here, and vague verbs
+("handles", "takes care of") hide what actually changes. Keep a stated action
+duration when it affects how long work or a resource is occupied; do not
+mistake a request timeout for that duration.
+
+## When time matters
+
+The optional temporal pass supports positive numeric action durations in
+seconds, conditions at the start, throughout, or at the end, and effects at the
+start or end. Ask the expert which facts must hold at each point and when an
+occupied resource becomes free. Preserve the source unit and convert it
+explicitly: "loading takes two minutes (120 seconds); the truck stays at the
+depot throughout loading; at the end the parcel is in the truck and no longer
+at the depot." A timestamp in one story, a statement that one step follows
+another, or "loading is quick" does not establish an action duration. Do not
+invent one.
+
+Put general duration and timing rules in the process description; keep named
+objects and initial facts in the situation. Record any unknown, variable, or
+symbolic duration in review notes. The current pilot cannot extract a durative
+action without a usable numeric duration, and it does not support numeric
+fluents, deadlines, or general temporal scheduling. The classical action remains
+available when timing cannot be represented.
+
+When reviewing a timed result, inspect `temporal.defaultedClauses`: any draft
+precondition without explicit timing is placed at the start, and any draft
+effect without explicit timing is placed at the end. These are modeling
+assumptions, not expert evidence. VAL can check a one-step timed schedule;
+multiple steps do not receive a validated timed schedule from this pilot.
 
 ## Situation checklist
 
