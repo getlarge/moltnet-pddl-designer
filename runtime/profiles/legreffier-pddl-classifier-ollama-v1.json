@@ -2,12 +2,12 @@
   "allowedWorkspaceModes": ["none"],
   "context": [],
   "defaultWorkspaceMode": "none",
-  "description": "Input-only local Ollama Nimble classifier for source checks, plan review, and temporal detection evaluations.",
+  "description": "Input-only local Ollama Clef classifier for source checks, plan review, and temporal detection evaluations.",
   "maxBashTimeouts": 1,
   "maxTurns": 0,
   "models": {
     "classification": {
-      "model": "nimble:9b-q4_k_m",
+      "model": "clef",
       "provider": "ollama"
     }
   },

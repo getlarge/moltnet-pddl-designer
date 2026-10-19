@@ -42,8 +42,9 @@ TEAM=<team-id> DIARY=<diary-id> CLASSIFY_PROFILE=legreffier-pddl-classifier-v1 \
 The first two-run [baseline](temporal/BASELINE.md) and raw reports are saved
 with the cases for later comparisons.
 
-The TypeSafe profile needs a configured provider key. A local Ollama option is
-documented in [Setup](../docs/SETUP.md#classification-profiles). Detection
+The current profiles use Ollama Cloud Clef or local Clef; configuration is
+documented in [Setup](../docs/SETUP.md#classification-profiles). The saved Jev
+and Nimble reports are historical baselines, not results for Clef. Detection
 scores do not measure duration or timed-clause extraction. The report includes
 confusion counts, accuracy, balanced accuracy, a Brier score, and breakdowns
 by split, family, and phenomenon. Repeat runs with a fresh correlation ID to
