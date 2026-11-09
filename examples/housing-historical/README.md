@@ -25,3 +25,7 @@ The housing experience inventory remains a separate deliverable, in that reposit
 ## Inspect the saved proof
 
 The unedited generated result and rendered PDDL are checked in under `baseline/`. Import `baseline/run.json` through the wizard, or serve a separate runs directory containing a copy named `housing-historical.json`. `baseline/validation.json` records replay checks. See [RESULTS.md](RESULTS.md) for the semantic failure; the UI status `planned` means executable under the generated model.
+
+![Saved baseline reaches its generated goal after only the programme step](baseline/plan-walkthrough.png)
+
+The screenshot shows the saved proof after one step: the generated goal is reached, although the described design and review process has not occurred. Captured from the local server with its durable worker running; no model regeneration or semantic edits were performed.
