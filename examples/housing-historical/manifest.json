@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "description": {
+    "repository": "house-design-agents",
+    "commit": "34912452d68865726df30a7be579036d33b7e30c",
+    "path": "docs/workflow.md",
+    "sha256": "150ef4fb2f3c23f6f09f390f2072f7a3c5b36ffdbf2e1c3e008956f27d2e564c",
+    "treatment": "byte-for-byte historical repository prose; authorship not asserted",
+    "effectiveTextSha256": "582e75c379aa0af38830a20c329f11a16425741b833e3a37f13e0f2f66debc8d"
+  },
+  "situation": {
+    "sha256": "4f171b23b349bedb1a877ec9c855f4fb1967722407c2ff58108cbcb4c55102dc",
+    "origin": "new synthetic situation; not historical evidence",
+    "effectiveTextSha256": "add1e3aa55ff6fb2621347c0f7b1047c396186c67862ba18318c1c541807886c"
+  },
+  "designerRevision": "ddc4d399e8b83031c98e1d26cb4b6ec2641fd7b2",
+  "housingInventoryRevision": "f154e96a4e7979a2745b69690ef0ba39ed3c89ac",
+  "correlationId": "68797fd0-abed-44fd-aecb-c8e41f6862fb",
+  "generationProfileId": "cbd3a039-0f3e-438c-af6f-82bd91837a9f",
+  "generationProfileRevision": 2,
+  "maxCorrections": 1,
+  "finalSemanticReview": false,
+  "temporal": false,
+  "status": "planned-but-semantic-review-failed",
+  "agentVersion": "0.74.4",
+  "durationMs": 117318,
+  "runSha256": "7b6a35c26f3d9783ca502932786dfaf4d5a964260f3bab6a670c7aaa79cb4df0",
+  "resultDirectory": "baseline",
+  "warnings": 28
+}

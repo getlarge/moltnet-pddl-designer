@@ -1,0 +1,26 @@
+{
+  "generatedPlan": {
+    "valid": true,
+    "finalState": [
+      "(free pr-1)",
+      "(used-up bp-1)"
+    ]
+  },
+  "emptyPlan": {
+    "valid": false,
+    "step": 0,
+    "reason": "goal not reached: (used-up bp-1)"
+  },
+  "reviewOnly": {
+    "valid": false,
+    "step": 1,
+    "reason": "goal not reached: (used-up bp-1)"
+  },
+  "programmeWithoutReview": {
+    "valid": true,
+    "finalState": [
+      "(free pr-1)",
+      "(used-up bp-1)"
+    ]
+  }
+}

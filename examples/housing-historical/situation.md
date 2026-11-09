@@ -1,0 +1,1 @@
+One synthetic project, house-1, has a client brief, site information and planning constraints available. No building programme, floor-plan variant, IFC model, validation result or rendered view has been produced yet. A designer is available to review the result. Goal: house-1 has a reviewed design ready for the Archicad handoff described in the process.

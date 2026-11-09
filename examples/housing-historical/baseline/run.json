@@ -1,0 +1,2500 @@
+{
+  "version": 1,
+  "sourceSentences": [
+    {
+      "line": 1,
+      "text": "# Proposed Workflow",
+      "start": 0
+    },
+    {
+      "line": 2,
+      "text": "Goal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.",
+      "start": 21
+    },
+    {
+      "line": 3,
+      "text": "## MoltNet tasks",
+      "start": 172
+    },
+    {
+      "line": 4,
+      "text": "- `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.",
+      "start": 190
+    },
+    {
+      "line": 5,
+      "text": "- `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.",
+      "start": 354
+    },
+    {
+      "line": 6,
+      "text": "Require human confirmation initially.",
+      "start": 490
+    },
+    {
+      "line": 7,
+      "text": "- `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.",
+      "start": 528
+    },
+    {
+      "line": 8,
+      "text": "- `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.",
+      "start": 665
+    },
+    {
+      "line": 9,
+      "text": "- `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.",
+      "start": 772
+    },
+    {
+      "line": 10,
+      "text": "- `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.",
+      "start": 907
+    },
+    {
+      "line": 11,
+      "text": "- `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.",
+      "start": 1012
+    },
+    {
+      "line": 12,
+      "text": "- `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.",
+      "start": 1146
+    },
+    {
+      "line": 13,
+      "text": "- `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.",
+      "start": 1228
+    },
+    {
+      "line": 14,
+      "text": "- `render`: generate street, garden, interior, axonometric and plan views.",
+      "start": 1359
+    },
+    {
+      "line": 15,
+      "text": "- `human-review`: let the designer/commercial user select or reject variants and iterate.",
+      "start": 1434
+    },
+    {
+      "line": 16,
+      "text": "## POC phases",
+      "start": 1525
+    },
+    {
+      "line": 17,
+      "text": "### POC 0 — Reconstruction",
+      "start": 1540
+    },
+    {
+      "line": 18,
+      "text": "Reconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.",
+      "start": 1567
+    },
+    {
+      "line": 19,
+      "text": "### POC 1 — Parametric modification",
+      "start": 1705
+    },
+    {
+      "line": 20,
+      "text": "Change an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.",
+      "start": 1741
+    },
+    {
+      "line": 21,
+      "text": "### POC 2 — Generation",
+      "start": 1866
+    },
+    {
+      "line": 22,
+      "text": "Generate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.",
+      "start": 1889
+    },
+    {
+      "line": 23,
+      "text": "## Initial benchmark caveat",
+      "start": 1994
+    },
+    {
+      "line": 24,
+      "text": "The handwritten starting brief and supplied plan are different design revisions.",
+      "start": 2023
+    },
+    {
+      "line": 25,
+      "text": "The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.",
+      "start": 2104
+    }
+  ],
+  "status": "planned",
+  "input": {
+    "description": "# Proposed Workflow\n\nGoal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n\n## MoltNet tasks\n\n- `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n- `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance. Require human confirmation initially.\n- `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n- `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n- `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n- `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n- `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n- `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n- `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n- `render`: generate street, garden, interior, axonometric and plan views.\n- `human-review`: let the designer/commercial user select or reject variants and iterate.\n\n## POC phases\n\n### POC 0 — Reconstruction\nReconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n\n### POC 1 — Parametric modification\nChange an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n\n### POC 2 — Generation\nGenerate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n\n## Initial benchmark caveat\n\nThe handwritten starting brief and supplied plan are different design revisions. The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.",
+    "problemDescription": "One synthetic project, house-1, has a client brief, site information and planning constraints available. No building programme, floor-plan variant, IFC model, validation result or rendered view has been produced yet. A designer is available to review the result. Goal: house-1 has a reviewed design ready for the Archicad handoff described in the process.",
+    "domainName": "housing-historical",
+    "problemName": "house-1",
+    "correlationId": "68797fd0-abed-44fd-aecb-c8e41f6862fb"
+  },
+  "stages": [
+    {
+      "stage": "types",
+      "attempt": 1,
+      "source": "task",
+      "taskId": "bf5ad53a-47a2-46c5-8a9a-5222f6ecdf7e",
+      "brief": "Stage 1 of a planning-domain design: extract the object types.\n\nA type is a kind of thing an action takes as a parameter: agents, work items, places, resources. Include a kind of thing a step produces (for example a shipping label) only when later steps must refer to individual ones. Use a parent type when several kinds share behavior.\n\nModeling rules (classical PDDL with typing and negative preconditions):\n\n- Names are lowercase and hyphenated: `parcel-label`, `truck-free`. Parameters start with `?`: `?t`, `?p`.\n\n- Do not define the root type `object`; omit `parent` for top-level types.\n\n- Actions cannot create objects. Every object an action uses must already exist in the problem. To model something a step produces (a receipt, a parcel label), use a pool of objects and a fact such as `(unused ?x)` that the producing action requires and deletes.\n\n- For every action, list what must stop being true (delete effects), not only what becomes true. A fact nobody deletes stays true forever and can be reused by later steps.\n\n- No quantifiers, conditional effects, or numeric fluents. Express \"only one at a time\" with a fact such as `(idle ?t)` that the action requires and deletes.\n\nThe example below only shows the JSON shape, using an unrelated library domain; do not reuse its names. Put in result {\"types\":[{\"name\":\"person\",\"description\":\"...\"},{\"name\":\"member\",\"parent\":\"person\",\"description\":\"...\"},{\"name\":\"book\",\"description\":\"...\"}]}.\n\n<untrusted-process-description nonce=\"e65cea249339\">\n# Proposed Workflow\n\nGoal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n\n## MoltNet tasks\n\n- `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n- `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance. Require human confirmation initially.\n- `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n- `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n- `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n- `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n- `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n- `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n- `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n- `render`: generate street, garden, interior, axonometric and plan views.\n- `human-review`: let the designer/commercial user select or reject variants and iterate.\n\n## POC phases\n\n### POC 0 — Reconstruction\nReconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n\n### POC 1 — Parametric modification\nChange an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n\n### POC 2 — Generation\nGenerate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n\n## Initial benchmark caveat\n\nThe handwritten starting brief and supplied plan are different design revisions. The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-process-description nonce=\"e65cea249339\">\n\nSource evidence: for every type, predicate and action, include sourceLines with the numbered description lines that support it. Leave sourceLines empty when the description does not provide evidence; never invent a citation.\n\n<untrusted-numbered-description nonce=\"60d92a668eda\">\n1: # Proposed Workflow\n2: Goal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n3: ## MoltNet tasks\n4: - `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n5: - `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.\n6: Require human confirmation initially.\n7: - `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n8: - `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n9: - `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n10: - `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n11: - `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n12: - `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n13: - `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n14: - `render`: generate street, garden, interior, axonometric and plan views.\n15: - `human-review`: let the designer/commercial user select or reject variants and iterate.\n16: ## POC phases\n17: ### POC 0 — Reconstruction\n18: Reconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n19: ### POC 1 — Parametric modification\n20: Change an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n21: ### POC 2 — Generation\n22: Generate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n23: ## Initial benchmark caveat\n24: The handwritten starting brief and supplied plan are different design revisions.\n25: The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-numbered-description nonce=\"60d92a668eda\">",
+      "result": {
+        "types": [
+          {
+            "name": "project-requirements",
+            "description": "Derived information about storeys, rooms, target areas, garage, openings, orientation and client priorities extracted from source documents.",
+            "sourceLines": [
+              4
+            ]
+          },
+          {
+            "name": "planning-constraints",
+            "description": "Regulatory and site constraints such as setbacks, height limits, site coverage, roof rules, access and parking requirements.",
+            "sourceLines": [
+              5
+            ]
+          },
+          {
+            "name": "building-program",
+            "description": "Space programme defining target/minimum areas, adjacency relationships, circulation preferences and orientation guidance.",
+            "sourceLines": [
+              7
+            ]
+          },
+          {
+            "name": "floor-plan",
+            "description": "Geometric layout of spaces that satisfies the building program, constraints and optimisation criteria.",
+            "sourceLines": [
+              8,
+              9
+            ]
+          },
+          {
+            "name": "bim-element",
+            "description": "Building information model components such as walls, slabs, roof, doors and windows created from a validated floor plan.",
+            "sourceLines": [
+              10
+            ]
+          },
+          {
+            "name": "ifc-model",
+            "description": "Canonical IFC representation of the BIM, mutable by export-or-update actions.",
+            "sourceLines": [
+              11
+            ]
+          },
+          {
+            "name": "visualisation-assets",
+            "description": "Non‑authoritative presentation assets (materials, furniture, vegetation, lighting) added for visualisation.",
+            "sourceLines": [
+              13
+            ]
+          },
+          {
+            "name": "render-view",
+            "description": "Generated image views (street, garden, interior, axonometric, plan) of the visualised model.",
+            "sourceLines": [
+              14
+            ]
+          },
+          {
+            "name": "human-reviewer",
+            "description": "The designer or commercial user who selects, rejects or iterates on generated variants.",
+            "sourceLines": [
+              15
+            ]
+          },
+          {
+            "name": "system-agent",
+            "description": "Automated agents executing MoltNet tasks such as extraction, solving, validation and rendering.",
+            "sourceLines": [
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ]
+          }
+        ]
+      },
+      "issues": [],
+      "durationMs": 19788
+    },
+    {
+      "stage": "predicates",
+      "attempt": 1,
+      "source": "task",
+      "taskId": "210bffd1-09d7-4513-b070-c945042a5089",
+      "brief": "Supply reading.true and reading.false as opposite, plain-language fact templates. Include every predicate parameter in braces, such as {?b}. Example: reading: {true: \"{?b} is on the shelf\", false: \"{?b} is not on the shelf\"}. Use simple words; do not add source requirements or action effects to these definitions.\n\nStage 2: extract the predicates (true/false facts about objects) for these types.\n\nEach parameter has exactly one type from the list. Use one predicate per distinct relation; do not merge unrelated relations. Include the facts needed to say when something is free, in use, or used up.\n\nModeling rules (classical PDDL with typing and negative preconditions):\n\n- Names are lowercase and hyphenated: `parcel-label`, `truck-free`. Parameters start with `?`: `?t`, `?p`.\n\n- Do not define the root type `object`; omit `parent` for top-level types.\n\n- Actions cannot create objects. Every object an action uses must already exist in the problem. To model something a step produces (a receipt, a parcel label), use a pool of objects and a fact such as `(unused ?x)` that the producing action requires and deletes.\n\n- For every action, list what must stop being true (delete effects), not only what becomes true. A fact nobody deletes stays true forever and can be reused by later steps.\n\n- No quantifiers, conditional effects, or numeric fluents. Express \"only one at a time\" with a fact such as `(idle ?t)` that the action requires and deletes.\n\nTypes:\n[\n  {\n    \"name\": \"project-requirements\",\n    \"description\": \"Derived information about storeys, rooms, target areas, garage, openings, orientation and client priorities extracted from source documents.\",\n    \"sourceLines\": [\n      4\n    ]\n  },\n  {\n    \"name\": \"planning-constraints\",\n    \"description\": \"Regulatory and site constraints such as setbacks, height limits, site coverage, roof rules, access and parking requirements.\",\n    \"sourceLines\": [\n      5\n    ]\n  },\n  {\n    \"name\": \"building-program\",\n    \"description\": \"Space programme defining target/minimum areas, adjacency relationships, circulation preferences and orientation guidance.\",\n    \"sourceLines\": [\n      7\n    ]\n  },\n  {\n    \"name\": \"floor-plan\",\n    \"description\": \"Geometric layout of spaces that satisfies the building program, constraints and optimisation criteria.\",\n    \"sourceLines\": [\n      8,\n      9\n    ]\n  },\n  {\n    \"name\": \"bim-element\",\n    \"description\": \"Building information model components such as walls, slabs, roof, doors and windows created from a validated floor plan.\",\n    \"sourceLines\": [\n      10\n    ]\n  },\n  {\n    \"name\": \"ifc-model\",\n    \"description\": \"Canonical IFC representation of the BIM, mutable by export-or-update actions.\",\n    \"sourceLines\": [\n      11\n    ]\n  },\n  {\n    \"name\": \"visualisation-assets\",\n    \"description\": \"Non‑authoritative presentation assets (materials, furniture, vegetation, lighting) added for visualisation.\",\n    \"sourceLines\": [\n      13\n    ]\n  },\n  {\n    \"name\": \"render-view\",\n    \"description\": \"Generated image views (street, garden, interior, axonometric, plan) of the visualised model.\",\n    \"sourceLines\": [\n      14\n    ]\n  },\n  {\n    \"name\": \"human-reviewer\",\n    \"description\": \"The designer or commercial user who selects, rejects or iterates on generated variants.\",\n    \"sourceLines\": [\n      15\n    ]\n  },\n  {\n    \"name\": \"system-agent\",\n    \"description\": \"Automated agents executing MoltNet tasks such as extraction, solving, validation and rendering.\",\n    \"sourceLines\": [\n      3,\n      4,\n      5,\n      6,\n      7,\n      8,\n      9,\n      10,\n      11,\n      12,\n      13,\n      14,\n      15\n    ]\n  }\n]\n\nThe example below only shows the JSON shape, using an unrelated library domain; do not reuse its names. Put in result {\"predicates\":[{\"name\":\"borrowed-by\",\"parameters\":[{\"name\":\"?b\",\"type\":\"book\"},{\"name\":\"?m\",\"type\":\"member\"}],\"description\":\"book ?b is borrowed by member ?m\",\"reading\":{\"true\":\"{?b} is borrowed by {?m}\",\"false\":\"{?b} is not borrowed by {?m}\"}}]}.\n\n<untrusted-process-description nonce=\"e65cea249339\">\n# Proposed Workflow\n\nGoal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n\n## MoltNet tasks\n\n- `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n- `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance. Require human confirmation initially.\n- `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n- `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n- `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n- `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n- `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n- `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n- `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n- `render`: generate street, garden, interior, axonometric and plan views.\n- `human-review`: let the designer/commercial user select or reject variants and iterate.\n\n## POC phases\n\n### POC 0 — Reconstruction\nReconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n\n### POC 1 — Parametric modification\nChange an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n\n### POC 2 — Generation\nGenerate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n\n## Initial benchmark caveat\n\nThe handwritten starting brief and supplied plan are different design revisions. The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-process-description nonce=\"e65cea249339\">\n\nSource evidence: for every type, predicate and action, include sourceLines with the numbered description lines that support it. Leave sourceLines empty when the description does not provide evidence; never invent a citation.\n\n<untrusted-numbered-description nonce=\"60d92a668eda\">\n1: # Proposed Workflow\n2: Goal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n3: ## MoltNet tasks\n4: - `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n5: - `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.\n6: Require human confirmation initially.\n7: - `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n8: - `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n9: - `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n10: - `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n11: - `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n12: - `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n13: - `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n14: - `render`: generate street, garden, interior, axonometric and plan views.\n15: - `human-review`: let the designer/commercial user select or reject variants and iterate.\n16: ## POC phases\n17: ### POC 0 — Reconstruction\n18: Reconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n19: ### POC 1 — Parametric modification\n20: Change an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n21: ### POC 2 — Generation\n22: Generate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n23: ## Initial benchmark caveat\n24: The handwritten starting brief and supplied plan are different design revisions.\n25: The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-numbered-description nonce=\"60d92a668eda\">",
+      "result": {
+        "predicates": [
+          {
+            "name": "free",
+            "reading": {
+              "true": "{?x} is free",
+              "false": "{?x} is not free"
+            },
+            "parameters": [
+              {
+                "name": "?x",
+                "type": "project-requirements"
+              }
+            ],
+            "description": "project requirement ?x is free (available for allocation)",
+            "sourceLines": []
+          },
+          {
+            "name": "in-use",
+            "reading": {
+              "true": "{?x} is in use",
+              "false": "{?x} is not in use"
+            },
+            "parameters": [
+              {
+                "name": "?x",
+                "type": "planning-constraints"
+              }
+            ],
+            "description": "planning constraint ?x is currently in use",
+            "sourceLines": []
+          },
+          {
+            "name": "used-up",
+            "reading": {
+              "true": "{?x} is used up",
+              "false": "{?x} is not used up"
+            },
+            "parameters": [
+              {
+                "name": "?x",
+                "type": "building-program"
+              }
+            ],
+            "description": "building program element ?x has been used up",
+            "sourceLines": []
+          }
+        ]
+      },
+      "issues": [],
+      "durationMs": 17810
+    },
+    {
+      "stage": "actions",
+      "attempt": 1,
+      "source": "task",
+      "taskId": "4494835c-200c-4d73-81b4-c592f4c83df3",
+      "brief": "Supply reading as a neutral sentence describing the action, with every action parameter in braces, e.g. \"{?m} borrows {?b}\". Give action parameters distinct, readable label values such as \"the member\" and \"the book\". The sentence describes what happens, not whether the action or its rules are correct. Code will build prerequisite/effect claims from the formal arrays; do not write those claims yourself.\n\nStage 3: extract the actions. Each action has typed parameters, preconditions (literals; `negated: true` means the fact must be false), add effects, and delete effects, using only these predicates with their exact arity. `source` quotes the sentence the action models.\n\nModeling rules (classical PDDL with typing and negative preconditions):\n\n- Names are lowercase and hyphenated: `parcel-label`, `truck-free`. Parameters start with `?`: `?t`, `?p`.\n\n- Do not define the root type `object`; omit `parent` for top-level types.\n\n- Actions cannot create objects. Every object an action uses must already exist in the problem. To model something a step produces (a receipt, a parcel label), use a pool of objects and a fact such as `(unused ?x)` that the producing action requires and deletes.\n\n- For every action, list what must stop being true (delete effects), not only what becomes true. A fact nobody deletes stays true forever and can be reused by later steps.\n\n- No quantifiers, conditional effects, or numeric fluents. Express \"only one at a time\" with a fact such as `(idle ?t)` that the action requires and deletes.\n\nTypes:\n[\n  {\n    \"name\": \"project-requirements\",\n    \"description\": \"Derived information about storeys, rooms, target areas, garage, openings, orientation and client priorities extracted from source documents.\",\n    \"sourceLines\": [\n      4\n    ]\n  },\n  {\n    \"name\": \"planning-constraints\",\n    \"description\": \"Regulatory and site constraints such as setbacks, height limits, site coverage, roof rules, access and parking requirements.\",\n    \"sourceLines\": [\n      5\n    ]\n  },\n  {\n    \"name\": \"building-program\",\n    \"description\": \"Space programme defining target/minimum areas, adjacency relationships, circulation preferences and orientation guidance.\",\n    \"sourceLines\": [\n      7\n    ]\n  },\n  {\n    \"name\": \"floor-plan\",\n    \"description\": \"Geometric layout of spaces that satisfies the building program, constraints and optimisation criteria.\",\n    \"sourceLines\": [\n      8,\n      9\n    ]\n  },\n  {\n    \"name\": \"bim-element\",\n    \"description\": \"Building information model components such as walls, slabs, roof, doors and windows created from a validated floor plan.\",\n    \"sourceLines\": [\n      10\n    ]\n  },\n  {\n    \"name\": \"ifc-model\",\n    \"description\": \"Canonical IFC representation of the BIM, mutable by export-or-update actions.\",\n    \"sourceLines\": [\n      11\n    ]\n  },\n  {\n    \"name\": \"visualisation-assets\",\n    \"description\": \"Non‑authoritative presentation assets (materials, furniture, vegetation, lighting) added for visualisation.\",\n    \"sourceLines\": [\n      13\n    ]\n  },\n  {\n    \"name\": \"render-view\",\n    \"description\": \"Generated image views (street, garden, interior, axonometric, plan) of the visualised model.\",\n    \"sourceLines\": [\n      14\n    ]\n  },\n  {\n    \"name\": \"human-reviewer\",\n    \"description\": \"The designer or commercial user who selects, rejects or iterates on generated variants.\",\n    \"sourceLines\": [\n      15\n    ]\n  },\n  {\n    \"name\": \"system-agent\",\n    \"description\": \"Automated agents executing MoltNet tasks such as extraction, solving, validation and rendering.\",\n    \"sourceLines\": [\n      3,\n      4,\n      5,\n      6,\n      7,\n      8,\n      9,\n      10,\n      11,\n      12,\n      13,\n      14,\n      15\n    ]\n  }\n]\n\nPredicates:\n[\n  {\n    \"name\": \"free\",\n    \"reading\": {\n      \"true\": \"{?x} is free\",\n      \"false\": \"{?x} is not free\"\n    },\n    \"parameters\": [\n      {\n        \"name\": \"?x\",\n        \"type\": \"project-requirements\"\n      }\n    ],\n    \"description\": \"project requirement ?x is free (available for allocation)\",\n    \"sourceLines\": []\n  },\n  {\n    \"name\": \"in-use\",\n    \"reading\": {\n      \"true\": \"{?x} is in use\",\n      \"false\": \"{?x} is not in use\"\n    },\n    \"parameters\": [\n      {\n        \"name\": \"?x\",\n        \"type\": \"planning-constraints\"\n      }\n    ],\n    \"description\": \"planning constraint ?x is currently in use\",\n    \"sourceLines\": []\n  },\n  {\n    \"name\": \"used-up\",\n    \"reading\": {\n      \"true\": \"{?x} is used up\",\n      \"false\": \"{?x} is not used up\"\n    },\n    \"parameters\": [\n      {\n        \"name\": \"?x\",\n        \"type\": \"building-program\"\n      }\n    ],\n    \"description\": \"building program element ?x has been used up\",\n    \"sourceLines\": []\n  }\n]\n\nThe example below only shows the JSON shape, using an unrelated library domain; do not reuse its names. Put in result {\"actions\":[{\"name\":\"borrow\",\"reading\":\"{?m} borrows {?b}\",\"parameters\":[{\"name\":\"?m\",\"type\":\"member\",\"label\":\"the member\"},{\"name\":\"?b\",\"type\":\"book\",\"label\":\"the book\"}],\"preconditions\":[{\"predicate\":\"on-shelf\",\"args\":[\"?b\"],\"negated\":false},{\"predicate\":\"suspended\",\"args\":[\"?m\"],\"negated\":true}],\"addEffects\":[{\"predicate\":\"borrowed-by\",\"args\":[\"?b\",\"?m\"]}],\"deleteEffects\":[{\"predicate\":\"on-shelf\",\"args\":[\"?b\"]}],\"source\":\"A member who is not suspended may borrow a book from the shelf.\"}]}.\n\n<untrusted-process-description nonce=\"e65cea249339\">\n# Proposed Workflow\n\nGoal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n\n## MoltNet tasks\n\n- `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n- `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance. Require human confirmation initially.\n- `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n- `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n- `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n- `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n- `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n- `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n- `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n- `render`: generate street, garden, interior, axonometric and plan views.\n- `human-review`: let the designer/commercial user select or reject variants and iterate.\n\n## POC phases\n\n### POC 0 — Reconstruction\nReconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n\n### POC 1 — Parametric modification\nChange an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n\n### POC 2 — Generation\nGenerate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n\n## Initial benchmark caveat\n\nThe handwritten starting brief and supplied plan are different design revisions. The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-process-description nonce=\"e65cea249339\">\n\nSource evidence: for every type, predicate and action, include sourceLines with the numbered description lines that support it. Leave sourceLines empty when the description does not provide evidence; never invent a citation.\n\n<untrusted-numbered-description nonce=\"60d92a668eda\">\n1: # Proposed Workflow\n2: Goal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n3: ## MoltNet tasks\n4: - `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n5: - `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.\n6: Require human confirmation initially.\n7: - `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n8: - `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n9: - `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n10: - `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n11: - `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n12: - `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n13: - `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n14: - `render`: generate street, garden, interior, axonometric and plan views.\n15: - `human-review`: let the designer/commercial user select or reject variants and iterate.\n16: ## POC phases\n17: ### POC 0 — Reconstruction\n18: Reconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n19: ### POC 1 — Parametric modification\n20: Change an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n21: ### POC 2 — Generation\n22: Generate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n23: ## Initial benchmark caveat\n24: The handwritten starting brief and supplied plan are different design revisions.\n25: The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-numbered-description nonce=\"60d92a668eda\">",
+      "result": {
+        "actions": [
+          {
+            "name": "extract-project-requirements",
+            "source": "extract-project-requirements: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.",
+            "reading": "{?sys} extracts project requirements",
+            "addEffects": [
+              {
+                "args": [
+                  "?pr"
+                ],
+                "predicate": "free"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?pr",
+                "type": "project-requirements",
+                "label": "the project requirement set"
+              }
+            ],
+            "sourceLines": [
+              4
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "extract-planning-constraints",
+            "source": "extract-planning-constraints: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.",
+            "reading": "{?sys} extracts planning constraints",
+            "addEffects": [
+              {
+                "args": [
+                  "?pc"
+                ],
+                "predicate": "in-use"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?pc",
+                "type": "planning-constraints",
+                "label": "the planning constraint set"
+              }
+            ],
+            "sourceLines": [
+              5
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "derive-building-program",
+            "source": "derive-building-program: create the space programme defining target/minimum areas, adjacency graph, circulation and orientation guidance.",
+            "reading": "{?sys} derives building program",
+            "addEffects": [
+              {
+                "args": [
+                  "?bp"
+                ],
+                "predicate": "used-up"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?bp",
+                "type": "building-program",
+                "label": "the building program"
+              }
+            ],
+            "sourceLines": [
+              7
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "solve-floor-plan",
+            "source": "solve-floor-plan: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.",
+            "reading": "{?sys} solves floor plan",
+            "addEffects": [
+              {
+                "args": [
+                  "?fp"
+                ],
+                "predicate": "free"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?fp",
+                "type": "floor-plan",
+                "label": "the floor plan"
+              }
+            ],
+            "sourceLines": [
+              8
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "validate-plan",
+            "source": "validate-plan: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.",
+            "reading": "{?sys} validates plan",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?fp",
+                "type": "floor-plan",
+                "label": "the floor plan"
+              }
+            ],
+            "sourceLines": [
+              9
+            ],
+            "deleteEffects": [],
+            "preconditions": [
+              {
+                "args": [
+                  "?fp"
+                ],
+                "negated": false,
+                "predicate": "free"
+              }
+            ]
+          },
+          {
+            "name": "derive-building-elements",
+            "source": "derive-building-elements: create walls, slabs, roof, openings, doors and windows from a validated floor plan.",
+            "reading": "{?sys} derives building elements",
+            "addEffects": [
+              {
+                "args": [
+                  "?be"
+                ],
+                "predicate": "in-use"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?be",
+                "type": "bim-element",
+                "label": "the BIM element"
+              }
+            ],
+            "sourceLines": [
+              10
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "export-or-update-ifc",
+            "source": "export-or-update-ifc: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.",
+            "reading": "{?sys} exports or updates IFC",
+            "addEffects": [
+              {
+                "args": [
+                  "?ifc"
+                ],
+                "predicate": "free"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?ifc",
+                "type": "ifc-model",
+                "label": "the IFC model"
+              }
+            ],
+            "sourceLines": [
+              11
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "validate-ifc",
+            "source": "validate-ifc: re-open the IFC and run semantic, IDS and geometric validation.",
+            "reading": "{?sys} validates IFC",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?ifc",
+                "type": "ifc-model",
+                "label": "the IFC model"
+              }
+            ],
+            "sourceLines": [
+              12
+            ],
+            "deleteEffects": [],
+            "preconditions": [
+              {
+                "args": [
+                  "?ifc"
+                ],
+                "negated": false,
+                "predicate": "free"
+              }
+            ]
+          },
+          {
+            "name": "stage-visualisation",
+            "source": "stage-visualisation: add non‑authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.",
+            "reading": "{?sys} stages visualisation assets",
+            "addEffects": [
+              {
+                "args": [
+                  "?va"
+                ],
+                "predicate": "free"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?va",
+                "type": "visualisation-assets",
+                "label": "the visualisation assets"
+              }
+            ],
+            "sourceLines": [
+              13
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "render",
+            "source": "render: generate street, garden, interior, axonometric and plan views.",
+            "reading": "{?sys} renders view",
+            "addEffects": [
+              {
+                "args": [
+                  "?rv"
+                ],
+                "predicate": "free"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?rv",
+                "type": "render-view",
+                "label": "the render view"
+              }
+            ],
+            "sourceLines": [
+              14
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "human-review",
+            "source": "human-review: let the designer/commercial user select or reject variants and iterate.",
+            "reading": "{?hr} reviews generated output",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?hr",
+                "type": "human-reviewer",
+                "label": "the human reviewer"
+              }
+            ],
+            "sourceLines": [
+              15
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          }
+        ]
+      },
+      "issues": [
+        {
+          "severity": "error",
+          "path": "actions/extract-project-requirements/reading",
+          "message": "include participant {?pr}"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/extract-project-requirements",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/extract-project-requirements",
+          "message": "?pr - project-requirements appears in no precondition, so the planner may pick any project-requirements",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "error",
+          "path": "actions/extract-planning-constraints/reading",
+          "message": "include participant {?pc}"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/extract-planning-constraints",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/extract-planning-constraints",
+          "message": "?pc - planning-constraints appears in no precondition, so the planner may pick any planning-constraints",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "error",
+          "path": "actions/derive-building-program/reading",
+          "message": "include participant {?bp}"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-program",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-program",
+          "message": "?bp - building-program appears in no precondition, so the planner may pick any building-program",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "error",
+          "path": "actions/solve-floor-plan/reading",
+          "message": "include participant {?fp}"
+        },
+        {
+          "severity": "error",
+          "path": "actions/solve-floor-plan/add/0",
+          "message": "free argument 1 expects project-requirements, got ?fp of type floor-plan"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/solve-floor-plan",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/solve-floor-plan",
+          "message": "?fp - floor-plan appears in no precondition, so the planner may pick any floor-plan",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "error",
+          "path": "actions/validate-plan/reading",
+          "message": "include participant {?fp}"
+        },
+        {
+          "severity": "error",
+          "path": "actions/validate-plan/pre/0",
+          "message": "free argument 1 expects project-requirements, got ?fp of type floor-plan"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-plan",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-plan",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "error",
+          "path": "actions/derive-building-elements/reading",
+          "message": "include participant {?be}"
+        },
+        {
+          "severity": "error",
+          "path": "actions/derive-building-elements/add/0",
+          "message": "in-use argument 1 expects planning-constraints, got ?be of type bim-element"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-elements",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-elements",
+          "message": "?be - bim-element appears in no precondition, so the planner may pick any bim-element",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "error",
+          "path": "actions/export-or-update-ifc/reading",
+          "message": "include participant {?ifc}"
+        },
+        {
+          "severity": "error",
+          "path": "actions/export-or-update-ifc/add/0",
+          "message": "free argument 1 expects project-requirements, got ?ifc of type ifc-model"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/export-or-update-ifc",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/export-or-update-ifc",
+          "message": "?ifc - ifc-model appears in no precondition, so the planner may pick any ifc-model",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "error",
+          "path": "actions/validate-ifc/reading",
+          "message": "include participant {?ifc}"
+        },
+        {
+          "severity": "error",
+          "path": "actions/validate-ifc/pre/0",
+          "message": "free argument 1 expects project-requirements, got ?ifc of type ifc-model"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-ifc",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-ifc",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "error",
+          "path": "actions/stage-visualisation/reading",
+          "message": "include participant {?va}"
+        },
+        {
+          "severity": "error",
+          "path": "actions/stage-visualisation/add/0",
+          "message": "free argument 1 expects project-requirements, got ?va of type visualisation-assets"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/stage-visualisation",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/stage-visualisation",
+          "message": "?va - visualisation-assets appears in no precondition, so the planner may pick any visualisation-assets",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "error",
+          "path": "actions/render/reading",
+          "message": "include participant {?rv}"
+        },
+        {
+          "severity": "error",
+          "path": "actions/render/add/0",
+          "message": "free argument 1 expects project-requirements, got ?rv of type render-view"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/render",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/render",
+          "message": "?rv - render-view appears in no precondition, so the planner may pick any render-view",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/human-review",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/human-review",
+          "message": "?hr - human-reviewer appears in no precondition, so the planner may pick any human-reviewer",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "predicates/free",
+          "message": "no action deletes free: once added it stays true. Fine for a permanent milestone; a problem if a later step should not be able to reuse it"
+        }
+      ],
+      "durationMs": 15742
+    },
+    {
+      "stage": "actions",
+      "attempt": 2,
+      "source": "task",
+      "taskId": "d4809def-8bdf-4239-9be3-8bdb7d01c09f",
+      "brief": "Supply reading as a neutral sentence describing the action, with every action parameter in braces, e.g. \"{?m} borrows {?b}\". Give action parameters distinct, readable label values such as \"the member\" and \"the book\". The sentence describes what happens, not whether the action or its rules are correct. Code will build prerequisite/effect claims from the formal arrays; do not write those claims yourself.\n\nStage 3: extract the actions. Each action has typed parameters, preconditions (literals; `negated: true` means the fact must be false), add effects, and delete effects, using only these predicates with their exact arity. `source` quotes the sentence the action models.\n\nModeling rules (classical PDDL with typing and negative preconditions):\n\n- Names are lowercase and hyphenated: `parcel-label`, `truck-free`. Parameters start with `?`: `?t`, `?p`.\n\n- Do not define the root type `object`; omit `parent` for top-level types.\n\n- Actions cannot create objects. Every object an action uses must already exist in the problem. To model something a step produces (a receipt, a parcel label), use a pool of objects and a fact such as `(unused ?x)` that the producing action requires and deletes.\n\n- For every action, list what must stop being true (delete effects), not only what becomes true. A fact nobody deletes stays true forever and can be reused by later steps.\n\n- No quantifiers, conditional effects, or numeric fluents. Express \"only one at a time\" with a fact such as `(idle ?t)` that the action requires and deletes.\n\nTypes:\n[\n  {\n    \"name\": \"project-requirements\",\n    \"description\": \"Derived information about storeys, rooms, target areas, garage, openings, orientation and client priorities extracted from source documents.\",\n    \"sourceLines\": [\n      4\n    ]\n  },\n  {\n    \"name\": \"planning-constraints\",\n    \"description\": \"Regulatory and site constraints such as setbacks, height limits, site coverage, roof rules, access and parking requirements.\",\n    \"sourceLines\": [\n      5\n    ]\n  },\n  {\n    \"name\": \"building-program\",\n    \"description\": \"Space programme defining target/minimum areas, adjacency relationships, circulation preferences and orientation guidance.\",\n    \"sourceLines\": [\n      7\n    ]\n  },\n  {\n    \"name\": \"floor-plan\",\n    \"description\": \"Geometric layout of spaces that satisfies the building program, constraints and optimisation criteria.\",\n    \"sourceLines\": [\n      8,\n      9\n    ]\n  },\n  {\n    \"name\": \"bim-element\",\n    \"description\": \"Building information model components such as walls, slabs, roof, doors and windows created from a validated floor plan.\",\n    \"sourceLines\": [\n      10\n    ]\n  },\n  {\n    \"name\": \"ifc-model\",\n    \"description\": \"Canonical IFC representation of the BIM, mutable by export-or-update actions.\",\n    \"sourceLines\": [\n      11\n    ]\n  },\n  {\n    \"name\": \"visualisation-assets\",\n    \"description\": \"Non‑authoritative presentation assets (materials, furniture, vegetation, lighting) added for visualisation.\",\n    \"sourceLines\": [\n      13\n    ]\n  },\n  {\n    \"name\": \"render-view\",\n    \"description\": \"Generated image views (street, garden, interior, axonometric, plan) of the visualised model.\",\n    \"sourceLines\": [\n      14\n    ]\n  },\n  {\n    \"name\": \"human-reviewer\",\n    \"description\": \"The designer or commercial user who selects, rejects or iterates on generated variants.\",\n    \"sourceLines\": [\n      15\n    ]\n  },\n  {\n    \"name\": \"system-agent\",\n    \"description\": \"Automated agents executing MoltNet tasks such as extraction, solving, validation and rendering.\",\n    \"sourceLines\": [\n      3,\n      4,\n      5,\n      6,\n      7,\n      8,\n      9,\n      10,\n      11,\n      12,\n      13,\n      14,\n      15\n    ]\n  }\n]\n\nPredicates:\n[\n  {\n    \"name\": \"free\",\n    \"reading\": {\n      \"true\": \"{?x} is free\",\n      \"false\": \"{?x} is not free\"\n    },\n    \"parameters\": [\n      {\n        \"name\": \"?x\",\n        \"type\": \"project-requirements\"\n      }\n    ],\n    \"description\": \"project requirement ?x is free (available for allocation)\",\n    \"sourceLines\": []\n  },\n  {\n    \"name\": \"in-use\",\n    \"reading\": {\n      \"true\": \"{?x} is in use\",\n      \"false\": \"{?x} is not in use\"\n    },\n    \"parameters\": [\n      {\n        \"name\": \"?x\",\n        \"type\": \"planning-constraints\"\n      }\n    ],\n    \"description\": \"planning constraint ?x is currently in use\",\n    \"sourceLines\": []\n  },\n  {\n    \"name\": \"used-up\",\n    \"reading\": {\n      \"true\": \"{?x} is used up\",\n      \"false\": \"{?x} is not used up\"\n    },\n    \"parameters\": [\n      {\n        \"name\": \"?x\",\n        \"type\": \"building-program\"\n      }\n    ],\n    \"description\": \"building program element ?x has been used up\",\n    \"sourceLines\": []\n  }\n]\n\nThe example below only shows the JSON shape, using an unrelated library domain; do not reuse its names. Put in result {\"actions\":[{\"name\":\"borrow\",\"reading\":\"{?m} borrows {?b}\",\"parameters\":[{\"name\":\"?m\",\"type\":\"member\",\"label\":\"the member\"},{\"name\":\"?b\",\"type\":\"book\",\"label\":\"the book\"}],\"preconditions\":[{\"predicate\":\"on-shelf\",\"args\":[\"?b\"],\"negated\":false},{\"predicate\":\"suspended\",\"args\":[\"?m\"],\"negated\":true}],\"addEffects\":[{\"predicate\":\"borrowed-by\",\"args\":[\"?b\",\"?m\"]}],\"deleteEffects\":[{\"predicate\":\"on-shelf\",\"args\":[\"?b\"]}],\"source\":\"A member who is not suspended may borrow a book from the shelf.\"}]}.\n\n<untrusted-process-description nonce=\"e65cea249339\">\n# Proposed Workflow\n\nGoal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n\n## MoltNet tasks\n\n- `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n- `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance. Require human confirmation initially.\n- `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n- `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n- `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n- `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n- `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n- `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n- `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n- `render`: generate street, garden, interior, axonometric and plan views.\n- `human-review`: let the designer/commercial user select or reject variants and iterate.\n\n## POC phases\n\n### POC 0 — Reconstruction\nReconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n\n### POC 1 — Parametric modification\nChange an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n\n### POC 2 — Generation\nGenerate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n\n## Initial benchmark caveat\n\nThe handwritten starting brief and supplied plan are different design revisions. The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-process-description nonce=\"e65cea249339\">\n\nYour previous result for this stage was rejected by deterministic checks. Fix every listed problem and resubmit the whole result.\n\n<untrusted-previous-result nonce=\"315e9cc592e9\">\n{\n  \"actions\": [\n    {\n      \"name\": \"extract-project-requirements\",\n      \"source\": \"extract-project-requirements: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\",\n      \"reading\": \"{?sys} extracts project requirements\",\n      \"addEffects\": [\n        {\n          \"args\": [\n            \"?pr\"\n          ],\n          \"predicate\": \"free\"\n        }\n      ],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?pr\",\n          \"type\": \"project-requirements\",\n          \"label\": \"the project requirement set\"\n        }\n      ],\n      \"sourceLines\": [\n        4\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": []\n    },\n    {\n      \"name\": \"extract-planning-constraints\",\n      \"source\": \"extract-planning-constraints: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.\",\n      \"reading\": \"{?sys} extracts planning constraints\",\n      \"addEffects\": [\n        {\n          \"args\": [\n            \"?pc\"\n          ],\n          \"predicate\": \"in-use\"\n        }\n      ],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?pc\",\n          \"type\": \"planning-constraints\",\n          \"label\": \"the planning constraint set\"\n        }\n      ],\n      \"sourceLines\": [\n        5\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": []\n    },\n    {\n      \"name\": \"derive-building-program\",\n      \"source\": \"derive-building-program: create the space programme defining target/minimum areas, adjacency graph, circulation and orientation guidance.\",\n      \"reading\": \"{?sys} derives building program\",\n      \"addEffects\": [\n        {\n          \"args\": [\n            \"?bp\"\n          ],\n          \"predicate\": \"used-up\"\n        }\n      ],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?bp\",\n          \"type\": \"building-program\",\n          \"label\": \"the building program\"\n        }\n      ],\n      \"sourceLines\": [\n        7\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": []\n    },\n    {\n      \"name\": \"solve-floor-plan\",\n      \"source\": \"solve-floor-plan: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\",\n      \"reading\": \"{?sys} solves floor plan\",\n      \"addEffects\": [\n        {\n          \"args\": [\n            \"?fp\"\n          ],\n          \"predicate\": \"free\"\n        }\n      ],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?fp\",\n          \"type\": \"floor-plan\",\n          \"label\": \"the floor plan\"\n        }\n      ],\n      \"sourceLines\": [\n        8\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": []\n    },\n    {\n      \"name\": \"validate-plan\",\n      \"source\": \"validate-plan: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\",\n      \"reading\": \"{?sys} validates plan\",\n      \"addEffects\": [],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?fp\",\n          \"type\": \"floor-plan\",\n          \"label\": \"the floor plan\"\n        }\n      ],\n      \"sourceLines\": [\n        9\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": [\n        {\n          \"args\": [\n            \"?fp\"\n          ],\n          \"negated\": false,\n          \"predicate\": \"free\"\n        }\n      ]\n    },\n    {\n      \"name\": \"derive-building-elements\",\n      \"source\": \"derive-building-elements: create walls, slabs, roof, openings, doors and windows from a validated floor plan.\",\n      \"reading\": \"{?sys} derives building elements\",\n      \"addEffects\": [\n        {\n          \"args\": [\n            \"?be\"\n          ],\n          \"predicate\": \"in-use\"\n        }\n      ],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?be\",\n          \"type\": \"bim-element\",\n          \"label\": \"the BIM element\"\n        }\n      ],\n      \"sourceLines\": [\n        10\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": []\n    },\n    {\n      \"name\": \"export-or-update-ifc\",\n      \"source\": \"export-or-update-ifc: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\",\n      \"reading\": \"{?sys} exports or updates IFC\",\n      \"addEffects\": [\n        {\n          \"args\": [\n            \"?ifc\"\n          ],\n          \"predicate\": \"free\"\n        }\n      ],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?ifc\",\n          \"type\": \"ifc-model\",\n          \"label\": \"the IFC model\"\n        }\n      ],\n      \"sourceLines\": [\n        11\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": []\n    },\n    {\n      \"name\": \"validate-ifc\",\n      \"source\": \"validate-ifc: re-open the IFC and run semantic, IDS and geometric validation.\",\n      \"reading\": \"{?sys} validates IFC\",\n      \"addEffects\": [],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?ifc\",\n          \"type\": \"ifc-model\",\n          \"label\": \"the IFC model\"\n        }\n      ],\n      \"sourceLines\": [\n        12\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": [\n        {\n          \"args\": [\n            \"?ifc\"\n          ],\n          \"negated\": false,\n          \"predicate\": \"free\"\n        }\n      ]\n    },\n    {\n      \"name\": \"stage-visualisation\",\n      \"source\": \"stage-visualisation: add non‑authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\",\n      \"reading\": \"{?sys} stages visualisation assets\",\n      \"addEffects\": [\n        {\n          \"args\": [\n            \"?va\"\n          ],\n          \"predicate\": \"free\"\n        }\n      ],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?va\",\n          \"type\": \"visualisation-assets\",\n          \"label\": \"the visualisation assets\"\n        }\n      ],\n      \"sourceLines\": [\n        13\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": []\n    },\n    {\n      \"name\": \"render\",\n      \"source\": \"render: generate street, garden, interior, axonometric and plan views.\",\n      \"reading\": \"{?sys} renders view\",\n      \"addEffects\": [\n        {\n          \"args\": [\n            \"?rv\"\n          ],\n          \"predicate\": \"free\"\n        }\n      ],\n      \"parameters\": [\n        {\n          \"name\": \"?sys\",\n          \"type\": \"system-agent\",\n          \"label\": \"the system agent\"\n        },\n        {\n          \"name\": \"?rv\",\n          \"type\": \"render-view\",\n          \"label\": \"the render view\"\n        }\n      ],\n      \"sourceLines\": [\n        14\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": []\n    },\n    {\n      \"name\": \"human-review\",\n      \"source\": \"human-review: let the designer/commercial user select or reject variants and iterate.\",\n      \"reading\": \"{?hr} reviews generated output\",\n      \"addEffects\": [],\n      \"parameters\": [\n        {\n          \"name\": \"?hr\",\n          \"type\": \"human-reviewer\",\n          \"label\": \"the human reviewer\"\n        }\n      ],\n      \"sourceLines\": [\n        15\n      ],\n      \"deleteEffects\": [],\n      \"preconditions\": []\n    }\n  ]\n}\n</untrusted-previous-result nonce=\"315e9cc592e9\">\n\nProblems found:\n- [error] actions/extract-project-requirements/reading: include participant {?pr}\n- [error] actions/extract-planning-constraints/reading: include participant {?pc}\n- [error] actions/derive-building-program/reading: include participant {?bp}\n- [error] actions/solve-floor-plan/reading: include participant {?fp}\n- [error] actions/solve-floor-plan/add/0: free argument 1 expects project-requirements, got ?fp of type floor-plan\n- [error] actions/validate-plan/reading: include participant {?fp}\n- [error] actions/validate-plan/pre/0: free argument 1 expects project-requirements, got ?fp of type floor-plan\n- [error] actions/derive-building-elements/reading: include participant {?be}\n- [error] actions/derive-building-elements/add/0: in-use argument 1 expects planning-constraints, got ?be of type bim-element\n- [error] actions/export-or-update-ifc/reading: include participant {?ifc}\n- [error] actions/export-or-update-ifc/add/0: free argument 1 expects project-requirements, got ?ifc of type ifc-model\n- [error] actions/validate-ifc/reading: include participant {?ifc}\n- [error] actions/validate-ifc/pre/0: free argument 1 expects project-requirements, got ?ifc of type ifc-model\n- [error] actions/stage-visualisation/reading: include participant {?va}\n- [error] actions/stage-visualisation/add/0: free argument 1 expects project-requirements, got ?va of type visualisation-assets\n- [error] actions/render/reading: include participant {?rv}\n- [error] actions/render/add/0: free argument 1 expects project-requirements, got ?rv of type render-view\n\nSource evidence: for every type, predicate and action, include sourceLines with the numbered description lines that support it. Leave sourceLines empty when the description does not provide evidence; never invent a citation.\n\n<untrusted-numbered-description nonce=\"60d92a668eda\">\n1: # Proposed Workflow\n2: Goal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n3: ## MoltNet tasks\n4: - `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n5: - `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.\n6: Require human confirmation initially.\n7: - `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n8: - `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n9: - `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n10: - `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n11: - `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n12: - `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n13: - `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n14: - `render`: generate street, garden, interior, axonometric and plan views.\n15: - `human-review`: let the designer/commercial user select or reject variants and iterate.\n16: ## POC phases\n17: ### POC 0 — Reconstruction\n18: Reconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n19: ### POC 1 — Parametric modification\n20: Change an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n21: ### POC 2 — Generation\n22: Generate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n23: ## Initial benchmark caveat\n24: The handwritten starting brief and supplied plan are different design revisions.\n25: The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-numbered-description nonce=\"60d92a668eda\">",
+      "result": {
+        "actions": [
+          {
+            "name": "extract-project-requirements",
+            "source": "extract-project-requirements: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.",
+            "reading": "{?sys} extracts {?pr}",
+            "addEffects": [
+              {
+                "args": [
+                  "?pr"
+                ],
+                "predicate": "free"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?pr",
+                "type": "project-requirements",
+                "label": "the project requirement set"
+              }
+            ],
+            "sourceLines": [
+              4
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "extract-planning-constraints",
+            "source": "extract-planning-constraints: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.",
+            "reading": "{?sys} extracts {?pc}",
+            "addEffects": [
+              {
+                "args": [
+                  "?pc"
+                ],
+                "predicate": "in-use"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?pc",
+                "type": "planning-constraints",
+                "label": "the planning constraint set"
+              }
+            ],
+            "sourceLines": [
+              5
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "derive-building-program",
+            "source": "derive-building-program: create the space programme, target/minimum areas, adjacency graph, circulation and orientation guidance.",
+            "reading": "{?sys} derives {?bp}",
+            "addEffects": [
+              {
+                "args": [
+                  "?bp"
+                ],
+                "predicate": "used-up"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?bp",
+                "type": "building-program",
+                "label": "the building program"
+              }
+            ],
+            "sourceLines": [
+              7
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "solve-floor-plan",
+            "source": "solve-floor-plan: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.",
+            "reading": "{?sys} solves {?fp}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?fp",
+                "type": "floor-plan",
+                "label": "the floor plan"
+              }
+            ],
+            "sourceLines": [
+              8
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "validate-plan",
+            "source": "validate-plan: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.",
+            "reading": "{?sys} validates {?fp}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?fp",
+                "type": "floor-plan",
+                "label": "the floor plan"
+              }
+            ],
+            "sourceLines": [
+              9
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "derive-building-elements",
+            "source": "derive-building-elements: create walls, slabs, roof, openings, doors and windows from a validated floor plan.",
+            "reading": "{?sys} derives {?be}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?be",
+                "type": "bim-element",
+                "label": "the BIM element"
+              }
+            ],
+            "sourceLines": [
+              10
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "export-or-update-ifc",
+            "source": "export-or-update-ifc: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.",
+            "reading": "{?sys} exports or updates {?ifc}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?ifc",
+                "type": "ifc-model",
+                "label": "the IFC model"
+              }
+            ],
+            "sourceLines": [
+              11
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "validate-ifc",
+            "source": "validate-ifc: re-open the IFC and run semantic, IDS and geometric validation.",
+            "reading": "{?sys} validates {?ifc}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?ifc",
+                "type": "ifc-model",
+                "label": "the IFC model"
+              }
+            ],
+            "sourceLines": [
+              12
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "stage-visualisation",
+            "source": "stage-visualisation: add non‑authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.",
+            "reading": "{?sys} stages {?va}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?va",
+                "type": "visualisation-assets",
+                "label": "the visualisation assets"
+              }
+            ],
+            "sourceLines": [
+              13
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "render",
+            "source": "render: generate street, garden, interior, axonometric and plan views.",
+            "reading": "{?sys} renders {?rv}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?rv",
+                "type": "render-view",
+                "label": "the render view"
+              }
+            ],
+            "sourceLines": [
+              14
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "human-review",
+            "source": "human-review: let the designer/commercial user select or reject variants and iterate.",
+            "reading": "{?hr} reviews generated output",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?hr",
+                "type": "human-reviewer",
+                "label": "the human reviewer"
+              }
+            ],
+            "sourceLines": [
+              15
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          }
+        ]
+      },
+      "issues": [
+        {
+          "severity": "warning",
+          "path": "actions/extract-project-requirements",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/extract-project-requirements",
+          "message": "?pr - project-requirements appears in no precondition, so the planner may pick any project-requirements",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/extract-planning-constraints",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/extract-planning-constraints",
+          "message": "?pc - planning-constraints appears in no precondition, so the planner may pick any planning-constraints",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-program",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-program",
+          "message": "?bp - building-program appears in no precondition, so the planner may pick any building-program",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/solve-floor-plan",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/solve-floor-plan",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/solve-floor-plan",
+          "message": "?fp - floor-plan appears in no precondition, so the planner may pick any floor-plan",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-plan",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-plan",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-plan",
+          "message": "?fp - floor-plan appears in no precondition, so the planner may pick any floor-plan",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-elements",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-elements",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-elements",
+          "message": "?be - bim-element appears in no precondition, so the planner may pick any bim-element",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/export-or-update-ifc",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/export-or-update-ifc",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/export-or-update-ifc",
+          "message": "?ifc - ifc-model appears in no precondition, so the planner may pick any ifc-model",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-ifc",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-ifc",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-ifc",
+          "message": "?ifc - ifc-model appears in no precondition, so the planner may pick any ifc-model",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/stage-visualisation",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/stage-visualisation",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/stage-visualisation",
+          "message": "?va - visualisation-assets appears in no precondition, so the planner may pick any visualisation-assets",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/render",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/render",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/render",
+          "message": "?rv - render-view appears in no precondition, so the planner may pick any render-view",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/human-review",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/human-review",
+          "message": "?hr - human-reviewer appears in no precondition, so the planner may pick any human-reviewer",
+          "code": "unlinked-parameters"
+        }
+      ],
+      "durationMs": 19949
+    },
+    {
+      "stage": "refine",
+      "attempt": 1,
+      "source": "task",
+      "taskId": "13e4481f-6a0a-49ac-87cd-f7effe6b8edb",
+      "brief": "Preserve readable action readings and participant labels; update their parameter placeholders when signatures change. Keep action readings neutral: do not describe a repair that is absent from the formal effects.\n\nStage 4: refine the draft actions. Add preconditions and effects the description implies but the draft misses: ownership checks, resources released when work ends, facts that must stop being true, and single-use objects. Keep every action unless two are equivalent. Use only the predicates listed below: if a fix would need a new predicate, leave the action unchanged and name the missing fact in `changes`. Return the complete action list, and one line per change in `changes` citing the description or the finding it fixes.\n\nModeling rules (classical PDDL with typing and negative preconditions):\n\n- Names are lowercase and hyphenated: `parcel-label`, `truck-free`. Parameters start with `?`: `?t`, `?p`.\n\n- Do not define the root type `object`; omit `parent` for top-level types.\n\n- Actions cannot create objects. Every object an action uses must already exist in the problem. To model something a step produces (a receipt, a parcel label), use a pool of objects and a fact such as `(unused ?x)` that the producing action requires and deletes.\n\n- For every action, list what must stop being true (delete effects), not only what becomes true. A fact nobody deletes stays true forever and can be reused by later steps.\n\n- No quantifiers, conditional effects, or numeric fluents. Express \"only one at a time\" with a fact such as `(idle ?t)` that the action requires and deletes.\n\nTypes:\n[\n  {\n    \"name\": \"project-requirements\",\n    \"description\": \"Derived information about storeys, rooms, target areas, garage, openings, orientation and client priorities extracted from source documents.\",\n    \"sourceLines\": [\n      4\n    ]\n  },\n  {\n    \"name\": \"planning-constraints\",\n    \"description\": \"Regulatory and site constraints such as setbacks, height limits, site coverage, roof rules, access and parking requirements.\",\n    \"sourceLines\": [\n      5\n    ]\n  },\n  {\n    \"name\": \"building-program\",\n    \"description\": \"Space programme defining target/minimum areas, adjacency relationships, circulation preferences and orientation guidance.\",\n    \"sourceLines\": [\n      7\n    ]\n  },\n  {\n    \"name\": \"floor-plan\",\n    \"description\": \"Geometric layout of spaces that satisfies the building program, constraints and optimisation criteria.\",\n    \"sourceLines\": [\n      8,\n      9\n    ]\n  },\n  {\n    \"name\": \"bim-element\",\n    \"description\": \"Building information model components such as walls, slabs, roof, doors and windows created from a validated floor plan.\",\n    \"sourceLines\": [\n      10\n    ]\n  },\n  {\n    \"name\": \"ifc-model\",\n    \"description\": \"Canonical IFC representation of the BIM, mutable by export-or-update actions.\",\n    \"sourceLines\": [\n      11\n    ]\n  },\n  {\n    \"name\": \"visualisation-assets\",\n    \"description\": \"Non‑authoritative presentation assets (materials, furniture, vegetation, lighting) added for visualisation.\",\n    \"sourceLines\": [\n      13\n    ]\n  },\n  {\n    \"name\": \"render-view\",\n    \"description\": \"Generated image views (street, garden, interior, axonometric, plan) of the visualised model.\",\n    \"sourceLines\": [\n      14\n    ]\n  },\n  {\n    \"name\": \"human-reviewer\",\n    \"description\": \"The designer or commercial user who selects, rejects or iterates on generated variants.\",\n    \"sourceLines\": [\n      15\n    ]\n  },\n  {\n    \"name\": \"system-agent\",\n    \"description\": \"Automated agents executing MoltNet tasks such as extraction, solving, validation and rendering.\",\n    \"sourceLines\": [\n      3,\n      4,\n      5,\n      6,\n      7,\n      8,\n      9,\n      10,\n      11,\n      12,\n      13,\n      14,\n      15\n    ]\n  }\n]\n\nPredicates:\n[\n  {\n    \"name\": \"free\",\n    \"reading\": {\n      \"true\": \"{?x} is free\",\n      \"false\": \"{?x} is not free\"\n    },\n    \"parameters\": [\n      {\n        \"name\": \"?x\",\n        \"type\": \"project-requirements\"\n      }\n    ],\n    \"description\": \"project requirement ?x is free (available for allocation)\",\n    \"sourceLines\": []\n  },\n  {\n    \"name\": \"in-use\",\n    \"reading\": {\n      \"true\": \"{?x} is in use\",\n      \"false\": \"{?x} is not in use\"\n    },\n    \"parameters\": [\n      {\n        \"name\": \"?x\",\n        \"type\": \"planning-constraints\"\n      }\n    ],\n    \"description\": \"planning constraint ?x is currently in use\",\n    \"sourceLines\": []\n  },\n  {\n    \"name\": \"used-up\",\n    \"reading\": {\n      \"true\": \"{?x} is used up\",\n      \"false\": \"{?x} is not used up\"\n    },\n    \"parameters\": [\n      {\n        \"name\": \"?x\",\n        \"type\": \"building-program\"\n      }\n    ],\n    \"description\": \"building program element ?x has been used up\",\n    \"sourceLines\": []\n  }\n]\n\nDraft actions:\n[\n  {\n    \"name\": \"extract-project-requirements\",\n    \"source\": \"extract-project-requirements: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\",\n    \"reading\": \"{?sys} extracts {?pr}\",\n    \"addEffects\": [\n      {\n        \"args\": [\n          \"?pr\"\n        ],\n        \"predicate\": \"free\"\n      }\n    ],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?pr\",\n        \"type\": \"project-requirements\",\n        \"label\": \"the project requirement set\"\n      }\n    ],\n    \"sourceLines\": [\n      4\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"extract-planning-constraints\",\n    \"source\": \"extract-planning-constraints: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.\",\n    \"reading\": \"{?sys} extracts {?pc}\",\n    \"addEffects\": [\n      {\n        \"args\": [\n          \"?pc\"\n        ],\n        \"predicate\": \"in-use\"\n      }\n    ],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?pc\",\n        \"type\": \"planning-constraints\",\n        \"label\": \"the planning constraint set\"\n      }\n    ],\n    \"sourceLines\": [\n      5\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"derive-building-program\",\n    \"source\": \"derive-building-program: create the space programme, target/minimum areas, adjacency graph, circulation and orientation guidance.\",\n    \"reading\": \"{?sys} derives {?bp}\",\n    \"addEffects\": [\n      {\n        \"args\": [\n          \"?bp\"\n        ],\n        \"predicate\": \"used-up\"\n      }\n    ],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?bp\",\n        \"type\": \"building-program\",\n        \"label\": \"the building program\"\n      }\n    ],\n    \"sourceLines\": [\n      7\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"solve-floor-plan\",\n    \"source\": \"solve-floor-plan: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\",\n    \"reading\": \"{?sys} solves {?fp}\",\n    \"addEffects\": [],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?fp\",\n        \"type\": \"floor-plan\",\n        \"label\": \"the floor plan\"\n      }\n    ],\n    \"sourceLines\": [\n      8\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"validate-plan\",\n    \"source\": \"validate-plan: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\",\n    \"reading\": \"{?sys} validates {?fp}\",\n    \"addEffects\": [],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?fp\",\n        \"type\": \"floor-plan\",\n        \"label\": \"the floor plan\"\n      }\n    ],\n    \"sourceLines\": [\n      9\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"derive-building-elements\",\n    \"source\": \"derive-building-elements: create walls, slabs, roof, openings, doors and windows from a validated floor plan.\",\n    \"reading\": \"{?sys} derives {?be}\",\n    \"addEffects\": [],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?be\",\n        \"type\": \"bim-element\",\n        \"label\": \"the BIM element\"\n      }\n    ],\n    \"sourceLines\": [\n      10\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"export-or-update-ifc\",\n    \"source\": \"export-or-update-ifc: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\",\n    \"reading\": \"{?sys} exports or updates {?ifc}\",\n    \"addEffects\": [],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?ifc\",\n        \"type\": \"ifc-model\",\n        \"label\": \"the IFC model\"\n      }\n    ],\n    \"sourceLines\": [\n      11\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"validate-ifc\",\n    \"source\": \"validate-ifc: re-open the IFC and run semantic, IDS and geometric validation.\",\n    \"reading\": \"{?sys} validates {?ifc}\",\n    \"addEffects\": [],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?ifc\",\n        \"type\": \"ifc-model\",\n        \"label\": \"the IFC model\"\n      }\n    ],\n    \"sourceLines\": [\n      12\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"stage-visualisation\",\n    \"source\": \"stage-visualisation: add non‑authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\",\n    \"reading\": \"{?sys} stages {?va}\",\n    \"addEffects\": [],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?va\",\n        \"type\": \"visualisation-assets\",\n        \"label\": \"the visualisation assets\"\n      }\n    ],\n    \"sourceLines\": [\n      13\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"render\",\n    \"source\": \"render: generate street, garden, interior, axonometric and plan views.\",\n    \"reading\": \"{?sys} renders {?rv}\",\n    \"addEffects\": [],\n    \"parameters\": [\n      {\n        \"name\": \"?sys\",\n        \"type\": \"system-agent\",\n        \"label\": \"the system agent\"\n      },\n      {\n        \"name\": \"?rv\",\n        \"type\": \"render-view\",\n        \"label\": \"the render view\"\n      }\n    ],\n    \"sourceLines\": [\n      14\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  },\n  {\n    \"name\": \"human-review\",\n    \"source\": \"human-review: let the designer/commercial user select or reject variants and iterate.\",\n    \"reading\": \"{?hr} reviews generated output\",\n    \"addEffects\": [],\n    \"parameters\": [\n      {\n        \"name\": \"?hr\",\n        \"type\": \"human-reviewer\",\n        \"label\": \"the human reviewer\"\n      }\n    ],\n    \"sourceLines\": [\n      15\n    ],\n    \"deleteEffects\": [],\n    \"preconditions\": []\n  }\n]\n\nDeterministic checks on the draft found the following. Errors must be fixed. Warnings are hints: apply one only when the description supports it, and say so in changes.\n- [warning] actions/solve-floor-plan: action has no effects\n- [warning] actions/validate-plan: action has no effects\n- [warning] actions/derive-building-elements: action has no effects\n- [warning] actions/export-or-update-ifc: action has no effects\n- [warning] actions/validate-ifc: action has no effects\n- [warning] actions/stage-visualisation: action has no effects\n- [warning] actions/render: action has no effects\n- [warning] actions/human-review: action has no effects\n\n<untrusted-process-description nonce=\"e65cea249339\">\n# Proposed Workflow\n\nGoal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n\n## MoltNet tasks\n\n- `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n- `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance. Require human confirmation initially.\n- `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n- `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n- `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n- `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n- `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n- `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n- `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n- `render`: generate street, garden, interior, axonometric and plan views.\n- `human-review`: let the designer/commercial user select or reject variants and iterate.\n\n## POC phases\n\n### POC 0 — Reconstruction\nReconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n\n### POC 1 — Parametric modification\nChange an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n\n### POC 2 — Generation\nGenerate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n\n## Initial benchmark caveat\n\nThe handwritten starting brief and supplied plan are different design revisions. The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-process-description nonce=\"e65cea249339\">\n\nSource evidence: for every type, predicate and action, include sourceLines with the numbered description lines that support it. Leave sourceLines empty when the description does not provide evidence; never invent a citation.\n\n<untrusted-numbered-description nonce=\"60d92a668eda\">\n1: # Proposed Workflow\n2: Goal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n3: ## MoltNet tasks\n4: - `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n5: - `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.\n6: Require human confirmation initially.\n7: - `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n8: - `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n9: - `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n10: - `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n11: - `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n12: - `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n13: - `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n14: - `render`: generate street, garden, interior, axonometric and plan views.\n15: - `human-review`: let the designer/commercial user select or reject variants and iterate.\n16: ## POC phases\n17: ### POC 0 — Reconstruction\n18: Reconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n19: ### POC 1 — Parametric modification\n20: Change an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n21: ### POC 2 — Generation\n22: Generate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n23: ## Initial benchmark caveat\n24: The handwritten starting brief and supplied plan are different design revisions.\n25: The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-numbered-description nonce=\"60d92a668eda\">",
+      "result": {
+        "actions": [
+          {
+            "name": "extract-project-requirements",
+            "source": "extract-project-requirements: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.",
+            "reading": "{?sys} extracts {?pr}",
+            "addEffects": [
+              {
+                "args": [
+                  "?pr"
+                ],
+                "predicate": "free"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?pr",
+                "type": "project-requirements",
+                "label": "the project requirement set"
+              }
+            ],
+            "deleteEffects": [
+              {
+                "args": [
+                  "?pr"
+                ],
+                "predicate": "free"
+              }
+            ],
+            "preconditions": [
+              {
+                "args": [
+                  "?pr"
+                ],
+                "negated": false,
+                "predicate": "free"
+              }
+            ]
+          },
+          {
+            "name": "extract-planning-constraints",
+            "source": "extract-planning-constraints: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.",
+            "reading": "{?sys} extracts {?pc}",
+            "addEffects": [
+              {
+                "args": [
+                  "?pc"
+                ],
+                "predicate": "in-use"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?pc",
+                "type": "planning-constraints",
+                "label": "the planning constraint set"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "derive-building-program",
+            "source": "derive-building-program: create the space programme, target/minimum areas, adjacency graph, circulation and orientation guidance.",
+            "reading": "{?sys} derives {?bp}",
+            "addEffects": [
+              {
+                "args": [
+                  "?bp"
+                ],
+                "predicate": "used-up"
+              }
+            ],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?bp",
+                "type": "building-program",
+                "label": "the building program"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "solve-floor-plan",
+            "source": "solve-floor-plan: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.",
+            "reading": "{?sys} solves {?fp}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?fp",
+                "type": "floor-plan",
+                "label": "the floor plan"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "validate-plan",
+            "source": "validate-plan: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.",
+            "reading": "{?sys} validates {?fp}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?fp",
+                "type": "floor-plan",
+                "label": "the floor plan"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "derive-building-elements",
+            "source": "derive-building-elements: create walls, slabs, roof, openings, doors and windows from a validated floor plan.",
+            "reading": "{?sys} derives {?be}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?be",
+                "type": "bim-element",
+                "label": "the BIM element"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "export-or-update-ifc",
+            "source": "export-or-update-ifc: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.",
+            "reading": "{?sys} exports or updates {?ifc}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?ifc",
+                "type": "ifc-model",
+                "label": "the IFC model"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "validate-ifc",
+            "source": "validate-ifc: re-open the IFC and run semantic, IDS and geometric validation.",
+            "reading": "{?sys} validates {?ifc}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?ifc",
+                "type": "ifc-model",
+                "label": "the IFC model"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "stage-visualisation",
+            "source": "stage-visualisation: add non‑authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.",
+            "reading": "{?sys} stages {?va}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?va",
+                "type": "visualisation-assets",
+                "label": "the visualisation assets"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "render",
+            "source": "render: generate street, garden, interior, axonometric and plan views.",
+            "reading": "{?sys} renders {?rv}",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?sys",
+                "type": "system-agent",
+                "label": "the system agent"
+              },
+              {
+                "name": "?rv",
+                "type": "render-view",
+                "label": "the render view"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          },
+          {
+            "name": "human-review",
+            "source": "human-review: let the designer/commercial user select or reject variants and iterate.",
+            "reading": "{?hr} reviews generated output",
+            "addEffects": [],
+            "parameters": [
+              {
+                "name": "?hr",
+                "type": "human-reviewer",
+                "label": "the human reviewer"
+              }
+            ],
+            "deleteEffects": [],
+            "preconditions": []
+          }
+        ],
+        "changes": [
+          "extract-project-requirements: added precondition (free ?pr) and delete effect to model consumption of a requirement object.",
+          "extract-planning-constraints: added addEffect (in-use ?pc) per description.",
+          "derive-building-program: retained addEffect (used-up ?bp) as single‑use indicator.",
+          "solve-floor-plan: no explicit effects in description; kept empty.",
+          "validate-plan: no explicit effects in description; kept empty.",
+          "derive-building-elements: no explicit effects in description; kept empty.",
+          "export-or-update-ifc: no explicit effects in description; kept empty.",
+          "validate-ifc: no explicit effects in description; kept empty.",
+          "stage-visualisation: no explicit effects in description; kept empty.",
+          "render: no explicit effects in description; kept empty.",
+          "human-review: no explicit effects in description; kept empty."
+        ]
+      },
+      "issues": [
+        {
+          "severity": "warning",
+          "path": "actions/extract-project-requirements",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/extract-planning-constraints",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/extract-planning-constraints",
+          "message": "?pc - planning-constraints appears in no precondition, so the planner may pick any planning-constraints",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-program",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-program",
+          "message": "?bp - building-program appears in no precondition, so the planner may pick any building-program",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/solve-floor-plan",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/solve-floor-plan",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/solve-floor-plan",
+          "message": "?fp - floor-plan appears in no precondition, so the planner may pick any floor-plan",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-plan",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-plan",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-plan",
+          "message": "?fp - floor-plan appears in no precondition, so the planner may pick any floor-plan",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-elements",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-elements",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/derive-building-elements",
+          "message": "?be - bim-element appears in no precondition, so the planner may pick any bim-element",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/export-or-update-ifc",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/export-or-update-ifc",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/export-or-update-ifc",
+          "message": "?ifc - ifc-model appears in no precondition, so the planner may pick any ifc-model",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-ifc",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-ifc",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/validate-ifc",
+          "message": "?ifc - ifc-model appears in no precondition, so the planner may pick any ifc-model",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/stage-visualisation",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/stage-visualisation",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/stage-visualisation",
+          "message": "?va - visualisation-assets appears in no precondition, so the planner may pick any visualisation-assets",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/render",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/render",
+          "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/render",
+          "message": "?rv - render-view appears in no precondition, so the planner may pick any render-view",
+          "code": "unlinked-parameters"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/human-review",
+          "message": "action has no effects"
+        },
+        {
+          "severity": "warning",
+          "path": "actions/human-review",
+          "message": "?hr - human-reviewer appears in no precondition, so the planner may pick any human-reviewer",
+          "code": "unlinked-parameters"
+        }
+      ],
+      "durationMs": 26267
+    },
+    {
+      "stage": "problem",
+      "attempt": 1,
+      "source": "task",
+      "taskId": "0ec755e0-94b6-4ced-8180-c41955295cd5",
+      "brief": "Stage 5: write the planning problem for this domain: objects, initial facts, and goal.\n\nDeclare at least one object for every type an action takes as a parameter (system-agent, project-requirements, planning-constraints, building-program, floor-plan, bim-element, ifc-model, visualisation-assets, render-view, human-reviewer), even when the situation does not name it: actions cannot create objects. For things the process produces, declare a small pool (for example label-1, label-2) and mark each as available in the initial facts if the domain has a fact for that. List only facts that are true at the start; anything not listed is false.\n\nDomain (generated from earlier stages):\n(define (domain housing-historical)\n  (:requirements :strips :typing)\n  (:types\n    project-requirements planning-constraints building-program floor-plan bim-element ifc-model visualisation-assets render-view human-reviewer system-agent - object\n  )\n  (:predicates\n    (free ?x - project-requirements)\n    (in-use ?x - planning-constraints)\n    (used-up ?x - building-program)\n  )\n  (:action extract-project-requirements\n    :parameters (?sys - system-agent ?pr - project-requirements)\n    :precondition (free ?pr)\n    :effect (and (free ?pr) (not (free ?pr)))\n  )\n  (:action extract-planning-constraints\n    :parameters (?sys - system-agent ?pc - planning-constraints)\n    :precondition (and)\n    :effect (in-use ?pc)\n  )\n  (:action derive-building-program\n    :parameters (?sys - system-agent ?bp - building-program)\n    :precondition (and)\n    :effect (used-up ?bp)\n  )\n  (:action solve-floor-plan\n    :parameters (?sys - system-agent ?fp - floor-plan)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action validate-plan\n    :parameters (?sys - system-agent ?fp - floor-plan)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action derive-building-elements\n    :parameters (?sys - system-agent ?be - bim-element)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action export-or-update-ifc\n    :parameters (?sys - system-agent ?ifc - ifc-model)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action validate-ifc\n    :parameters (?sys - system-agent ?ifc - ifc-model)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action stage-visualisation\n    :parameters (?sys - system-agent ?va - visualisation-assets)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action render\n    :parameters (?sys - system-agent ?rv - render-view)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action human-review\n    :parameters (?hr - human-reviewer)\n    :precondition (and)\n    :effect (and)\n  )\n)\n\n\nThe example below only shows the JSON shape, using an unrelated library domain; do not reuse its names. Put in result {\"objects\":[{\"name\":\"book-1\",\"type\":\"book\"},{\"name\":\"alice\",\"type\":\"member\"}],\"init\":[{\"predicate\":\"on-shelf\",\"args\":[\"book-1\"]}],\"goal\":[{\"predicate\":\"borrowed-by\",\"args\":[\"book-1\",\"alice\"],\"negated\":false}]}.\n\n<untrusted-situation nonce=\"272a917c88e4\">\nOne synthetic project, house-1, has a client brief, site information and planning constraints available. No building programme, floor-plan variant, IFC model, validation result or rendered view has been produced yet. A designer is available to review the result. Goal: house-1 has a reviewed design ready for the Archicad handoff described in the process.\n</untrusted-situation nonce=\"272a917c88e4\">\n\nSource evidence: for every type, predicate and action, include sourceLines with the numbered description lines that support it. Leave sourceLines empty when the description does not provide evidence; never invent a citation.\n\n<untrusted-numbered-description nonce=\"60d92a668eda\">\n1: # Proposed Workflow\n2: Goal: `client brief + site + planning constraints -> floor-plan variants -> IFC/BIM -> validation -> attractive renders -> human review -> Archicad`.\n3: ## MoltNet tasks\n4: - `extract-project-requirements`: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.\n5: - `extract-planning-constraints`: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.\n6: Require human confirmation initially.\n7: - `derive-building-program`: create the space programme, target/minimum areas, adjacency graph, circulation and orientation preferences.\n8: - `solve-floor-plan`: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.\n9: - `validate-plan`: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.\n10: - `derive-building-elements`: create walls, slabs, roof, openings, doors/windows and other BIM elements.\n11: - `export-or-update-ifc`: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.\n12: - `validate-ifc`: re-open the IFC and run semantic, IDS and geometric validation.\n13: - `stage-visualisation`: add non-authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.\n14: - `render`: generate street, garden, interior, axonometric and plan views.\n15: - `human-review`: let the designer/commercial user select or reject variants and iterate.\n16: ## POC phases\n17: ### POC 0 — Reconstruction\n18: Reconstruct one supplied real project into IFC and verify that it can be inspected, rendered and eventually opened by the drafting team.\n19: ### POC 1 — Parametric modification\n20: Change an extracted model (for example a larger living room, wider garage, added room) and solve a new valid configuration.\n21: ### POC 2 — Generation\n22: Generate multiple layouts from brief + site + constraints, validate/rank them, then emit IFC + renders.\n23: ## Initial benchmark caveat\n24: The handwritten starting brief and supplied plan are different design revisions.\n25: The plan reflects later client modifications, so differences between them must not automatically be scored as generation errors.\n</untrusted-numbered-description nonce=\"60d92a668eda\">",
+      "result": {
+        "goal": [
+          {
+            "args": [
+              "bp-1"
+            ],
+            "negated": false,
+            "predicate": "used-up"
+          }
+        ],
+        "init": [
+          {
+            "args": [
+              "pr-1"
+            ],
+            "predicate": "free"
+          }
+        ],
+        "objects": [
+          {
+            "name": "sys-1",
+            "type": "system-agent"
+          },
+          {
+            "name": "pr-1",
+            "type": "project-requirements"
+          },
+          {
+            "name": "pc-1",
+            "type": "planning-constraints"
+          },
+          {
+            "name": "bp-1",
+            "type": "building-program"
+          },
+          {
+            "name": "fp-1",
+            "type": "floor-plan"
+          },
+          {
+            "name": "be-1",
+            "type": "bim-element"
+          },
+          {
+            "name": "ifc-1",
+            "type": "ifc-model"
+          },
+          {
+            "name": "va-1",
+            "type": "visualisation-assets"
+          },
+          {
+            "name": "rv-1",
+            "type": "render-view"
+          },
+          {
+            "name": "hr-1",
+            "type": "human-reviewer"
+          }
+        ]
+      },
+      "issues": [],
+      "durationMs": 17744
+    }
+  ],
+  "issues": [
+    {
+      "severity": "warning",
+      "path": "actions/extract-project-requirements",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/extract-planning-constraints",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/extract-planning-constraints",
+      "message": "?pc - planning-constraints appears in no precondition, so the planner may pick any planning-constraints",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/derive-building-program",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/derive-building-program",
+      "message": "?bp - building-program appears in no precondition, so the planner may pick any building-program",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/solve-floor-plan",
+      "message": "action has no effects"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/solve-floor-plan",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/solve-floor-plan",
+      "message": "?fp - floor-plan appears in no precondition, so the planner may pick any floor-plan",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/validate-plan",
+      "message": "action has no effects"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/validate-plan",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/validate-plan",
+      "message": "?fp - floor-plan appears in no precondition, so the planner may pick any floor-plan",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/derive-building-elements",
+      "message": "action has no effects"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/derive-building-elements",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/derive-building-elements",
+      "message": "?be - bim-element appears in no precondition, so the planner may pick any bim-element",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/export-or-update-ifc",
+      "message": "action has no effects"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/export-or-update-ifc",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/export-or-update-ifc",
+      "message": "?ifc - ifc-model appears in no precondition, so the planner may pick any ifc-model",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/validate-ifc",
+      "message": "action has no effects"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/validate-ifc",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/validate-ifc",
+      "message": "?ifc - ifc-model appears in no precondition, so the planner may pick any ifc-model",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/stage-visualisation",
+      "message": "action has no effects"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/stage-visualisation",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/stage-visualisation",
+      "message": "?va - visualisation-assets appears in no precondition, so the planner may pick any visualisation-assets",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/render",
+      "message": "action has no effects"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/render",
+      "message": "?sys - system-agent appears in no precondition, so the planner may pick any system-agent",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/render",
+      "message": "?rv - render-view appears in no precondition, so the planner may pick any render-view",
+      "code": "unlinked-parameters"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/human-review",
+      "message": "action has no effects"
+    },
+    {
+      "severity": "warning",
+      "path": "actions/human-review",
+      "message": "?hr - human-reviewer appears in no precondition, so the planner may pick any human-reviewer",
+      "code": "unlinked-parameters"
+    }
+  ],
+  "durationMs": 117318,
+  "domain": {
+    "name": "housing-historical",
+    "types": [
+      {
+        "name": "project-requirements",
+        "description": "Derived information about storeys, rooms, target areas, garage, openings, orientation and client priorities extracted from source documents.",
+        "sourceLines": [
+          4
+        ]
+      },
+      {
+        "name": "planning-constraints",
+        "description": "Regulatory and site constraints such as setbacks, height limits, site coverage, roof rules, access and parking requirements.",
+        "sourceLines": [
+          5
+        ]
+      },
+      {
+        "name": "building-program",
+        "description": "Space programme defining target/minimum areas, adjacency relationships, circulation preferences and orientation guidance.",
+        "sourceLines": [
+          7
+        ]
+      },
+      {
+        "name": "floor-plan",
+        "description": "Geometric layout of spaces that satisfies the building program, constraints and optimisation criteria.",
+        "sourceLines": [
+          8,
+          9
+        ]
+      },
+      {
+        "name": "bim-element",
+        "description": "Building information model components such as walls, slabs, roof, doors and windows created from a validated floor plan.",
+        "sourceLines": [
+          10
+        ]
+      },
+      {
+        "name": "ifc-model",
+        "description": "Canonical IFC representation of the BIM, mutable by export-or-update actions.",
+        "sourceLines": [
+          11
+        ]
+      },
+      {
+        "name": "visualisation-assets",
+        "description": "Non‑authoritative presentation assets (materials, furniture, vegetation, lighting) added for visualisation.",
+        "sourceLines": [
+          13
+        ]
+      },
+      {
+        "name": "render-view",
+        "description": "Generated image views (street, garden, interior, axonometric, plan) of the visualised model.",
+        "sourceLines": [
+          14
+        ]
+      },
+      {
+        "name": "human-reviewer",
+        "description": "The designer or commercial user who selects, rejects or iterates on generated variants.",
+        "sourceLines": [
+          15
+        ]
+      },
+      {
+        "name": "system-agent",
+        "description": "Automated agents executing MoltNet tasks such as extraction, solving, validation and rendering.",
+        "sourceLines": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      }
+    ],
+    "predicates": [
+      {
+        "name": "free",
+        "reading": {
+          "true": "{?x} is free",
+          "false": "{?x} is not free"
+        },
+        "parameters": [
+          {
+            "name": "?x",
+            "type": "project-requirements"
+          }
+        ],
+        "description": "project requirement ?x is free (available for allocation)",
+        "sourceLines": []
+      },
+      {
+        "name": "in-use",
+        "reading": {
+          "true": "{?x} is in use",
+          "false": "{?x} is not in use"
+        },
+        "parameters": [
+          {
+            "name": "?x",
+            "type": "planning-constraints"
+          }
+        ],
+        "description": "planning constraint ?x is currently in use",
+        "sourceLines": []
+      },
+      {
+        "name": "used-up",
+        "reading": {
+          "true": "{?x} is used up",
+          "false": "{?x} is not used up"
+        },
+        "parameters": [
+          {
+            "name": "?x",
+            "type": "building-program"
+          }
+        ],
+        "description": "building program element ?x has been used up",
+        "sourceLines": []
+      }
+    ],
+    "actions": [
+      {
+        "name": "extract-project-requirements",
+        "source": "extract-project-requirements: derive storeys, rooms, target areas, garage, openings, orientation/style preferences and client priorities from source documents.",
+        "reading": "{?sys} extracts {?pr}",
+        "addEffects": [
+          {
+            "args": [
+              "?pr"
+            ],
+            "predicate": "free"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?pr",
+            "type": "project-requirements",
+            "label": "the project requirement set"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": [
+              "?pr"
+            ],
+            "predicate": "free"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": [
+              "?pr"
+            ],
+            "negated": false,
+            "predicate": "free"
+          }
+        ]
+      },
+      {
+        "name": "extract-planning-constraints",
+        "source": "extract-planning-constraints: derive setbacks, height, site coverage, roof, access, parking and other rules with source provenance.",
+        "reading": "{?sys} extracts {?pc}",
+        "addEffects": [
+          {
+            "args": [
+              "?pc"
+            ],
+            "predicate": "in-use"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?pc",
+            "type": "planning-constraints",
+            "label": "the planning constraint set"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      },
+      {
+        "name": "derive-building-program",
+        "source": "derive-building-program: create the space programme, target/minimum areas, adjacency graph, circulation and orientation guidance.",
+        "reading": "{?sys} derives {?bp}",
+        "addEffects": [
+          {
+            "args": [
+              "?bp"
+            ],
+            "predicate": "used-up"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?bp",
+            "type": "building-program",
+            "label": "the building program"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      },
+      {
+        "name": "solve-floor-plan",
+        "source": "solve-floor-plan: use optimisation/constraint solving rather than LLM-generated arbitrary coordinates.",
+        "reading": "{?sys} solves {?fp}",
+        "addEffects": [],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?fp",
+            "type": "floor-plan",
+            "label": "the floor plan"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      },
+      {
+        "name": "validate-plan",
+        "source": "validate-plan: check areas, widths, overlaps, topology, circulation, site boundary, setbacks, footprint, orientation and openings.",
+        "reading": "{?sys} validates {?fp}",
+        "addEffects": [],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?fp",
+            "type": "floor-plan",
+            "label": "the floor plan"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      },
+      {
+        "name": "derive-building-elements",
+        "source": "derive-building-elements: create walls, slabs, roof, openings, doors and windows from a validated floor plan.",
+        "reading": "{?sys} derives {?be}",
+        "addEffects": [],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?be",
+            "type": "bim-element",
+            "label": "the BIM element"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      },
+      {
+        "name": "export-or-update-ifc",
+        "source": "export-or-update-ifc: prefer mutating canonical IFC state where practical rather than maintaining a parallel full building model.",
+        "reading": "{?sys} exports or updates {?ifc}",
+        "addEffects": [],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?ifc",
+            "type": "ifc-model",
+            "label": "the IFC model"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      },
+      {
+        "name": "validate-ifc",
+        "source": "validate-ifc: re-open the IFC and run semantic, IDS and geometric validation.",
+        "reading": "{?sys} validates {?ifc}",
+        "addEffects": [],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?ifc",
+            "type": "ifc-model",
+            "label": "the IFC model"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      },
+      {
+        "name": "stage-visualisation",
+        "source": "stage-visualisation: add non‑authoritative presentation assets such as materials, furniture, kitchen, vegetation and lighting.",
+        "reading": "{?sys} stages {?va}",
+        "addEffects": [],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?va",
+            "type": "visualisation-assets",
+            "label": "the visualisation assets"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      },
+      {
+        "name": "render",
+        "source": "render: generate street, garden, interior, axonometric and plan views.",
+        "reading": "{?sys} renders {?rv}",
+        "addEffects": [],
+        "parameters": [
+          {
+            "name": "?sys",
+            "type": "system-agent",
+            "label": "the system agent"
+          },
+          {
+            "name": "?rv",
+            "type": "render-view",
+            "label": "the render view"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      },
+      {
+        "name": "human-review",
+        "source": "human-review: let the designer/commercial user select or reject variants and iterate.",
+        "reading": "{?hr} reviews generated output",
+        "addEffects": [],
+        "parameters": [
+          {
+            "name": "?hr",
+            "type": "human-reviewer",
+            "label": "the human reviewer"
+          }
+        ],
+        "deleteEffects": [],
+        "preconditions": []
+      }
+    ]
+  },
+  "refinements": [
+    "extract-project-requirements: added precondition (free ?pr) and delete effect to model consumption of a requirement object.",
+    "extract-planning-constraints: added addEffect (in-use ?pc) per description.",
+    "derive-building-program: retained addEffect (used-up ?bp) as single‑use indicator.",
+    "solve-floor-plan: no explicit effects in description; kept empty.",
+    "validate-plan: no explicit effects in description; kept empty.",
+    "derive-building-elements: no explicit effects in description; kept empty.",
+    "export-or-update-ifc: no explicit effects in description; kept empty.",
+    "validate-ifc: no explicit effects in description; kept empty.",
+    "stage-visualisation: no explicit effects in description; kept empty.",
+    "render: no explicit effects in description; kept empty.",
+    "human-review: no explicit effects in description; kept empty."
+  ],
+  "domainPddl": "(define (domain housing-historical)\n  (:requirements :strips :typing)\n  (:types\n    project-requirements planning-constraints building-program floor-plan bim-element ifc-model visualisation-assets render-view human-reviewer system-agent - object\n  )\n  (:predicates\n    (free ?x - project-requirements)\n    (in-use ?x - planning-constraints)\n    (used-up ?x - building-program)\n  )\n  (:action extract-project-requirements\n    :parameters (?sys - system-agent ?pr - project-requirements)\n    :precondition (free ?pr)\n    :effect (and (free ?pr) (not (free ?pr)))\n  )\n  (:action extract-planning-constraints\n    :parameters (?sys - system-agent ?pc - planning-constraints)\n    :precondition (and)\n    :effect (in-use ?pc)\n  )\n  (:action derive-building-program\n    :parameters (?sys - system-agent ?bp - building-program)\n    :precondition (and)\n    :effect (used-up ?bp)\n  )\n  (:action solve-floor-plan\n    :parameters (?sys - system-agent ?fp - floor-plan)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action validate-plan\n    :parameters (?sys - system-agent ?fp - floor-plan)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action derive-building-elements\n    :parameters (?sys - system-agent ?be - bim-element)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action export-or-update-ifc\n    :parameters (?sys - system-agent ?ifc - ifc-model)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action validate-ifc\n    :parameters (?sys - system-agent ?ifc - ifc-model)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action stage-visualisation\n    :parameters (?sys - system-agent ?va - visualisation-assets)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action render\n    :parameters (?sys - system-agent ?rv - render-view)\n    :precondition (and)\n    :effect (and)\n  )\n  (:action human-review\n    :parameters (?hr - human-reviewer)\n    :precondition (and)\n    :effect (and)\n  )\n)\n",
+  "problem": {
+    "name": "house-1",
+    "goal": [
+      {
+        "args": [
+          "bp-1"
+        ],
+        "negated": false,
+        "predicate": "used-up"
+      }
+    ],
+    "init": [
+      {
+        "args": [
+          "pr-1"
+        ],
+        "predicate": "free"
+      }
+    ],
+    "objects": [
+      {
+        "name": "sys-1",
+        "type": "system-agent"
+      },
+      {
+        "name": "pr-1",
+        "type": "project-requirements"
+      },
+      {
+        "name": "pc-1",
+        "type": "planning-constraints"
+      },
+      {
+        "name": "bp-1",
+        "type": "building-program"
+      },
+      {
+        "name": "fp-1",
+        "type": "floor-plan"
+      },
+      {
+        "name": "be-1",
+        "type": "bim-element"
+      },
+      {
+        "name": "ifc-1",
+        "type": "ifc-model"
+      },
+      {
+        "name": "va-1",
+        "type": "visualisation-assets"
+      },
+      {
+        "name": "rv-1",
+        "type": "render-view"
+      },
+      {
+        "name": "hr-1",
+        "type": "human-reviewer"
+      }
+    ]
+  },
+  "problemPddl": "(define (problem house-1)\n  (:domain housing-historical)\n  (:objects\n    sys-1 - system-agent\n    pr-1 - project-requirements\n    pc-1 - planning-constraints\n    bp-1 - building-program\n    fp-1 - floor-plan\n    be-1 - bim-element\n    ifc-1 - ifc-model\n    va-1 - visualisation-assets\n    rv-1 - render-view\n    hr-1 - human-reviewer\n  )\n  (:init\n    (free pr-1)\n  )\n  (:goal (used-up bp-1))\n)\n",
+  "grounding": [
+    {
+      "action": "extract-project-requirements",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "extract-planning-constraints",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "derive-building-program",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "solve-floor-plan",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "validate-plan",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "derive-building-elements",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "export-or-update-ifc",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "validate-ifc",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "stage-visualisation",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "render",
+      "instances": 1,
+      "emptyParameters": []
+    },
+    {
+      "action": "human-review",
+      "instances": 1,
+      "emptyParameters": []
+    }
+  ],
+  "reachability": {
+    "unreachableGoals": [],
+    "blocked": []
+  },
+  "plan": {
+    "status": "found",
+    "steps": [
+      "(derive-building-program sys-1 bp-1)"
+    ],
+    "explored": 3
+  }
+}
